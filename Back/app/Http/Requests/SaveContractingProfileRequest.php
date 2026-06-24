@@ -1,0 +1,31 @@
+<?php
+
+namespace App\Http\Requests;
+
+class SaveContractingProfileRequest extends ApiRequest
+{
+    public function rules(): array
+    {
+        return [
+            'lugar_nacimiento' => ['nullable', 'string', 'max:150'],
+            'departamento_nacimiento' => ['nullable', 'string', 'max:150'],
+            'ciudad_residencia' => ['nullable', 'string', 'max:150'],
+            'departamento_residencia' => ['nullable', 'string', 'max:150'],
+            'direccion_residencia' => ['nullable', 'string', 'max:250'],
+            'telefono_alterno' => ['nullable', 'string', 'max:50'],
+            'correo_personal' => ['nullable', 'email', 'max:150'],
+            'estado_civil' => ['nullable', 'string', 'in:SOLTERO,CASADO,UNION_LIBRE,SEPARADO,DIVORCIADO,VIUDO,OTRO'],
+            'nivel_educativo' => ['nullable', 'string', 'in:PRIMARIA,BACHILLER,TECNICO,TECNOLOGO,PROFESIONAL,POSGRADO,NINGUNO,OTRO'],
+            'personas_a_cargo' => ['nullable', 'integer', 'min:0'],
+            'numero_hijos' => ['nullable', 'integer', 'min:0'],
+            'observaciones' => ['nullable', 'string'],
+            'contacto_emergencia' => ['nullable', 'array'],
+            'contacto_emergencia.nombre_completo' => ['nullable', 'string', 'max:200'],
+            'contacto_emergencia.parentesco' => ['nullable', 'string', 'max:100'],
+            'contacto_emergencia.telefono' => ['nullable', 'string', 'max:50'],
+            'contacto_emergencia.telefono_alterno' => ['nullable', 'string', 'max:50'],
+            'contacto_emergencia.direccion' => ['nullable', 'string', 'max:250'],
+            'contacto_emergencia.observaciones' => ['nullable', 'string', 'max:500'],
+        ];
+    }
+}

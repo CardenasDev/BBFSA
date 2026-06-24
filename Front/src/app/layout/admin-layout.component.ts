@@ -1,0 +1,103 @@
+import { Component, HostListener, inject, signal } from '@angular/core';
+import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { finalize } from 'rxjs';
+import { AuthService } from '../core/services/auth.service';
+
+interface MenuItem {
+  label: string;
+  icon: string;
+  route: string;
+  permissions?: string[];
+  children?: MenuItem[];
+}
+
+@Component({
+  standalone: true,
+  imports: [RouterOutlet, RouterLink, RouterLinkActive],
+  template: `
+    <div class="admin-shell" [class.sidebar-open]="menuOpen()">
+      <aside class="sidebar">
+        <div class="sidebar-brand"><span class="brand-mark small">BBF</span><div><strong>Barro Blanco</strong><small>Sistema Administrativo</small></div></div>
+        <nav>
+          @for (item of visibleItems(); track item.route) {
+            <a [routerLink]="item.route" routerLinkActive="active" (click)="!item.children?.length && menuOpen.set(false)"><span>{{ item.icon }}</span>{{ item.label }}</a>
+            @if (item.children?.length) {
+              <div class="submenu">
+                @for (child of item.children; track child.route) {
+                  <a [routerLink]="child.route" routerLinkActive="active" (click)="menuOpen.set(false)"><span>{{ child.icon }}</span>{{ child.label }}</a>
+                }
+              </div>
+            }
+          }
+        </nav>
+        <div class="sidebar-footer"><span class="status-dot"></span> Sesion protegida</div>
+      </aside>
+      <div class="page-shell">
+        <header class="topbar">
+          <button class="icon-btn menu-toggle" (click)="menuOpen.set(!menuOpen())" aria-label="Abrir menu">☰</button>
+          <div class="topbar-title"><strong>Sistema Administrativo</strong><small>Barro Blanco Farms</small></div>
+          <div class="user-menu"><div class="avatar">{{ initials() }}</div><div class="user-copy"><strong>{{ auth.currentUser()?.nombre_usuario }}</strong><small>{{ auth.currentUser()?.tipo_usuario }}</small></div><button class="btn ghost" (click)="logout()" [disabled]="loggingOut()">Salir</button></div>
+        </header>
+        <main class="content"><router-outlet /></main>
+      </div>
+      @if (menuOpen()) { <button class="overlay" (click)="menuOpen.set(false)" aria-label="Cerrar menu"></button> }
+    </div>`,
+})
+export class AdminLayoutComponent {
+  readonly auth = inject(AuthService);
+  private readonly router = inject(Router);
+  readonly menuOpen = signal(false);
+  readonly loggingOut = signal(false);
+  private readonly items: MenuItem[] = [
+    { label: 'Dashboard', icon: '⌂', route: '/admin/dashboard', permissions: ['DASHBOARD_VER'] },
+    { label: 'Empleados', icon: 'E', route: '/admin/employees', permissions: ['EMPLEADOS_VER'] },
+    {
+      label: 'Dotaciones',
+      icon: 'D',
+      route: '/admin/dotations/my-sizes',
+      permissions: ['DOTACIONES_VER'],
+      children: [
+        { label: 'Mis tallas', icon: 'M', route: '/admin/dotations/my-sizes', permissions: ['DOTACIONES_MIS_TALLAS_VER'] },
+        { label: 'Mis dotaciones', icon: 'D', route: '/admin/dotations/my-deliveries', permissions: ['DOTACIONES_MIS_ENTREGAS_VER'] },
+        { label: 'Control de dotaciones', icon: 'C', route: '/admin/dotations/employees', permissions: ['DOTACIONES_ADMIN_VER'] },
+      ],
+    },
+    {
+      label: 'Contratacion',
+      icon: 'C',
+      route: '/admin/contracting',
+      permissions: ['CONTRATACION_VER'],
+      children: [
+        { label: 'Ficha de ingreso', icon: 'F', route: '/admin/contracting', permissions: ['CONTRATACION_VER'] },
+        { label: 'Alertas', icon: 'A', route: '/admin/contracting/alerts', permissions: ['CONTRATACION_ALERTAS_VER'] },
+      ],
+    },
+    { label: 'Usuarios', icon: 'U', route: '/admin/users', permissions: ['USUARIOS_LISTAR', 'USUARIOS_VER'] },
+    { label: 'Roles', icon: 'R', route: '/admin/roles', permissions: ['ROLES_LISTAR', 'ROLES_VER'] },
+    { label: 'Dominios', icon: 'D', route: '/admin/domains', permissions: ['DOMINIOS_LISTAR'] },
+    { label: 'Permisos', icon: 'P', route: '/admin/permissions', permissions: ['PERMISOS_LISTAR', 'PERMISOS_VER'] },
+    { label: 'Mi perfil', icon: 'M', route: '/admin/profile', permissions: ['MI_PERFIL_VER'] },
+  ];
+
+  visibleItems(): MenuItem[] {
+    return this.items
+      .filter((item) => !item.permissions || this.auth.hasAnyPermission(item.permissions))
+      .map((item) => ({ ...item, children: item.children?.filter((child) => !child.permissions || this.auth.hasAnyPermission(child.permissions)) }));
+  }
+
+  initials(): string {
+    return (this.auth.currentUser()?.nombre_usuario ?? 'U').split(/\s+/).slice(0, 2).map((part) => part[0]).join('').toUpperCase();
+  }
+
+  logout(): void {
+    this.loggingOut.set(true);
+    this.auth.logout().pipe(finalize(() => this.loggingOut.set(false))).subscribe({
+      next: () => void this.router.navigate(['/login']),
+      error: () => void this.router.navigate(['/login']),
+    });
+  }
+
+  @HostListener('window:resize') onResize(): void {
+    if (window.innerWidth > 900) this.menuOpen.set(false);
+  }
+}

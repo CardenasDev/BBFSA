@@ -1,0 +1,129 @@
+# =========================
+# BBFSA - Git ignore root
+# Laravel Backend + Angular Frontend
+# Ubicación esperada: BBFSA/.gitignore
+# =========================
+
+# -------------------------
+# OS / Editor
+# -------------------------
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+!.vscode/launch.json
+!.vscode/tasks.json
+.idea/
+*.swp
+*.swo
+
+# -------------------------
+# Environment / secrets
+# -------------------------
+.env
+.env.*
+!.env.example
+*.local
+
+# -------------------------
+# Logs
+# -------------------------
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+logs/
+
+# -------------------------
+# Dependencies
+# -------------------------
+node_modules/
+Front/node_modules/
+Back/node_modules/
+vendor/
+Back/vendor/
+
+# -------------------------
+# Angular / Frontend build
+# -------------------------
+dist/
+Front/dist/
+.angular/
+Front/.angular/
+.cache/
+Front/.cache/
+coverage/
+Front/coverage/
+.nx/
+Front/.nx/
+out-tsc/
+Front/out-tsc/
+
+# -------------------------
+# Angular / TypeScript misc
+# -------------------------
+*.tsbuildinfo
+Front/*.tsbuildinfo
+
+# -------------------------
+# Laravel / PHP backend
+# -------------------------
+Back/storage/*.key
+Back/storage/app/*
+!Back/storage/app/.gitignore
+Back/storage/framework/cache/*
+!Back/storage/framework/cache/.gitignore
+Back/storage/framework/sessions/*
+!Back/storage/framework/sessions/.gitignore
+Back/storage/framework/testing/*
+!Back/storage/framework/testing/.gitignore
+Back/storage/framework/views/*
+!Back/storage/framework/views/.gitignore
+Back/storage/logs/*
+!Back/storage/logs/.gitignore
+
+Back/bootstrap/cache/*.php
+Back/bootstrap/cache/*.log
+
+# Laravel generated files
+Back/public/storage
+Back/public/hot
+Back/.phpunit.result.cache
+.phpunit.result.cache
+
+# -------------------------
+# Composer / PHP tooling cache
+# -------------------------
+.composer/
+.php-cs-fixer.cache
+.phpunit.cache/
+Back/.phpunit.cache/
+
+# -------------------------
+# Test / reports
+# -------------------------
+coverage-html/
+reports/
+test-results/
+
+# -------------------------
+# Temporary files
+# -------------------------
+tmp/
+temp/
+*.tmp
+*.bak
+*.backup
+
+# -------------------------
+# Nested Git repos created by mistake
+# OJO: esto ignora carpetas .git internas, pero lo correcto es borrarlas.
+# -------------------------
+Front/.git/
+Back/.git/
+Front/.gitignore
+Back/.gitignore

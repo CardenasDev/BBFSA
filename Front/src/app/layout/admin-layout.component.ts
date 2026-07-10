@@ -50,6 +50,7 @@ export class AdminLayoutComponent {
   readonly loggingOut = signal(false);
   private readonly items: MenuItem[] = [
     { label: 'Dashboard', icon: '⌂', route: '/admin/dashboard', permissions: ['DASHBOARD_VER'] },
+    { label: 'Aspirantes', icon: 'A', route: '/admin/applicants', permissions: ['ASPIRANTES_VER'] },
     { label: 'Empleados', icon: 'E', route: '/admin/employees', permissions: ['EMPLEADOS_VER'] },
     {
       label: 'Dotaciones',

@@ -78,9 +78,13 @@ code { padding:.25rem .45rem; border-radius:6px; background:#edf3f0; color:var(-
 .chip-list { display:flex; flex-wrap:wrap; gap:.55rem; }
 .chip { border:1px solid #d6e3dd; border-radius:999px; padding:.38rem .7rem; background:#f2f7f4; color:var(--green-800); font-size:.78rem; font-weight:700; }
 .badge { display:inline-flex; width:max-content; border-radius:999px; padding:.3rem .62rem; background:#f3eee2; color:var(--warning); font-size:.7rem; font-weight:800; }
+.badge.info { background:#e8f1fb; color:#27587d; }
+.badge.warning { background:#fff4df; color:var(--warning); }
+.badge.neutral { background:#edf0ee; color:#66736e; }
 .badge.success { background:#e3f3eb; color:#176146; }
 .badge.danger { background:#f9e5e5; color:#922c2c; }
 .filters { display:grid; grid-template-columns:minmax(220px,2fr) repeat(2,minmax(140px,1fr)) auto; align-items:end; gap:.85rem; margin-bottom:1.25rem; }
+.filters.applicants-filters { grid-template-columns:minmax(220px,2fr) repeat(3,minmax(140px,1fr)) auto; }
 .filters.compact { grid-template-columns:minmax(180px,300px); }
 .table-wrap { overflow-x:auto; }
 table { width:100%; border-collapse:collapse; text-align:left; }

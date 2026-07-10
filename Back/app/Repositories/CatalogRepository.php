@@ -23,4 +23,19 @@ class CatalogRepository extends StoredProcedureRepository
     {
         return $this->call('SP_BBF_TIPOS_CONTRATO_LISTAR', [(int) $onlyActive]);
     }
+
+    public function listLaborDocumentTypes(?bool $active, ?bool $appliesApplicant, ?bool $appliesContracting, ?bool $appliesRetirement): array
+    {
+        return $this->call('SP_BBF_TIPOS_DOCUMENTO_LABORAL_LISTAR', [
+            $this->nullableBool($active),
+            $this->nullableBool($appliesApplicant),
+            $this->nullableBool($appliesContracting),
+            $this->nullableBool($appliesRetirement),
+        ]);
+    }
+
+    private function nullableBool(?bool $value): ?int
+    {
+        return $value === null ? null : (int) $value;
+    }
 }

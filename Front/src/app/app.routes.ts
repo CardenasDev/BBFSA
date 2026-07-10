@@ -4,8 +4,21 @@ import { AdminLayoutComponent } from './layout/admin-layout.component';
 
 export const routes: Routes = [
   { path: 'login', canActivate: [guestGuard], loadComponent: () => import('./features/auth/login.component').then((m) => m.LoginComponent) },
+  {
+    path: 'admin/contracting/contracts/:employeeContractId/print',
+    canActivate: [authGuard, permissionGuard],
+    data: { permissions: ['CONTRATACION_VER'] },
+    loadComponent: () => import('./contracts/pages/contract-print.component').then((m) => m.ContractPrintComponent),
+  },
   { path: 'admin', canActivate: [authGuard], canActivateChild: [passwordChangeGuard], component: AdminLayoutComponent, children: [
     { path: 'dashboard', loadComponent: () => import('./features/dashboard/dashboard.component').then((m) => m.DashboardComponent) },
+    { path: 'applicants', canActivate: [permissionGuard], data: { permissions: ['ASPIRANTES_VER'] }, loadComponent: () => import('./features/applicants/applicants-list.component').then((m) => m.ApplicantsListComponent) },
+    { path: 'applicants/create', canActivate: [permissionGuard], data: { permissions: ['ASPIRANTES_CREAR'] }, loadComponent: () => import('./features/applicants/applicant-form.component').then((m) => m.ApplicantFormComponent) },
+    { path: 'applicants/:applicantId', canActivate: [permissionGuard], data: { permissions: ['ASPIRANTES_VER'] }, loadComponent: () => import('./features/applicants/applicant-detail.component').then((m) => m.ApplicantDetailComponent) },
+    { path: 'applicants/:applicantId/edit', canActivate: [permissionGuard], data: { permissions: ['ASPIRANTES_EDITAR'] }, loadComponent: () => import('./features/applicants/applicant-form.component').then((m) => m.ApplicantFormComponent) },
+    { path: 'applicants/:applicantId/documents', canActivate: [permissionGuard], data: { permissions: ['ASPIRANTES_DOCUMENTOS_VER'] }, loadComponent: () => import('./features/applicants/applicant-documents.component').then((m) => m.ApplicantDocumentsComponent) },
+    { path: 'applicants/:applicantId/history', canActivate: [permissionGuard], data: { permissions: ['ASPIRANTES_VER'] }, loadComponent: () => import('./features/applicants/applicant-history.component').then((m) => m.ApplicantHistoryComponent) },
+    { path: 'applicants/:applicantId/convert', canActivate: [permissionGuard], data: { permissions: ['ASPIRANTES_CONVERTIR_EMPLEADO'] }, loadComponent: () => import('./features/applicants/applicant-convert.component').then((m) => m.ApplicantConvertComponent) },
     { path: 'employees', canActivate: [permissionGuard], data: { permissions: ['EMPLEADOS_LISTAR', 'EMPLEADOS_VER'] }, loadComponent: () => import('./features/employees/employees.component').then((m) => m.EmployeesComponent) },
     { path: 'dotations/my-sizes', canActivate: [permissionGuard], data: { permissions: ['DOTACIONES_MIS_TALLAS_VER'] }, loadComponent: () => import('./features/dotations/my-sizes.component').then((m) => m.MyDotationSizesComponent) },
     { path: 'dotations/my-deliveries', canActivate: [permissionGuard], data: { permissions: ['DOTACIONES_MIS_ENTREGAS_VER'] }, loadComponent: () => import('./features/dotations/my-deliveries.component').then((m) => m.MyDotationDeliveriesComponent) },
@@ -16,6 +29,7 @@ export const routes: Routes = [
     { path: 'dotations/deliveries/create', canActivate: [permissionGuard], data: { permissions: ['DOTACIONES_ENTREGAS_CREAR'] }, loadComponent: () => import('./features/dotations/delivery-create.component').then((m) => m.DotationDeliveryCreateComponent) },
     { path: 'dotations/deliveries/:deliveryId', canActivate: [permissionGuard], data: { permissions: ['DOTACIONES_ENTREGAS_VER'] }, loadComponent: () => import('./features/dotations/delivery-detail.component').then((m) => m.DotationDeliveryDetailComponent) },
     { path: 'contracting', canActivate: [permissionGuard], data: { permissions: ['CONTRATACION_VER'] }, loadComponent: () => import('./features/contracting/contracting-employees.component').then((m) => m.ContractingEmployeesComponent) },
+    { path: 'contracting/contracts/:employeeContractId/preview', canActivate: [permissionGuard], data: { permissions: ['CONTRATACION_VER'] }, loadComponent: () => import('./contracts/pages/contract-preview.component').then((m) => m.ContractPreviewComponent) },
     { path: 'contracting/employees/:employeeId/profile', canActivate: [permissionGuard], data: { permissions: ['CONTRATACION_VER'] }, loadComponent: () => import('./features/contracting/contracting-profile.component').then((m) => m.ContractingProfileComponent) },
     { path: 'contracting/employees/:employeeId/contracts', canActivate: [permissionGuard], data: { permissions: ['CONTRATACION_HISTORIAL_VER'] }, loadComponent: () => import('./features/contracting/contracting-contracts.component').then((m) => m.ContractingContractsComponent) },
     { path: 'contracting/employees/:employeeId/social-security', canActivate: [permissionGuard], data: { permissions: ['CONTRATACION_SEGURIDAD_SOCIAL_VER'] }, loadComponent: () => import('./features/contracting/contracting-social-security.component').then((m) => m.ContractingSocialSecurityComponent) },

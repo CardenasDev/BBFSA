@@ -1,0 +1,556 @@
+:host {
+  display: block;
+  --contract-table-bg: rgba(217, 226, 236, 0.84);
+}
+
+.indefinite-contract-doc {
+  background: #e3e3e3;
+  padding: 0 0 12mm;
+}
+
+.contract-sheet {
+  width: 210mm;
+  min-height: 297mm;
+  margin: 0 auto;
+  background: #fff;
+  color: #000;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 11.04pt;
+  line-height: 1.12;
+  padding: 0;
+  box-sizing: border-box;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.08);
+}
+
+.contract-page {
+  width: 210mm;
+  min-height: 297mm;
+  margin: 0 auto 12mm;
+  padding: 14mm 16mm;
+  box-sizing: border-box;
+  overflow: visible;
+}
+
+.contract-table {
+  width: 100%;
+  border-collapse: collapse;
+  border: 1px solid #444;
+  table-layout: fixed;
+}
+
+.contract-table th,
+.contract-table td {
+  border: 1px solid #444;
+}
+
+.contract-table tr:last-child th,
+.contract-table tr:last-child td {
+  border-bottom: 1px solid #000 !important;
+}
+
+.contract-sheet--page-1 {
+  page-break-after: always;
+  break-after: page;
+}
+
+.contract-sheet--page-2 {
+  page-break-after: always;
+  break-after: page;
+}
+
+.contract-sheet--page-3 {
+  page-break-after: always;
+  break-after: page;
+}
+
+.contract-sheet--page-4 {
+  page-break-after: always;
+  break-after: page;
+}
+
+.doc-header-table {
+  width: 100%;
+  margin: 12mm 0 5mm;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.doc-header-table td {
+  border: 1px solid #8a8a8a;
+  color: #6f6f6f;
+  padding: 0 3pt;
+  vertical-align: middle;
+  background: #fff;
+}
+
+.doc-header-logo {
+  width: 26.505%;
+}
+
+.logo-cell {
+  text-align: center;
+  vertical-align: middle;
+}
+
+.contract-logo {
+  margin: 0 auto;
+  display: block;
+  max-width: 38mm;
+  max-height: 24mm;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  opacity: 0.65;
+}
+
+.doc-header-title-top,
+.doc-header-title-bottom {
+  width: 55.444%;
+  text-align: center;
+  font-weight: 700;
+  letter-spacing: 0;
+  font-size: 11.04pt;
+  color: #6f6f6f;
+}
+
+.doc-header-title-top {
+  height: 21.36pt;
+}
+
+.doc-header-title-bottom {
+  height: 22.82pt;
+}
+
+.doc-header-title-spacer {
+  height: 19.44pt;
+}
+
+.doc-header-meta {
+  width: 18.051%;
+  padding: 1pt 3pt;
+  font-size: 11.04pt;
+  line-height: 1.02;
+  color: #6f6f6f;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.doc-main-title {
+  margin: 0 0 12.92pt;
+  text-align: center;
+  font-size: 11.04pt;
+  font-weight: 700;
+}
+
+.doc-table {
+  width: 100%;
+  margin: 0 0 13.85pt;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: 11.04pt;
+}
+
+.doc-table th,
+.doc-table td {
+  border: 1px solid #444;
+  padding: 1.7pt 4pt 1.4pt;
+  vertical-align: top;
+}
+
+.doc-table th {
+  width: 208.77pt;
+  background: #c2ccd8;
+  font-weight: 700;
+  text-align: left;
+}
+
+.doc-table td {
+  width: 218.45pt;
+  background: #fff;
+}
+
+.doc-col-gap {
+  width: 5.23pt;
+  min-width: 5.23pt;
+  padding: 0 !important;
+}
+
+.section-table {
+  margin-bottom: 13.85pt;
+}
+
+.section-table .table-title {
+  text-align: center !important;
+  background: #d9e2ec !important;
+  font-size: 11.04pt;
+  font-weight: 700;
+  padding: 4pt 2pt !important;
+}
+
+.contract-data-table {
+  width: 100%;
+  margin: 0 0 10pt;
+  border-collapse: collapse !important;
+  border-spacing: 0 !important;
+  table-layout: fixed;
+  border: 1px solid #000 !important;
+}
+.contract-data-table th,
+.contract-data-table td {
+  border: 1px solid #000 !important;
+  box-sizing: border-box;
+}
+
+.contract-data-table .label-cell {
+  width: 50%;
+  background: #d9e2ec;
+  font-weight: 700;
+}
+
+.contract-data-table .value-cell {
+  width: 50%;
+  background: #fff;
+  text-align: left;
+}
+
+.employer-table {
+  font-size: 10pt;
+  line-height: 1.1;
+}
+.employer-table td,
+.employer-table th {
+  padding: 1.2mm 2mm;
+  vertical-align: middle;
+}
+
+.employer-table .table-title {
+  background: #d9e2ec !important;
+  text-align: center !important;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 1.2mm 2mm !important;
+}
+
+.employer-table .label-cell {
+  white-space: nowrap;
+}
+
+.worker-table {
+  font-size: 10pt;
+  line-height: 1.1;
+}
+
+.worker-table .table-title {
+  background: #d9e2ec !important;
+  text-align: center !important;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 1mm 2mm !important;
+}
+
+.worker-table td,
+.worker-table th {
+  padding: 1mm 2mm;
+  vertical-align: middle;
+}
+
+.uppercase {
+  text-transform: uppercase;
+}
+
+.doc-clause-text {
+  width: 100%;
+  margin: 10pt 0 8pt;
+  text-align: justify;
+  font-size: 10pt;
+  line-height: 1.12;
+  word-break: normal;
+  overflow-wrap: normal;
+  hyphens: none;
+}
+
+.doc-clause-text strong {
+  font-weight: 700;
+}
+
+.doc-clause-text--page-2 {
+  width: 100%;
+  margin: 18pt 0 0;
+  font-size: 10pt;
+  line-height: 1.12;
+}
+
+.doc-clause-text--page-2-gap {
+  margin-top: 14pt;
+  margin-bottom: 8pt;
+}
+
+.doc-clause-text--page-3 {
+  width: 100%;
+  margin: 18pt 0 10pt;
+  font-size: 10pt;
+  line-height: 1.12;
+}
+
+.signatures-block {
+  position: relative;
+  width: 100%;
+  margin: 0 0 16pt;
+}
+
+.signatures-block::after {
+  content: '';
+  position: absolute;
+  left: 10%;
+  right: 10%;
+  top: 34pt;
+  bottom: 42pt;
+  background-image: url('/assets/brand/bbf-logo.png');
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 340pt auto;
+  opacity: 0.12;
+  pointer-events: none;
+}
+
+.signatures-title {
+  margin: 0 0 12pt;
+  font-size: 11.04pt;
+  font-weight: 700;
+}
+
+.signatures-table {
+  width: 100%;
+  border-collapse: collapse;
+  border: 1px solid #000;
+  table-layout: fixed;
+  font-size: 8.8pt;
+}
+
+.signatures-table th,
+.signatures-table td {
+  border: 1px solid #000;
+  background: var(--contract-table-bg);
+  padding: 1.1mm 2mm;
+  text-align: left;
+  vertical-align: top;
+  position: relative;
+  z-index: 1;
+}
+
+.signatures-table th {
+  font-size: 8.6pt;
+  font-weight: 700;
+}
+
+.sign-row td {
+  height: 108pt;
+  vertical-align: bottom;
+  text-align: center;
+  padding-bottom: 4pt;
+}
+
+.sign-row span {
+  font-size: 8.4pt;
+  font-weight: 700;
+}
+
+.sign-name-row td {
+  background: var(--contract-table-bg);
+  font-weight: 700;
+}
+
+.signature-location-block {
+  width: 100%;
+  margin: 0 0 2pt;
+}
+
+.signature-location-title {
+  margin: 0 0 24pt;
+  font-size: 8.8pt;
+}
+
+.signature-location-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: 8.8pt;
+  margin-bottom: 2pt;
+}
+
+.signature-location-table td {
+  border: 1px solid #444;
+  padding: 1mm 2mm;
+  vertical-align: middle;
+}
+
+.signature-location-table .label {
+  width: 31%;
+  background: #dfe6ef;
+  font-weight: 700;
+}
+
+.signature-location-table .value {
+  width: 69%;
+  background: #fff;
+}
+
+.doc-footer-table {
+  width: 100%;
+  margin: 7pt 0 0;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: 7.8pt;
+  color: #6f6f6f;
+  border-color: #8a8a8a;
+  page-break-inside: avoid;
+  break-inside: avoid;
+}
+
+.doc-footer-table th,
+.doc-footer-table td {
+  border: 1px solid #8a8a8a;
+  padding: 1.3mm 1.4mm;
+  vertical-align: top;
+  text-align: left;
+  background: #fff;
+  color: #6f6f6f;
+  word-break: normal;
+  overflow-wrap: normal;
+  hyphens: none;
+}
+
+.doc-footer-table th {
+  font-weight: 700;
+}
+
+.doc-footer-table th:nth-child(1),
+.doc-footer-table td:nth-child(1) {
+  width: 8%;
+}
+
+.doc-footer-table th:nth-child(2),
+.doc-footer-table td:nth-child(2) {
+  width: 11%;
+}
+
+.doc-footer-table th:nth-child(3),
+.doc-footer-table td:nth-child(3) {
+  width: 19%;
+}
+
+.doc-footer-table th:nth-child(4),
+.doc-footer-table td:nth-child(4) {
+  width: 11%;
+}
+
+.doc-footer-table th:nth-child(5),
+.doc-footer-table td:nth-child(5) {
+  width: 16%;
+}
+
+.doc-footer-table th:nth-child(6),
+.doc-footer-table td:nth-child(6) {
+  width: 17%;
+}
+
+.doc-footer-table th:nth-child(7),
+.doc-footer-table td:nth-child(7) {
+  width: 18%;
+}
+
+.doc-control-note {
+  width: 100%;
+  margin: 4pt 0 14pt;
+  font-size: 6.8pt;
+  line-height: 1.05;
+  color: #6f6f6f;
+  text-align: left;
+  word-break: normal;
+  overflow-wrap: normal;
+  hyphens: none;
+}
+
+@page {
+  size: A4;
+  margin: 14mm 16mm 14mm 16mm;
+}
+
+@media print {
+  body {
+    margin: 0;
+    background: #fff;
+  }
+
+  .indefinite-contract-doc {
+    background: transparent;
+    padding: 0;
+  }
+
+  .contract-sheet {
+    width: auto;
+    min-height: auto;
+    margin: 0;
+    box-shadow: none;
+  }
+
+  .contract-page {
+    width: auto;
+    min-height: auto;
+    margin: 0;
+    padding: 0;
+    box-shadow: none;
+    page-break-after: always;
+    break-after: page;
+  }
+
+  .contract-sheet--page-1,
+  .contract-sheet--page-2,
+  .contract-sheet--page-3,
+  .contract-sheet--page-4,
+  .doc-header-table,
+  .section-table,
+  .doc-footer-table,
+  .doc-control-note {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  .contract-page:last-child {
+    page-break-after: auto;
+    break-after: auto;
+  }
+
+  .doc-table th,
+  .section-table .table-title,
+  .contract-data-table,
+  .contract-data-table th,
+  .contract-data-table td,
+  .signatures-table,
+  .signatures-table th,
+  .signatures-table td {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .contract-table,
+  .contract-table th,
+  .contract-table td {
+    border-color: #000 !important;
+  }
+
+  .contract-data-table {
+    border-collapse: collapse !important;
+    border-spacing: 0 !important;
+    border: 1px solid #000 !important;
+  }
+
+  .contract-data-table th,
+  .contract-data-table td {
+    border: 1px solid #000 !important;
+    border-color: #000 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    box-shadow: none !important;
+  }
+}

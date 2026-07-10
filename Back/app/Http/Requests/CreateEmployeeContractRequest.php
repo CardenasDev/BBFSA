@@ -7,7 +7,8 @@ class CreateEmployeeContractRequest extends ApiRequest
     public function rules(): array
     {
         return [
-            'id_tipo_contrato' => ['nullable', 'integer'],
+            'id_tipo_contrato' => ['required', 'integer'],
+            'id_plantilla_contrato' => ['nullable', 'integer'],
             'id_area' => ['nullable', 'integer'],
             'id_cargo' => ['nullable', 'integer'],
             'fecha_inicio' => ['required', 'date'],

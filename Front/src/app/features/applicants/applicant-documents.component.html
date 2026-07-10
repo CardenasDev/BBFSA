@@ -1,0 +1,172 @@
+<div class="page-heading">
+  <div>
+    <p class="eyebrow">Aspirantes</p>
+    <h1>Documentos del aspirante</h1>
+    <p class="muted">Puedes registrar el documento como pendiente, asociar una URL externa o cargar un archivo físico al sistema.</p>
+  </div>
+  <div class="row-actions">
+    @if (auth.hasPermission('ASPIRANTES_DOCUMENTOS_SUBIR')) {
+      <button class="btn primary" type="button" (click)="openCreate()">Registrar documento</button>
+    }
+    <a class="btn ghost" [routerLink]="['/admin/applicants', applicantId]">Volver</a>
+  </div>
+</div>
+
+@if (applicant(); as current) {
+  <section class="panel profile-summary">
+    <div class="avatar large">{{ initials(current) }}</div>
+    <div>
+      <h2>{{ name(current) }}</h2>
+      <p class="muted">Documento {{ current.numero_documento }}</p>
+    </div>
+    <span class="badge" [ngClass]="statusClass(current.estado_aspirante)">{{ current.estado_aspirante }}</span>
+  </section>
+}
+
+<section class="panel">
+  <div class="row-actions panel-actions">
+    <a class="btn small ghost" [routerLink]="['/admin/applicants', applicantId]">Detalle</a>
+    <a class="btn small secondary" [routerLink]="['/admin/applicants', applicantId, 'documents']">Documentos</a>
+    <a class="btn small ghost" [routerLink]="['/admin/applicants', applicantId, 'history']">Historial</a>
+  </div>
+
+  @if (success()) {
+    <div class="alert success">{{ success() }}</div>
+  }
+
+  @if (error()) {
+    <div class="alert error">
+      {{ error() }}
+      <button class="btn small ghost" type="button" (click)="load()" [disabled]="loading()">Reintentar</button>
+    </div>
+  }
+
+  <div class="table-wrap document-table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Tipo documento</th>
+          <th>Nombre documento</th>
+          <th>Origen</th>
+          <th>Estado</th>
+          <th>Obligatorio</th>
+          <th>Cargado por</th>
+          <th>Fecha carga</th>
+          <th>Observaciones</th>
+          <th>Acción / Abrir</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (document of documents(); track document.id_aspirante_documento || document.nombre_archivo || document.id_tipo_documento_laboral) {
+          <tr>
+            <td>{{ document.tipo_documento_laboral || displayId(document.id_tipo_documento_laboral) }}</td>
+            <td>{{ document.nombre_original || document.nombre_archivo || 'Sin nombre' }}</td>
+            <td><span class="badge" [ngClass]="originBadgeClass(document.tipo_origen_archivo)">{{ originLabel(document.tipo_origen_archivo) }}</span></td>
+            <td><span class="badge" [ngClass]="stateBadgeClass(document.estado_documento)">{{ document.estado_documento || 'Sin estado' }}</span></td>
+            <td>{{ truthy(document.obligatorio) ? 'Si' : 'No' }}</td>
+            <td>{{ document.cargado_por || displayId(document.id_cargado_por) }}</td>
+            <td>{{ document.created_at || 'Sin fecha' }}</td>
+            <td>{{ document.observaciones || 'Sin observaciones' }}</td>
+            <td>
+              @if (document.archivo_url) {
+                <a [href]="document.archivo_url" target="_blank" rel="noopener noreferrer">Abrir URL</a>
+              } @else if (document.archivo_ruta) {
+                <a [href]="backendFileUrl(document.archivo_ruta)" target="_blank" rel="noopener noreferrer">Abrir archivo</a>
+              } @else {
+                <span class="muted">Sin archivo</span>
+              }
+            </td>
+          </tr>
+        } @empty {
+          <tr>
+            <td colspan="9" class="empty">{{ loading() ? 'Cargando documentos...' : 'No hay documentos registrados.' }}</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</section>
+
+@if (createOpen()) {
+  <button class="drawer-backdrop" type="button" aria-label="Cerrar documento" (click)="closeCreate()"></button>
+  <aside class="role-drawer" aria-label="Registrar documento" aria-modal="true">
+    <header class="drawer-header">
+      <div>
+        <p class="eyebrow">Documento aspirante</p>
+        <h2>Registrar documento</h2>
+      </div>
+      <button class="icon-btn close-btn" type="button" (click)="closeCreate()" aria-label="Cerrar">x</button>
+    </header>
+
+    <p class="muted">Puedes registrar el documento como pendiente, asociar una URL externa o cargar un archivo físico al sistema.</p>
+
+    @if (formError()) {
+      <div class="alert error">{{ formError() }}</div>
+    }
+
+    <form class="form-grid" (ngSubmit)="registerDocument()">
+      <label>
+        Tipo documento laboral
+        <select name="id_tipo_documento_laboral" [(ngModel)]="form.id_tipo_documento_laboral" required>
+          <option [ngValue]="null">{{ loadingLaborDocumentTypes() ? 'Cargando...' : 'Seleccione...' }}</option>
+          @for (type of laborDocumentTypes(); track type.id_tipo_documento_laboral) {
+            <option [ngValue]="type.id_tipo_documento_laboral">{{ type.nombre }}</option>
+          }
+        </select>
+      </label>
+
+      <label>
+        Origen del documento
+        <select name="origen_documento" [(ngModel)]="form.origen_documento" (ngModelChange)="onOriginChange($event)" required>
+          <option [ngValue]="null">Seleccione...</option>
+          @for (origin of documentOrigins; track origin.value) {
+            <option [ngValue]="origin.value">{{ origin.label }}</option>
+          }
+        </select>
+      </label>
+
+      <div class="form-wide chip-list">
+        @if (selectedLaborDocumentType(); as selectedType) {
+          @if (truthy(selectedType.obligatorio)) {
+            <span class="chip">Obligatorio</span>
+          }
+          @if (truthy(selectedType.requiere_vencimiento)) {
+            <span class="chip">Requiere vencimiento</span>
+          }
+          @if (selectedType.descripcion) {
+            <span class="muted">{{ selectedType.descripcion }}</span>
+          }
+        }
+      </div>
+
+      <label>
+        Nombre del documento
+        <input name="nombre_archivo" [(ngModel)]="form.nombre_archivo" maxlength="255" placeholder="Ej. Hoja de vida" />
+      </label>
+
+      @if (form.origen_documento === 'URL_EXTERNA') {
+        <label class="form-wide">
+          URL del documento
+          <input name="archivo_url" [(ngModel)]="form.archivo_url" required maxlength="500" placeholder="https://..." />
+        </label>
+      }
+
+      @if (form.origen_documento === 'ARCHIVO_FISICO') {
+        <label class="form-wide">
+          Seleccionar archivo
+          <input type="file" [accept]="acceptDocumentExtensions" (change)="onFileSelected($event)" [required]="form.origen_documento === 'ARCHIVO_FISICO'" />
+        </label>
+      }
+
+      <label class="form-wide">
+        Observaciones
+        <textarea rows="3" name="observaciones" [(ngModel)]="form.observaciones"></textarea>
+      </label>
+
+      <div class="form-actions form-wide">
+        <button class="btn secondary" type="button" (click)="closeCreate()" [disabled]="saving()">Cancelar</button>
+        <button class="btn primary" type="submit" [disabled]="saving()">{{ saving() ? 'Guardando...' : 'Registrar documento' }}</button>
+      </div>
+    </form>
+  </aside>
+}

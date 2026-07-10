@@ -13,6 +13,8 @@ const EDUCATION_LEVELS = ['PRIMARIA', 'BACHILLER', 'TECNICO', 'TECNOLOGO', 'PROF
 type EmergencyContactForm = NonNullable<SaveContractingProfileRequest['contacto_emergencia']>;
 
 interface ContractingProfileForm extends SaveContractingProfileRequest {
+  fecha_nacimiento: string | null;
+  nacionalidad: string | null;
   contacto_emergencia: EmergencyContactForm;
 }
 
@@ -46,9 +48,12 @@ interface ContractingProfileForm extends SaveContractingProfileRequest {
       @if (success()) { <div class="alert success">{{ success() }}</div> }
       @if (error()) { <div class="alert error">{{ error() }} <button class="btn small ghost" type="button" (click)="load()" [disabled]="loading()">Reintentar</button></div> }
       @if (formError()) { <div class="alert error">{{ formError() }}</div> }
+      @if (profile()?.id_aspirante_origen) { <p class="muted">Informacion precargada desde el registro del aspirante.</p> }
 
       <form class="form-grid" (ngSubmit)="save()">
+        <label>Fecha nacimiento<input type="date" name="fecha_nacimiento" [(ngModel)]="form.fecha_nacimiento" disabled /></label>
         <label>Lugar nacimiento<input name="lugar_nacimiento" [(ngModel)]="form.lugar_nacimiento" [disabled]="!canEdit() || saving()" maxlength="150" /></label>
+        <label>Nacionalidad<input type="text" name="nacionalidad" [(ngModel)]="form.nacionalidad" disabled maxlength="100" /></label>
         <label>Departamento nacimiento<input name="departamento_nacimiento" [(ngModel)]="form.departamento_nacimiento" [disabled]="!canEdit() || saving()" maxlength="150" /></label>
         <label>Ciudad residencia<input name="ciudad_residencia" [(ngModel)]="form.ciudad_residencia" [disabled]="!canEdit() || saving()" maxlength="150" /></label>
         <label>Departamento residencia<input name="departamento_residencia" [(ngModel)]="form.departamento_residencia" [disabled]="!canEdit() || saving()" maxlength="150" /></label>
@@ -84,6 +89,7 @@ interface ContractingProfileForm extends SaveContractingProfileRequest {
             <button class="btn primary" type="submit" [disabled]="saving() || loading()">{{ saving() ? 'Guardando...' : 'Guardar ficha' }}</button>
           </div>
         }
+        <p class="muted form-wide">Completa los campos pendientes de la ficha de ingreso.</p>
       </form>
     </section>
   `,
@@ -105,6 +111,8 @@ export class ContractingProfileComponent implements OnInit {
 
   ngOnInit(): void {
     this.employeeId = Number(this.route.snapshot.paramMap.get('employeeId'));
+    const successMessage = history.state?.successMessage;
+    if (typeof successMessage === 'string') this.success.set(successMessage);
     this.load();
   }
 
@@ -147,6 +155,8 @@ export class ContractingProfileComponent implements OnInit {
   }
 
   private validate(): string {
+    if (this.form.fecha_nacimiento && !this.isValidDate(this.form.fecha_nacimiento)) return 'La fecha de nacimiento no es valida.';
+    if ((this.form.nacionalidad?.length ?? 0) > 100) return 'La nacionalidad debe tener maximo 100 caracteres.';
     if (this.form.correo_personal && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(this.form.correo_personal)) return 'El correo personal no es valido.';
     if (Number(this.form.personas_a_cargo ?? 0) < 0) return 'Personas a cargo debe ser mayor o igual a cero.';
     if (Number(this.form.numero_hijos ?? 0) < 0) return 'Numero de hijos debe ser mayor o igual a cero.';
@@ -156,8 +166,9 @@ export class ContractingProfileComponent implements OnInit {
   }
 
   private payload(): SaveContractingProfileRequest {
+    const { fecha_nacimiento: _fechaNacimiento, nacionalidad: _nacionalidad, ...rest } = this.form;
     return {
-      ...this.form,
+      ...rest,
       personas_a_cargo: this.nullableNumber(this.form.personas_a_cargo),
       numero_hijos: this.nullableNumber(this.form.numero_hijos),
       contacto_emergencia: { ...(this.form.contacto_emergencia ?? {}) },
@@ -167,6 +178,8 @@ export class ContractingProfileComponent implements OnInit {
   private formFromProfile(profile: ContractingProfile | null): ContractingProfileForm {
     return {
       lugar_nacimiento: profile?.lugar_nacimiento ?? null,
+      fecha_nacimiento: profile?.fecha_nacimiento ?? null,
+      nacionalidad: profile?.nacionalidad ?? null,
       departamento_nacimiento: profile?.departamento_nacimiento ?? null,
       ciudad_residencia: profile?.ciudad_residencia ?? null,
       departamento_residencia: profile?.departamento_residencia ?? null,
@@ -194,7 +207,12 @@ export class ContractingProfileComponent implements OnInit {
   }
 
   private nullableNumber(value: unknown): number | null {
+    if (value === '' || value == null) return null;
     const numberValue = Number(value);
     return Number.isFinite(numberValue) ? numberValue : null;
+  }
+
+  private isValidDate(value: string): boolean {
+    return /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(Date.parse(`${value}T00:00:00`));
   }
 }

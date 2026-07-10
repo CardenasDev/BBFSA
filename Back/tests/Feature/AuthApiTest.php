@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Services\JwtService;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Route;
 use Mockery;
 use Tests\TestCase;
 
@@ -46,6 +47,13 @@ class AuthApiTest extends TestCase
     {
         $document = json_decode(file_get_contents(base_path('api.json')), true, 512, JSON_THROW_ON_ERROR);
         $expectedPaths = [
+            '/applicants',
+            '/applicants/{applicantId}',
+            '/applicants/{applicantId}/approve-contracting',
+            '/applicants/{applicantId}/convert-to-employee',
+            '/applicants/{applicantId}/documents',
+            '/applicants/{applicantId}/status',
+            '/applicants/{applicantId}/status-history',
             '/health',
             '/auth/login',
             '/auth/refresh',
@@ -56,6 +64,7 @@ class AuthApiTest extends TestCase
             '/catalogs/areas',
             '/catalogs/contract-types',
             '/catalogs/document-types',
+            '/catalogs/labor-document-types',
             '/catalogs/positions',
             '/contracting/alerts',
             '/contracting/employees',
@@ -107,6 +116,11 @@ class AuthApiTest extends TestCase
         $this->assertArrayHasKey('get', $document['paths']['/catalogs/positions']);
         $this->assertArrayHasKey('get', $document['paths']['/catalogs/contract-types']);
         $this->assertArrayHasKey('get', $document['paths']['/catalogs/document-types']);
+        $this->assertArrayHasKey('get', $document['paths']['/catalogs/labor-document-types']);
+        $this->assertArrayHasKey('get', $document['paths']['/applicants']);
+        $this->assertArrayHasKey('post', $document['paths']['/applicants']);
+        $this->assertArrayHasKey('post', $document['paths']['/applicants/{applicantId}/documents']);
+        $this->assertArrayHasKey('post', $document['paths']['/applicants/{applicantId}/convert-to-employee']);
         $this->assertArrayHasKey('get', $document['paths']['/employees/by-document/{document}']);
         $this->assertArrayHasKey('post', $document['paths']['/employees/{id}/photo']);
         $this->assertArrayHasKey('get', $document['paths']['/users']);
@@ -306,6 +320,57 @@ class AuthApiTest extends TestCase
                     'id_tipo_contrato' => 1,
                     'nombre' => 'Indefinido',
                     'descripcion' => 'Contrato laboral a termino indefinido',
+                    'activo' => true,
+                ]],
+            ]);
+    }
+
+    public function test_labor_document_types_catalog_route_exists_and_requires_jwt(): void
+    {
+        $this->assertNotNull(Route::getRoutes()->match(request()->create('/api/catalogs/labor-document-types', 'GET')));
+
+        $this->getJson('/api/catalogs/labor-document-types')
+            ->assertUnauthorized()
+            ->assertJson([
+                'success' => false,
+                'message' => 'Token de acceso requerido.',
+            ]);
+    }
+
+    public function test_labor_document_types_catalog_uses_stored_procedure_filters_and_maps_response(): void
+    {
+        DB::shouldReceive('select')
+            ->once()
+            ->with('CALL SP_BBF_TIPOS_DOCUMENTO_LABORAL_LISTAR(?,?,?,?)', [1, 1, null, null])
+            ->andReturn([
+                (object) [
+                    'ID_TIPO_DOCUMENTO_LABORAL' => 1,
+                    'NOMBRE' => 'Hoja de vida',
+                    'DESCRIPCION' => 'Hoja de vida del empleado',
+                    'OBLIGATORIO' => 1,
+                    'REQUIERE_VENCIMIENTO' => 0,
+                    'APLICA_ASPIRANTE' => 1,
+                    'APLICA_CONTRATACION' => 1,
+                    'APLICA_RETIRO' => 0,
+                    'ACTIVO' => 1,
+                ],
+            ]);
+
+        $this->withToken($this->tokenWithPermissions(['ASPIRANTES_DOCUMENTOS_VER']))
+            ->getJson('/api/catalogs/labor-document-types?active=1&applies_applicant=1')
+            ->assertOk()
+            ->assertExactJson([
+                'success' => true,
+                'message' => 'Tipos de documento laboral consultados correctamente',
+                'data' => [[
+                    'id_tipo_documento_laboral' => 1,
+                    'nombre' => 'Hoja de vida',
+                    'descripcion' => 'Hoja de vida del empleado',
+                    'obligatorio' => true,
+                    'requiere_vencimiento' => false,
+                    'aplica_aspirante' => true,
+                    'aplica_contratacion' => true,
+                    'aplica_retiro' => false,
                     'activo' => true,
                 ]],
             ]);

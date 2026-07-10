@@ -4,7 +4,11 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Requests\CreateEmployeeContractRequest;
 use App\Http\Requests\CreateMedicalExamRequest;
+use App\Http\Requests\GetContractTemplateByTypeRequest;
+use App\Http\Requests\ListContractAlertsRequest;
+use App\Http\Requests\ListContractTemplatesRequest;
 use App\Http\Requests\RegisterEmployeeDocumentRequest;
+use App\Http\Resources\ContractGenerationDataResource;
 use App\Http\Requests\SaveContractingProfileRequest;
 use App\Http\Requests\SaveSocialSecurityRequest;
 use App\Services\ContractingService;
@@ -15,7 +19,9 @@ use Illuminate\Http\Request;
 #[Group('Contracting', 'Gestion de contratacion y ficha de ingreso.', weight: 8)]
 class ContractingController extends ApiController
 {
-    public function __construct(private readonly ContractingService $contracting) {}
+    public function __construct(
+        private readonly ContractingService $contracting,
+    ) {}
 
     /**
      * Listar empleados de contratacion
@@ -46,6 +52,8 @@ class ContractingController extends ApiController
      * Obtener ficha de ingreso
      *
      * Permiso requerido: CONTRATACION_VER.
+     *
+     * @response array{success: bool, message: string, data: array{id_empleado: int, estado_ficha: string|null, fecha_nacimiento: string|null, lugar_nacimiento: string|null, nacionalidad: string|null, direccion_residencia: string|null, telefono_alterno: string|null, correo_personal: string|null}}
      */
     public function getProfile(int $employeeId): JsonResponse
     {
@@ -56,9 +64,52 @@ class ContractingController extends ApiController
     }
 
     /**
+     * Listar plantillas de contrato
+     *
+     * Permiso requerido: CONTRATACION_VER.
+     */
+    public function listContractTemplates(ListContractTemplatesRequest $request): JsonResponse
+    {
+        return $this->success(
+            $this->contracting->listContractTemplates($request->validated()),
+            'Plantillas de contrato consultadas correctamente',
+        );
+    }
+
+    /**
+     * Obtener plantilla de contrato
+     *
+     * Permiso requerido: CONTRATACION_VER.
+     */
+    public function getContractTemplate(int $templateId): JsonResponse
+    {
+        return $this->success(
+            $this->contracting->getContractTemplate($templateId),
+            'Plantilla de contrato consultada correctamente',
+        );
+    }
+
+    /**
+     * Obtener plantilla sugerida por tipo de contrato
+     *
+     * Permiso requerido: CONTRATACION_VER.
+     */
+    public function getContractTemplateByType(GetContractTemplateByTypeRequest $request): JsonResponse
+    {
+        $validated = $request->validated();
+
+        return $this->success(
+            $this->contracting->getContractTemplateByType((int) $validated['id_tipo_contrato'], $validated['tipo_cargo_contrato'] ?? null),
+            'Plantilla de contrato sugerida consultada correctamente',
+        );
+    }
+
+    /**
      * Guardar ficha de ingreso
      *
      * Permiso requerido: CONTRATACION_CREAR o CONTRATACION_EDITAR.
+     *
+     * @response array{success: bool, message: string, data: array{id_empleado: int, estado_ficha: string|null, fecha_nacimiento: string|null, lugar_nacimiento: string|null, nacionalidad: string|null, direccion_residencia: string|null, telefono_alterno: string|null, correo_personal: string|null}}
      */
     public function saveProfile(SaveContractingProfileRequest $request, int $employeeId): JsonResponse
     {
@@ -92,6 +143,19 @@ class ContractingController extends ApiController
             $this->contracting->createContract($employeeId, $this->actorId($request), $request->validated(), $this->context($request)),
             'Contrato del empleado creado correctamente',
             201,
+        );
+    }
+
+    /**
+     * Obtener datos para generacion de contrato
+     *
+     * Permiso requerido: CONTRATACION_VER.
+     */
+    public function getContractGenerationData(int $employeeContractId): JsonResponse
+    {
+        return $this->success(
+            new ContractGenerationDataResource($this->contracting->getContractGenerationData($employeeContractId)),
+            'Datos de contrato para generacion consultados correctamente',
         );
     }
 
@@ -180,14 +244,12 @@ class ContractingController extends ApiController
      *
      * Permiso requerido: CONTRATACION_ALERTAS_VER.
      */
-    public function listAlerts(Request $request): JsonResponse
+    public function listAlerts(ListContractAlertsRequest $request): JsonResponse
     {
-        $validated = $request->validate([
-            'dias' => ['nullable', 'integer', 'min:0'],
-        ]);
+        $validated = $request->validated();
 
         return $this->success(
-            $this->contracting->listAlerts(isset($validated['dias']) ? (int) $validated['dias'] : null),
+            $this->contracting->listAlerts(isset($validated['dias_antes']) ? (int) $validated['dias_antes'] : null),
             'Alertas de contratacion consultadas correctamente',
         );
     }

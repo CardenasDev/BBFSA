@@ -15,10 +15,42 @@ class ContractingRepositoryTest extends TestCase
             ->andReturn([(object) ['ID_EMPLEADO' => 5]]);
         DB::shouldReceive('select')->once()
             ->with('CALL SP_BBF_CONTRATACION_FICHA_OBTENER(?)', [5])
-            ->andReturn([(object) ['ID_EMPLEADO' => 5]]);
+            ->andReturn([(object) [
+                'ID_EMPLEADO' => 5,
+                'ESTADO_FICHA' => 'INCOMPLETA',
+                'FECHA_NACIMIENTO' => '1998-04-10',
+                'NACIONALIDAD' => 'Colombiana',
+            ]]);
         DB::shouldReceive('select')->once()
             ->with('CALL SP_BBF_CONTRATACION_CONTRATOS_LISTAR(?)', [5])
-            ->andReturn([]);
+            ->andReturn([(object) [
+                'ID_EMPLEADO_CONTRATO' => 7,
+                'ID_PLANTILLA_CONTRATO' => 2,
+                'CONFIG_CAMPOS_JSON' => '{"salario":true}',
+                'VALORES_DEFAULT_JSON' => '{"formato":"PDF"}',
+            ]]);
+        DB::shouldReceive('select')->once()
+            ->with('CALL SP_BBF_CONTRATO_PLANTILLAS_LISTAR(?,?,?)', [1, 'OPERATIVO', 1])
+            ->andReturn([(object) [
+                'ID_PLANTILLA_CONTRATO' => 2,
+                'NOMBRE_PLANTILLA' => 'Contrato operativo',
+                'CONFIG_CAMPOS_JSON' => '{"campo":"valor"}',
+                'VALORES_DEFAULT_JSON' => '{"salario":0}',
+            ]]);
+        DB::shouldReceive('select')->once()
+            ->with('CALL SP_BBF_CONTRATO_PLANTILLA_OBTENER(?)', [2])
+            ->andReturn([(object) ['ID_PLANTILLA_CONTRATO' => 2]]);
+        DB::shouldReceive('select')->once()
+            ->with('CALL SP_BBF_CONTRATO_PLANTILLA_POR_TIPO_OBTENER(?,?)', [1, 'OPERATIVO'])
+            ->andReturn([(object) ['ID_PLANTILLA_CONTRATO' => 2]]);
+        DB::shouldReceive('select')->once()
+            ->with('CALL SP_BBF_CONTRATACION_CONTRATO_DATOS_GENERAR(?)', [7])
+            ->andReturn([(object) [
+                'ID_EMPLEADO_CONTRATO' => 7,
+                'ID_EMPLEADO' => 5,
+                'ID_PLANTILLA_CONTRATO' => 2,
+                'CONFIG_CAMPOS_JSON' => '{"nombre":true}',
+            ]]);
         DB::shouldReceive('select')->once()
             ->with('CALL SP_BBF_CONTRATACION_SEGURIDAD_SOCIAL_OBTENER(?)', [5])
             ->andReturn([]);
@@ -37,8 +69,22 @@ class ContractingRepositoryTest extends TestCase
         $rows = $repository->listEmployees('Ana', 1, 2, 'ACTIVO');
         $this->assertSame(5, $rows[0]['id_empleado']);
         $this->assertArrayNotHasKey('ID_EMPLEADO', $rows[0]);
-        $repository->getProfile(5);
-        $repository->listContracts(5);
+        $profile = $repository->getProfile(5);
+        $this->assertSame(5, $profile['id_empleado']);
+        $this->assertSame('INCOMPLETA', $profile['estado_ficha']);
+        $this->assertSame('1998-04-10', $profile['fecha_nacimiento']);
+        $this->assertSame('Colombiana', $profile['nacionalidad']);
+        $contract = $repository->listContracts(5)[0];
+        $this->assertSame(2, $contract['id_plantilla_contrato']);
+        $this->assertSame(['salario' => true], $contract['config_campos']);
+        $this->assertSame(['formato' => 'PDF'], $contract['valores_default']);
+        $template = $repository->listContractTemplates(['id_tipo_contrato' => 1, 'tipo_cargo_contrato' => 'OPERATIVO', 'solo_activas' => 1])[0];
+        $this->assertSame(2, $template['id_plantilla_contrato']);
+        $this->assertSame(['campo' => 'valor'], $template['config_campos']);
+        $this->assertSame(['salario' => 0], $template['valores_default']);
+        $this->assertSame(2, $repository->getContractTemplate(2)['id_plantilla_contrato']);
+        $this->assertSame(2, $repository->getContractTemplateByType(1, 'OPERATIVO')['id_plantilla_contrato']);
+        $this->assertSame(7, $repository->getContractGenerationData(7)['id_empleado_contrato']);
         $repository->getSocialSecurity(5);
         $repository->listMedicalExams(5);
         $repository->listDocuments(5);
@@ -100,9 +146,10 @@ class ContractingRepositoryTest extends TestCase
     public function test_create_contract_calls_stored_procedure_with_real_parameter_order(): void
     {
         DB::shouldReceive('select')->once()
-            ->with('CALL SP_BBF_CONTRATACION_CONTRATO_CREAR(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', [
+            ->with('CALL SP_BBF_CONTRATACION_CONTRATO_CREAR(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', [
                 5,
                 1,
+                9,
                 2,
                 3,
                 '2026-06-24',
@@ -126,6 +173,7 @@ class ContractingRepositoryTest extends TestCase
             ])
             ->andReturn([(object) [
                 'ID_EMPLEADO_CONTRATO' => 7,
+                'ID_PLANTILLA_CONTRATO' => 9,
                 'AUXILIO_TRANSPORTE' => 1,
                 'NUMERO_CONTRATO' => 'CT-2026-001',
                 'TIPO_CARGO_CONTRATO' => 'OPERATIVO',
@@ -133,6 +181,7 @@ class ContractingRepositoryTest extends TestCase
 
         $row = app(ContractingRepository::class)->createContract(5, 99, [
             'id_tipo_contrato' => 1,
+            'id_plantilla_contrato' => 9,
             'id_area' => 2,
             'id_cargo' => 3,
             'fecha_inicio' => '2026-06-24',
@@ -155,6 +204,7 @@ class ContractingRepositoryTest extends TestCase
         ]);
 
         $this->assertSame(7, $row['id_empleado_contrato']);
+        $this->assertSame(9, $row['id_plantilla_contrato']);
         $this->assertSame(1, $row['auxilio_transporte']);
         $this->assertSame('CT-2026-001', $row['numero_contrato']);
         $this->assertSame('OPERATIVO', $row['tipo_cargo_contrato']);
@@ -163,8 +213,9 @@ class ContractingRepositoryTest extends TestCase
     public function test_create_contract_accepts_null_new_fields_and_preserves_parameter_order(): void
     {
         DB::shouldReceive('select')->once()
-            ->with('CALL SP_BBF_CONTRATACION_CONTRATO_CREAR(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', [
+            ->with('CALL SP_BBF_CONTRATACION_CONTRATO_CREAR(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', [
                 5,
+                null,
                 null,
                 null,
                 null,

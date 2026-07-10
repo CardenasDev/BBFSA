@@ -2,6 +2,8 @@
 
 namespace App\Repositories;
 
+use Illuminate\Support\Facades\Log;
+
 class ContractingRepository extends StoredProcedureRepository
 {
     public function listEmployees(?string $search, ?int $areaId, ?int $positionId, ?string $status): array
@@ -41,9 +43,32 @@ class ContractingRepository extends StoredProcedureRepository
         ]) ?? [];
     }
 
+    public function listContractTemplates(array $filters): array
+    {
+        return array_map(fn (array $row): array => $this->normalizeTemplateJson($row), $this->call('SP_BBF_CONTRATO_PLANTILLAS_LISTAR', [
+            $filters['id_tipo_contrato'] ?? null,
+            $filters['tipo_cargo_contrato'] ?? null,
+            $filters['solo_activas'] ?? 1,
+        ]));
+    }
+
+    public function getContractTemplate(int $templateId): ?array
+    {
+        $row = $this->first('SP_BBF_CONTRATO_PLANTILLA_OBTENER', [$templateId]);
+
+        return $row ? $this->normalizeTemplateJson($row) : null;
+    }
+
+    public function getContractTemplateByType(int $contractTypeId, ?string $positionType): ?array
+    {
+        $row = $this->first('SP_BBF_CONTRATO_PLANTILLA_POR_TIPO_OBTENER', [$contractTypeId, $positionType]);
+
+        return $row ? $this->normalizeTemplateJson($row) : null;
+    }
+
     public function listContracts(int $employeeId): array
     {
-        return $this->call('SP_BBF_CONTRATACION_CONTRATOS_LISTAR', [$employeeId]);
+        return array_map(fn (array $row): array => $this->normalizeTemplateJson($row), $this->call('SP_BBF_CONTRATACION_CONTRATOS_LISTAR', [$employeeId]));
     }
 
     public function createContract(int $employeeId, int $userId, array $data): array
@@ -51,6 +76,7 @@ class ContractingRepository extends StoredProcedureRepository
         return $this->first('SP_BBF_CONTRATACION_CONTRATO_CREAR', [
             $employeeId,
             $data['id_tipo_contrato'] ?? null,
+            $data['id_plantilla_contrato'] ?? null,
             $data['id_area'] ?? null,
             $data['id_cargo'] ?? null,
             $data['fecha_inicio'],
@@ -149,5 +175,48 @@ class ContractingRepository extends StoredProcedureRepository
     public function listAlerts(?int $days): array
     {
         return $this->call('SP_BBF_CONTRATACION_ALERTAS_LISTAR', [$days]);
+    }
+
+    public function getContractGenerationData(int $employeeContractId): ?array
+    {
+        $row = $this->first('SP_BBF_CONTRATACION_CONTRATO_DATOS_GENERAR', [$employeeContractId]);
+
+        return $row ? $this->normalizeTemplateJson($row) : null;
+    }
+
+    private function normalizeTemplateJson(array $row): array
+    {
+        $row['config_campos'] = $this->decodeJsonField($row['config_campos_json'] ?? $row['config_campos'] ?? null, 'config_campos');
+        $row['valores_default'] = $this->decodeJsonField($row['valores_default_json'] ?? $row['valores_default'] ?? null, 'valores_default');
+        unset($row['config_campos_json'], $row['valores_default_json']);
+
+        return $row;
+    }
+
+    private function decodeJsonField(mixed $value, string $field): mixed
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        if (is_array($value) || is_object($value)) {
+            return $value;
+        }
+
+        if (! is_string($value)) {
+            return $value;
+        }
+
+        $decoded = json_decode($value, true);
+        if (json_last_error() === JSON_ERROR_NONE) {
+            return $decoded;
+        }
+
+        Log::warning('No fue posible decodificar JSON de plantilla de contrato.', [
+            'field' => $field,
+            'error' => json_last_error_msg(),
+        ]);
+
+        return $value;
     }
 }

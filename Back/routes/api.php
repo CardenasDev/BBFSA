@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\ApplicantController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CatalogController;
 use App\Http\Controllers\Api\ContractingController;
@@ -30,6 +31,19 @@ Route::middleware('auth.jwt')->group(function (): void {
     Route::get('catalogs/areas', [CatalogController::class, 'areas'])->middleware('permission:EMPLEADOS_VER,EMPLEADOS_CREAR');
     Route::get('catalogs/positions', [CatalogController::class, 'positions'])->middleware('permission:EMPLEADOS_VER,EMPLEADOS_CREAR');
     Route::get('catalogs/contract-types', [CatalogController::class, 'contractTypes'])->middleware('permission:EMPLEADOS_VER,EMPLEADOS_CREAR');
+    Route::get('catalogs/labor-document-types', [CatalogController::class, 'laborDocumentTypes'])->middleware('permission:ASPIRANTES_DOCUMENTOS_VER,CONTRATACION_DOCUMENTOS_VER');
+    Route::prefix('applicants')->group(function (): void {
+        Route::get('/', [ApplicantController::class, 'index'])->middleware('permission:ASPIRANTES_VER');
+        Route::post('/', [ApplicantController::class, 'store'])->middleware('permission:ASPIRANTES_CREAR');
+        Route::get('{applicantId}', [ApplicantController::class, 'show'])->whereNumber('applicantId')->middleware('permission:ASPIRANTES_VER');
+        Route::put('{applicantId}', [ApplicantController::class, 'update'])->whereNumber('applicantId')->middleware('permission:ASPIRANTES_EDITAR');
+        Route::patch('{applicantId}/status', [ApplicantController::class, 'changeStatus'])->whereNumber('applicantId')->middleware('permission:ASPIRANTES_CAMBIAR_ESTADO');
+        Route::post('{applicantId}/approve-contracting', [ApplicantController::class, 'approveForContracting'])->whereNumber('applicantId')->middleware('permission:ASPIRANTES_APROBAR_CONTRATACION');
+        Route::get('{applicantId}/documents', [ApplicantController::class, 'documents'])->whereNumber('applicantId')->middleware('permission:ASPIRANTES_DOCUMENTOS_VER');
+        Route::post('{applicantId}/documents', [ApplicantController::class, 'registerDocument'])->whereNumber('applicantId')->middleware('permission:ASPIRANTES_DOCUMENTOS_SUBIR');
+        Route::get('{applicantId}/status-history', [ApplicantController::class, 'statusHistory'])->whereNumber('applicantId')->middleware('permission:ASPIRANTES_VER');
+        Route::post('{applicantId}/convert-to-employee', [ApplicantController::class, 'convertToEmployee'])->whereNumber('applicantId')->middleware('permission:ASPIRANTES_CONVERTIR_EMPLEADO');
+    });
     Route::get('employees', [EmployeeController::class, 'index'])->middleware('permission:EMPLEADOS_LISTAR,EMPLEADOS_VER');
     Route::post('employees', [EmployeeController::class, 'store'])->middleware('permission:EMPLEADOS_CREAR');
     Route::get('employees/by-document/{document}', [EmployeeController::class, 'byDocument'])->middleware('permission:EMPLEADOS_VER,USUARIOS_CREAR,USUARIOS_EDITAR');
@@ -76,6 +90,10 @@ Route::middleware('auth.jwt')->group(function (): void {
     });
     Route::prefix('contracting')->group(function (): void {
         Route::get('employees', [ContractingController::class, 'indexEmployees'])->middleware('permission:CONTRATACION_VER');
+        Route::get('contract-templates', [ContractingController::class, 'listContractTemplates'])->middleware('permission:CONTRATACION_VER');
+        Route::get('contract-templates/by-type', [ContractingController::class, 'getContractTemplateByType'])->middleware('permission:CONTRATACION_VER');
+        Route::get('contract-templates/{templateId}', [ContractingController::class, 'getContractTemplate'])->whereNumber('templateId')->middleware('permission:CONTRATACION_VER');
+        Route::get('contracts/{employeeContractId}/generation-data', [ContractingController::class, 'getContractGenerationData'])->whereNumber('employeeContractId')->middleware('permission:CONTRATACION_VER');
         Route::get('employees/{employeeId}/profile', [ContractingController::class, 'getProfile'])->whereNumber('employeeId')->middleware('permission:CONTRATACION_VER');
         Route::post('employees/{employeeId}/profile', [ContractingController::class, 'saveProfile'])->whereNumber('employeeId')->middleware('permission:CONTRATACION_CREAR,CONTRATACION_EDITAR');
         Route::get('employees/{employeeId}/contracts', [ContractingController::class, 'listContracts'])->whereNumber('employeeId')->middleware('permission:CONTRATACION_HISTORIAL_VER');

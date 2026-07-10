@@ -4,6 +4,9 @@ import { Observable, map } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import {
   ApiResponse,
+  ContractChargeType,
+  ContractGenerationData,
+  ContractTemplate,
   ContractingAlert,
   ContractingEmployee,
   ContractingProfile,
@@ -13,6 +16,8 @@ import {
   EmployeeLaborDocument,
   EmployeeMedicalExam,
   EmployeeSocialSecurity,
+  GenerateContractDocxResponse,
+  GenerateContractPdfResponse,
   RegisterEmployeeDocumentRequest,
   SaveContractingProfileRequest,
   SaveSocialSecurityRequest,
@@ -23,6 +28,12 @@ export interface ContractingEmployeeFilters {
   area_id?: number | null;
   position_id?: number | null;
   status?: string;
+}
+
+export interface ContractTemplateFilters {
+  id_tipo_contrato?: number | null;
+  tipo_cargo_contrato?: ContractChargeType | string | null;
+  solo_activas?: number | boolean | null;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -54,14 +65,72 @@ export class ContractingService {
     );
   }
 
+  getContractTemplates(filters: ContractTemplateFilters = {}): Observable<ContractTemplate[]> {
+    let params = new HttpParams();
+    if (filters.id_tipo_contrato) params = params.set('id_tipo_contrato', String(filters.id_tipo_contrato));
+    if (filters.tipo_cargo_contrato?.trim()) params = params.set('tipo_cargo_contrato', filters.tipo_cargo_contrato.trim());
+    if (filters.solo_activas !== undefined && filters.solo_activas !== null) params = params.set('solo_activas', String(filters.solo_activas));
+
+    return this.http.get<ApiResponse<ContractTemplate[]>>(`${this.url}/contract-templates`, { params }).pipe(
+      map((response) => response.data ?? []),
+    );
+  }
+
+  getContractTemplate(templateId: number): Observable<ContractTemplate> {
+    return this.http.get<ApiResponse<ContractTemplate>>(`${this.url}/contract-templates/${templateId}`).pipe(
+      map((response) => response.data),
+    );
+  }
+
+  getContractTemplateByType(idTipoContrato: number, tipoCargoContrato?: ContractChargeType | string | null): Observable<ContractTemplate | null> {
+    let params = new HttpParams().set('id_tipo_contrato', String(idTipoContrato));
+    if (tipoCargoContrato?.trim()) params = params.set('tipo_cargo_contrato', tipoCargoContrato.trim());
+
+    return this.http.get<ApiResponse<ContractTemplate | null>>(`${this.url}/contract-templates/by-type`, { params }).pipe(
+      map((response) => response.data ?? null),
+    );
+  }
+
   getContracts(employeeId: number): Observable<EmployeeContract[]> {
     return this.http.get<ApiResponse<EmployeeContract[]>>(`${this.url}/employees/${employeeId}/contracts`).pipe(
       map((response) => response.data ?? []),
     );
   }
 
+  getEmployeeContracts(employeeId: number): Observable<EmployeeContract[]> {
+    return this.getContracts(employeeId);
+  }
+
   createContract(employeeId: number, payload: CreateEmployeeContractRequest): Observable<EmployeeContract> {
     return this.http.post<ApiResponse<EmployeeContract>>(`${this.url}/employees/${employeeId}/contracts`, payload).pipe(
+      map((response) => response.data),
+    );
+  }
+
+  createEmployeeContract(employeeId: number, payload: CreateEmployeeContractRequest): Observable<EmployeeContract> {
+    return this.createContract(employeeId, payload);
+  }
+
+  getContractGenerationData(employeeContractId: number): Observable<ContractGenerationData> {
+    return this.http.get<ApiResponse<ContractGenerationData>>(`${this.url}/contracts/${employeeContractId}/generation-data`).pipe(
+      map((response) => response.data),
+    );
+  }
+
+  generateContractDocx(employeeContractId: number): Observable<GenerateContractDocxResponse> {
+    return this.http.post<ApiResponse<GenerateContractDocxResponse>>(
+      `${this.url}/contracts/${employeeContractId}/generate-docx`,
+      {},
+    ).pipe(
+      map((response) => response.data),
+    );
+  }
+
+  generateContractPdf(employeeContractId: number): Observable<GenerateContractPdfResponse> {
+    return this.http.post<ApiResponse<GenerateContractPdfResponse>>(
+      `${this.url}/contracts/${employeeContractId}/generate-pdf`,
+      {},
+    ).pipe(
       map((response) => response.data),
     );
   }
@@ -102,10 +171,14 @@ export class ContractingService {
     );
   }
 
-  getAlerts(days?: number | null): Observable<ContractingAlert[]> {
-    const params = days != null ? new HttpParams().set('dias', String(days)) : undefined;
+  getContractAlerts(diasAntes?: number | null): Observable<ContractingAlert[]> {
+    const params = diasAntes != null ? new HttpParams().set('dias_antes', String(diasAntes)) : undefined;
     return this.http.get<ApiResponse<ContractingAlert[]>>(`${this.url}/alerts`, { params }).pipe(
       map((response) => response.data ?? []),
     );
+  }
+
+  getAlerts(days?: number | null): Observable<ContractingAlert[]> {
+    return this.getContractAlerts(days);
   }
 }

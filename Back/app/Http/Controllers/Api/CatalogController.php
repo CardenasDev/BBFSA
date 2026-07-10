@@ -63,4 +63,27 @@ class CatalogController extends ApiController
             'Tipos de contrato consultados correctamente',
         );
     }
+
+    /**
+     * Listar tipos de documento laboral
+     *
+     * Retorna el catalogo de documentos laborales filtrable por aplicacion.
+     */
+    public function laborDocumentTypes(Request $request): JsonResponse
+    {
+        return $this->success(
+            $this->catalogs->laborDocumentTypes(
+                $this->optionalBoolean($request, 'active'),
+                $this->optionalBoolean($request, 'applies_applicant'),
+                $this->optionalBoolean($request, 'applies_contracting'),
+                $this->optionalBoolean($request, 'applies_retirement'),
+            ),
+            'Tipos de documento laboral consultados correctamente',
+        );
+    }
+
+    private function optionalBoolean(Request $request, string $key): ?bool
+    {
+        return $request->has($key) ? $request->boolean($key) : null;
+    }
 }

@@ -71,6 +71,18 @@ export interface ContractType {
   activo: boolean;
 }
 
+export interface LaborDocumentType {
+  id_tipo_documento_laboral: number;
+  nombre: string;
+  descripcion?: string | null;
+  obligatorio?: boolean | number | null;
+  requiere_vencimiento?: boolean | number | null;
+  aplica_aspirante?: boolean | number | null;
+  aplica_contratacion?: boolean | number | null;
+  aplica_retiro?: boolean | number | null;
+  activo?: boolean | number | null;
+}
+
 export interface LoginResponse {
   access_token: string;
   refresh_token: string;
@@ -86,6 +98,9 @@ export type UserType = 'EMPLEADO' | 'PERSONAL_AUTORIZADO' | 'ADMIN';
 export type AuthenticationType = 'LOCAL' | 'DOMINIO_EMPRESA';
 export type EmployeeStatus = 'ACTIVO' | 'RETIRADO' | 'SUSPENDIDO' | 'INCAPACITADO' | 'EN_PROCESO_RETIRO';
 export type ContractChargeType = 'ADMINISTRATIVO' | 'OPERATIVO' | 'OTRO';
+export type ContractOutputFormat = 'DOCX' | 'PDF' | 'AMBOS';
+export type ApplicantCivilState = 'SOLTERO' | 'CASADO' | 'UNION_LIBRE' | 'SEPARADO' | 'DIVORCIADO' | 'VIUDO' | 'OTRO';
+export type ApplicantEducationLevel = 'PRIMARIA' | 'BACHILLER' | 'TECNICO' | 'TECNOLOGO' | 'PROFESIONAL' | 'POSGRADO' | 'NINGUNO' | 'OTRO';
 
 export interface User extends AuthUser {
   fecha_creacion?: string;
@@ -400,6 +415,7 @@ export interface ContractingEmployee {
 
 export interface ContractingProfile {
   id_empleado: number;
+  id_aspirante_origen?: number | null;
   numero_documento?: string | null;
   nombre_completo?: string | null;
   correo?: string | null;
@@ -410,7 +426,9 @@ export interface ContractingProfile {
   cargo?: string | null;
   tipo_contrato?: string | null;
   id_ficha_ingreso?: number | null;
+  fecha_nacimiento?: string | null;
   lugar_nacimiento?: string | null;
+  nacionalidad?: string | null;
   departamento_nacimiento?: string | null;
   ciudad_residencia?: string | null;
   departamento_residencia?: string | null;
@@ -433,7 +451,9 @@ export interface ContractingProfile {
 }
 
 export interface SaveContractingProfileRequest {
+  fecha_nacimiento?: string | null;
   lugar_nacimiento?: string | null;
+  nacionalidad?: string | null;
   departamento_nacimiento?: string | null;
   ciudad_residencia?: string | null;
   departamento_residencia?: string | null;
@@ -455,12 +475,67 @@ export interface SaveContractingProfileRequest {
   };
 }
 
+export interface ContractTemplateFieldConfig {
+  requiere_fecha_fin?: boolean;
+  requiere_duracion_meses?: boolean;
+  requiere_prorroga_dias?: boolean;
+  requiere_objeto_obra_labor?: boolean;
+  requiere_periodo_prueba_dias?: boolean;
+  requiere_clausula_funciones?: boolean;
+  campos_visibles?: string[];
+  campos_ocultos?: string[];
+}
+
+export interface ContractTemplateDefaultValues {
+  auxilio_transporte?: boolean;
+  periodo_pago?: string;
+  lugar_labores?: string;
+  tipo_cargo_contrato?: ContractChargeType;
+  duracion_meses?: number;
+  jornada_laboral?: string;
+  periodo_prueba_dias?: number;
+  termino_inicial_contrato?: string;
+  salario_texto_default?: string;
+  objeto_obra_labor?: string;
+  prorroga_dias?: number;
+}
+
+export interface ContractTemplate {
+  id_plantilla_contrato: number;
+  id_tipo_contrato: number;
+  tipo_contrato?: string | null;
+  nombre_plantilla: string;
+  codigo_formato: string;
+  version_formato: string;
+  fecha_vigencia?: string | null;
+  tipo_cargo_contrato?: ContractChargeType | null;
+  descripcion?: string | null;
+  archivo_plantilla_url?: string | null;
+  archivo_plantilla_ruta?: string | null;
+  formato_salida_default?: ContractOutputFormat | null;
+  config_campos?: ContractTemplateFieldConfig | null;
+  valores_default?: ContractTemplateDefaultValues | null;
+  activo?: boolean | number;
+  created_at?: string | null;
+  updated_at?: string | null;
+}
+
 export interface EmployeeContract {
   id_empleado_contrato?: number | null;
   id_contrato_empleado?: number | null;
   id_empleado: number;
   id_tipo_contrato?: number | null;
   tipo_contrato?: string | null;
+  id_plantilla_contrato?: number | null;
+  nombre_plantilla?: string | null;
+  codigo_formato?: string | null;
+  version_formato?: string | null;
+  fecha_vigencia?: string | null;
+  archivo_plantilla_url?: string | null;
+  archivo_plantilla_ruta?: string | null;
+  formato_salida_default?: ContractOutputFormat | string | null;
+  config_campos?: ContractTemplateFieldConfig | null;
+  valores_default?: ContractTemplateDefaultValues | null;
   id_area?: number | null;
   area?: string | null;
   id_cargo?: number | null;
@@ -482,12 +557,29 @@ export interface EmployeeContract {
   estado_contrato?: string | null;
   archivo_contrato_url?: string | null;
   observaciones?: string | null;
+  dias_para_vencer?: number | null;
+  estado_vencimiento?: string | null;
   registrado_por?: string | null;
   created_at?: string | null;
 }
 
+export interface GenerateContractDocxResponse {
+  id_empleado_contrato: number;
+  archivo_generado_url: string;
+  archivo_contrato_url?: string | null;
+  formato: 'DOCX';
+}
+
+export interface GenerateContractPdfResponse {
+  id_empleado_contrato: number;
+  archivo_generado_url: string;
+  archivo_contrato_url?: string | null;
+  formato: 'PDF';
+}
+
 export interface CreateEmployeeContractRequest {
-  id_tipo_contrato?: number | null;
+  id_tipo_contrato: number | null;
+  id_plantilla_contrato?: number | null;
   id_area?: number | null;
   id_cargo?: number | null;
   fecha_inicio: string;
@@ -507,6 +599,18 @@ export interface CreateEmployeeContractRequest {
   estado_contrato?: string | null;
   archivo_contrato_url?: string | null;
   observaciones?: string | null;
+}
+
+export interface ContractGenerationData {
+  contract?: Partial<EmployeeContract> & Record<string, unknown>;
+  employee?: Record<string, unknown>;
+  template?: Partial<ContractTemplate> & Record<string, unknown>;
+  generation?: {
+    fecha_generacion?: string | null;
+    formato_salida_default?: ContractOutputFormat | string | null;
+  };
+  raw?: Record<string, unknown>;
+  [key: string]: unknown;
 }
 
 export interface EmployeeSocialSecurity {
@@ -603,16 +707,170 @@ export interface RegisterEmployeeDocumentRequest {
   observaciones?: string | null;
 }
 
+export type ApplicantStatus =
+  | 'REGISTRADO'
+  | 'EN_REVISION'
+  | 'APROBADO_CONTRATACION'
+  | 'RECHAZADO'
+  | 'CONVERTIDO_EMPLEADO'
+  | 'CANCELADO';
+
+export type ApplicantDocumentStatus = 'PENDIENTE' | 'CARGADO' | 'VALIDADO' | 'RECHAZADO' | 'VENCIDO';
+export type ApplicantDocumentOrigin = 'PENDIENTE' | 'URL_EXTERNA' | 'ARCHIVO_FISICO';
+
+export interface Applicant {
+  id_aspirante: number;
+  id_tipo_documento?: number | null;
+  tipo_documento?: string | null;
+  numero_documento: string;
+  nombres: string;
+  apellidos: string;
+  nombre_completo?: string | null;
+  correo?: string | null;
+  telefono?: string | null;
+  direccion?: string | null;
+  fecha_nacimiento?: string | null;
+  lugar_nacimiento?: string | null;
+  departamento_nacimiento?: string | null;
+  nacionalidad?: string | null;
+  ciudad_residencia?: string | null;
+  departamento_residencia?: string | null;
+  estado_civil?: ApplicantCivilState | null;
+  nivel_educativo?: ApplicantEducationLevel | null;
+  personas_a_cargo?: number | null;
+  numero_hijos?: number | null;
+  id_area_aspira?: number | null;
+  area_aspira?: string | null;
+  id_cargo_aspira?: number | null;
+  cargo_aspira?: string | null;
+  estado_aspirante: ApplicantStatus;
+  observaciones?: string | null;
+  id_empleado_generado?: number | null;
+  total_documentos?: number | null;
+  documentos_pendientes?: number | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+}
+
+export interface ApplicantDetail extends Applicant {}
+
+export interface ApplicantFilters {
+  search?: string;
+  status?: ApplicantStatus | '';
+  area_id?: number | null;
+  position_id?: number | null;
+}
+
+export interface CreateApplicantRequest {
+  id_tipo_documento?: number | null;
+  numero_documento: string;
+  nombres: string;
+  apellidos: string;
+  correo?: string | null;
+  telefono?: string | null;
+  direccion?: string | null;
+  fecha_nacimiento?: string | null;
+  lugar_nacimiento?: string | null;
+  departamento_nacimiento?: string | null;
+  nacionalidad?: string | null;
+  ciudad_residencia?: string | null;
+  departamento_residencia?: string | null;
+  estado_civil?: ApplicantCivilState | null;
+  nivel_educativo?: ApplicantEducationLevel | null;
+  personas_a_cargo?: number | null;
+  numero_hijos?: number | null;
+  id_area_aspira?: number | null;
+  id_cargo_aspira?: number | null;
+  observaciones?: string | null;
+}
+
+export interface UpdateApplicantRequest extends CreateApplicantRequest {}
+
+export interface CreateApplicantResponse {
+  id_aspirante: number;
+  estado_aspirante: ApplicantStatus;
+}
+
+export interface ChangeApplicantStatusRequest {
+  estado_aspirante: ApplicantStatus;
+  observaciones?: string | null;
+}
+
+export interface ApplicantDocument {
+  id_aspirante_documento: number;
+  id_aspirante: number;
+  id_tipo_documento_laboral: number;
+  tipo_documento_laboral?: string | null;
+  obligatorio?: boolean | number | null;
+  requiere_vencimiento?: boolean | number | null;
+  aplica_aspirante?: boolean | number | null;
+  nombre_archivo?: string | null;
+  archivo_url?: string | null;
+  archivo_ruta?: string | null;
+  nombre_original?: string | null;
+  mime_type?: string | null;
+  peso_bytes?: number | null;
+  tipo_origen_archivo?: 'FISICO' | 'URL' | 'SIN_ARCHIVO' | null;
+  estado_documento?: ApplicantDocumentStatus | null;
+  observaciones?: string | null;
+  id_cargado_por?: number | null;
+  cargado_por?: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+}
+
+export interface RegisterApplicantDocumentRequest {
+  id_tipo_documento_laboral: number;
+  nombre_archivo?: string | null;
+  archivo_url?: string | null;
+  estado_documento?: ApplicantDocumentStatus | null;
+  observaciones?: string | null;
+}
+
+export interface ApplicantStatusHistory {
+  id_historial: number;
+  id_aspirante: number;
+  estado_anterior?: ApplicantStatus | null;
+  estado_nuevo: ApplicantStatus;
+  observaciones?: string | null;
+  id_usuario_cambio?: number | null;
+  usuario_cambio?: string | null;
+  created_at?: string | null;
+}
+
+export interface ConvertApplicantToEmployeeRequest {
+  id_tipo_contrato?: number | null;
+  fecha_ingreso?: string | null;
+  observaciones?: string | null;
+}
+
+export interface ConvertApplicantToEmployeeResponse {
+  id_aspirante: number;
+  id_empleado: number;
+  estado_aspirante: ApplicantStatus;
+  estado_ficha?: string | null;
+}
+
 export interface ContractingAlert {
   tipo_alerta: string;
   id_empleado: number;
+  id_empleado_contrato?: number | null;
   numero_documento?: string | null;
   nombre_completo: string;
+  correo?: string | null;
+  telefono?: string | null;
+  tipo_contrato?: string | null;
+  nombre_plantilla?: string | null;
+  numero_contrato?: string | null;
+  fecha_inicio?: string | null;
+  fecha_fin?: string | null;
+  estado_contrato?: string | null;
   area?: string | null;
   cargo?: string | null;
   id_referencia?: number | null;
   fecha_alerta?: string | null;
   dias_restantes?: number | null;
+  dias_para_vencer?: number | null;
   descripcion?: string | null;
 }
 

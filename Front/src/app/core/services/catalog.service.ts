@@ -2,7 +2,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable, map } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { ApiResponse, Area, ContractType, DocumentType, Domain, HealthStatus, Permission, Position, Role } from '../models/api.models';
+import { ApiResponse, Area, ContractType, DocumentType, Domain, HealthStatus, LaborDocumentType, Permission, Position, Role } from '../models/api.models';
 
 @Injectable({ providedIn: 'root' })
 export class RoleService {
@@ -91,6 +91,16 @@ export class CatalogService {
   getContractTypes(soloActivos = true): Observable<ContractType[]> {
     const params = new HttpParams().set('solo_activos', String(soloActivos));
     return this.http.get<ApiResponse<ContractType[]>>(`${environment.apiUrl}/catalogs/contract-types`, { params }).pipe(
+      map((response) => response.data ?? []),
+    );
+  }
+
+  getLaborDocumentTypesForApplicants(): Observable<LaborDocumentType[]> {
+    const params = new HttpParams()
+      .set('active', '1')
+      .set('applies_applicant', '1');
+
+    return this.http.get<ApiResponse<LaborDocumentType[]>>(`${environment.apiUrl}/catalogs/labor-document-types`, { params }).pipe(
       map((response) => response.data ?? []),
     );
   }

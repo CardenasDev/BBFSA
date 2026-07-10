@@ -46,4 +46,19 @@ class CatalogService
             'activo' => (bool) ($row['activo'] ?? false),
         ], $this->catalogs->contractTypes($onlyActive));
     }
+
+    public function laborDocumentTypes(?bool $active, ?bool $appliesApplicant, ?bool $appliesContracting, ?bool $appliesRetirement): array
+    {
+        return array_map(static fn (array $row): array => [
+            'id_tipo_documento_laboral' => (int) ($row['id_tipo_documento_laboral'] ?? 0),
+            'nombre' => (string) ($row['nombre'] ?? ''),
+            'descripcion' => $row['descripcion'] ?? null,
+            'obligatorio' => (bool) ($row['obligatorio'] ?? false),
+            'requiere_vencimiento' => (bool) ($row['requiere_vencimiento'] ?? false),
+            'aplica_aspirante' => (bool) ($row['aplica_aspirante'] ?? false),
+            'aplica_contratacion' => (bool) ($row['aplica_contratacion'] ?? false),
+            'aplica_retiro' => (bool) ($row['aplica_retiro'] ?? false),
+            'activo' => (bool) ($row['activo'] ?? false),
+        ], $this->catalogs->listLaborDocumentTypes($active, $appliesApplicant, $appliesContracting, $appliesRetirement));
+    }
 }

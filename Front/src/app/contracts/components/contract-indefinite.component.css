@@ -48,21 +48,9 @@
   border-bottom: 1px solid #000 !important;
 }
 
-.contract-sheet--page-1 {
-  page-break-after: always;
-  break-after: page;
-}
-
-.contract-sheet--page-2 {
-  page-break-after: always;
-  break-after: page;
-}
-
-.contract-sheet--page-3 {
-  page-break-after: always;
-  break-after: page;
-}
-
+.contract-sheet--page-1,
+.contract-sheet--page-2,
+.contract-sheet--page-3,
 .contract-sheet--page-4 {
   page-break-after: always;
   break-after: page;
@@ -497,16 +485,26 @@ app-contract-document-control {
   }
 
   .contract-page {
+    display: flex;
+    flex-direction: column;
     width: 210mm;
     height: 297mm;
     margin: 0;
     padding: 14mm 16mm;
-    box-sizing: border-box;
     box-shadow: none;
     page-break-after: always;
     break-after: page;
     page-break-inside: avoid;
     break-inside: avoid;
+  }
+
+  .contract-page > app-contract-document-header,
+  .contract-page > app-contract-document-control {
+    flex: 0 0 auto;
+  }
+
+  .contract-page > app-contract-document-control {
+    margin-top: auto;
   }
 
   .doc-header-table {
@@ -522,22 +520,16 @@ app-contract-document-control {
     margin-bottom: 5pt;
   }
 
-  .contract-sheet--page-1 .doc-footer-table {
+  .doc-footer-table {
     margin-top: 4pt;
   }
 
-  .contract-sheet--page-1 .doc-control-note {
+  .doc-control-note {
     margin-bottom: 0;
   }
 
-  .contract-sheet--page-1,
-  .contract-sheet--page-2,
-  .contract-sheet--page-3,
-  .contract-sheet--page-4,
   .doc-header-table,
-  .section-table,
-  .doc-footer-table,
-  .doc-control-note {
+  .section-table {
     page-break-inside: avoid;
     break-inside: avoid;
   }

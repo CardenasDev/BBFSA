@@ -8,6 +8,7 @@ import { BaseContractComponent } from '../components/base-contract.component';
 import { ContractGenerationData, ContractRendererType } from '../models/contract-generation.models';
 import { ContractService } from '../services/contract.service';
 import { apiErrorMessage } from '../../shared/api-error';
+import { resolveContractRenderer } from '../contract-renderer.util';
 
 @Component({
   standalone: true,
@@ -49,33 +50,32 @@ import { apiErrorMessage } from '../../shared/api-error';
         background: #fff;
       }
 
-      @page {
-        size: A4;
-        margin: 0;
-      }
-
       @media print {
+        :host {
+          display: block;
+          width: 210mm;
+          margin: 0;
+          padding: 0;
+        }
+
         .print-toolbar {
           display: none !important;
         }
 
-        body {
-          margin: 0;
-          background: #fff;
-        }
-
         .print-view {
+          width: 210mm;
+          min-height: 0;
+          margin: 0;
+          padding: 0;
           background: #fff;
         }
 
         .print-content {
+          width: 210mm;
+          margin: 0;
           padding: 0;
         }
 
-        .contract-page {
-          box-shadow: none !important;
-          margin: 0 !important;
-        }
       }
     `,
   ],
@@ -83,7 +83,7 @@ import { apiErrorMessage } from '../../shared/api-error';
     <div class="print-view">
       <div class="print-toolbar">
         <button class="btn primary" type="button" (click)="printContract()">Imprimir / Guardar como PDF</button>
-        <button class="btn ghost" type="button" (click)="closeWindow()">Cerrar</button>
+        <button class="btn ghost" type="button" (click)="goBack()">Volver</button>
       </div>
 
       @if (error()) {
@@ -138,7 +138,12 @@ export class ContractPrintComponent implements OnInit {
     window.print();
   }
 
-  closeWindow(): void {
+  goBack(): void {
+    if (window.history.length > 1) {
+      window.history.back();
+      return;
+    }
+
     window.close();
   }
 
@@ -151,7 +156,7 @@ export class ContractPrintComponent implements OnInit {
       .subscribe({
         next: (data) => {
           this.contractData.set(data);
-          this.renderer.set(this.suggestRenderer(data));
+          this.renderer.set(resolveContractRenderer(data));
         },
         error: (error) => {
           this.error.set(apiErrorMessage(error, 'No fue posible cargar la vista de impresion del contrato.'));
@@ -160,26 +165,4 @@ export class ContractPrintComponent implements OnInit {
       });
   }
 
-  private suggestRenderer(data: ContractGenerationData): ContractRendererType {
-    const type = (
-      data.contrato.tipo_contrato
-      || data.contrato.nombre_tipo_contrato
-      || data.parametros.plantilla.tipo_contrato
-      || ''
-    ).toUpperCase();
-
-    if (type.includes('OBRA') || type.includes('LABOR')) {
-      return 'work';
-    }
-
-    if (type.includes('FIJO')) {
-      return 'fixed-term';
-    }
-
-    if (type.includes('INDEFIN')) {
-      return 'indefinite';
-    }
-
-    return 'base';
-  }
 }

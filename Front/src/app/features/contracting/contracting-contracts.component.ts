@@ -85,13 +85,13 @@ const BASE_FIELDS = [
                 <td class="actions-cell">
                   <button class="btn small ghost" type="button" (click)="toggleDetail(contract)">{{ isExpanded(contract) ? 'Ocultar' : 'Ver detalle' }}</button>
                   <button class="btn small secondary" type="button" (click)="openGenerationData(contract)" [disabled]="generationLoading()">Datos generacion</button>
-                  @if (contractId(contract); as previewContractId) {
+                  @if (contractId(contract); as printableContractId) {
                     <a
                       class="btn small primary"
-                      [routerLink]="['/admin/contracting/contracts', previewContractId, 'preview']"
-                    >Vista previa</a>
+                      [routerLink]="['/admin/contracting/contracts', printableContractId, 'print']"
+                    >Ver / imprimir contrato</a>
                   } @else {
-                    <button class="btn small primary" type="button" [disabled]="true" title="Contrato invalido">Vista previa</button>
+                    <button class="btn small primary" type="button" [disabled]="true" title="Contrato invalido">Ver / imprimir contrato</button>
                   }
                   @if (getStorageUrl(contract.archivo_contrato_url); as fileUrl) {
                     <a class="btn small ghost" [href]="fileUrl" target="_blank" rel="noopener">Abrir PDF</a>

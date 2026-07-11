@@ -8,6 +8,7 @@ import { BaseContractComponent } from '../components/base-contract.component';
 import { ContractGenerationData, ContractRendererType } from '../models/contract-generation.models';
 import { ContractService } from '../services/contract.service';
 import { apiErrorMessage } from '../../shared/api-error';
+import { resolveContractRenderer } from '../contract-renderer.util';
 
 @Component({
   standalone: true,
@@ -77,9 +78,14 @@ export class ContractPreviewComponent implements OnInit {
       return;
     }
 
-    const urlTree = this.router.createUrlTree(['/admin/contracting/contracts', employeeContractId, 'print']);
-    const url = this.router.serializeUrl(urlTree);
-    window.open(url, '_blank', 'noopener,noreferrer');
+    const printUrl = this.router.serializeUrl(
+      this.router.createUrlTree([
+        '/admin/contracting/contracts',
+        employeeContractId,
+        'print',
+      ]),
+    );
+    window.open(printUrl, '_blank', 'noopener,noreferrer');
   }
 
   private loadContract(employeeContractId: number): void {
@@ -91,36 +97,13 @@ export class ContractPreviewComponent implements OnInit {
       .subscribe({
         next: (data) => {
           this.contractData.set(data);
-          this.renderer.set(this.suggestRenderer(data));
+          this.renderer.set(resolveContractRenderer(data));
         },
         error: (error) => {
           this.error.set(apiErrorMessage(error, 'No fue posible cargar la vista previa del contrato.'));
           this.contractData.set(null);
         },
       });
-  }
-
-  private suggestRenderer(data: ContractGenerationData): ContractRendererType {
-    const type = (
-      data.contrato.tipo_contrato
-      || data.contrato.nombre_tipo_contrato
-      || data.parametros.plantilla.tipo_contrato
-      || ''
-    ).toUpperCase();
-
-    if (type.includes('OBRA') || type.includes('LABOR')) {
-      return 'work';
-    }
-
-    if (type.includes('FIJO')) {
-      return 'fixed-term';
-    }
-
-    if (type.includes('INDEFIN')) {
-      return 'indefinite';
-    }
-
-    return 'base';
   }
 
 }

@@ -39,12 +39,15 @@ export class LoginComponent {
     this.loading.set(true); this.error.set('');
     const { usuario, password } = this.form.getRawValue();
     this.auth.login(usuario, password).pipe(finalize(() => this.loading.set(false))).subscribe({
-      next: () => void this.router.navigateByUrl(this.returnUrl()),
+      next: () => {
+        window.location.assign(document.baseURI);
+      },
       error: (error) => this.error.set(apiErrorMessage(error, 'Credenciales incorrectas.')),
     });
   }
 
   private returnUrl(): string {
-    return this.route.snapshot.queryParamMap.get('returnUrl') || '/admin/dashboard';
+    const candidate = this.route.snapshot.queryParamMap.get('returnUrl');
+    return (candidate && candidate.startsWith('/')) ? candidate : '/admin/dashboard';
   }
 }

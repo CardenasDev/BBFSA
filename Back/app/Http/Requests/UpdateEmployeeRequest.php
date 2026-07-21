@@ -11,21 +11,21 @@ class UpdateEmployeeRequest extends ApiRequest
         $employeeId = (int) $this->route('id');
 
         return [
-            'id_tipo_documento' => ['nullable', 'integer', Rule::exists('BBF_TIPOS_DOCUMENTO', 'ID_TIPO_DOCUMENTO')],
+            'id_tipo_documento' => ['nullable', 'integer', Rule::exists('bbf_tipos_documento', 'ID_TIPO_DOCUMENTO')],
             'numero_documento' => [
                 'required',
                 'string',
                 'max:50',
-                Rule::unique('BBF_EMPLEADOS', 'NUMERO_DOCUMENTO')->ignore($employeeId, 'ID_EMPLEADO'),
+                Rule::unique('bbf_empleados', 'NUMERO_DOCUMENTO')->ignore($employeeId, 'ID_EMPLEADO'),
             ],
             'nombres' => ['required', 'string', 'max:150'],
             'apellidos' => ['required', 'string', 'max:150'],
             'correo' => ['nullable', 'email:rfc', 'max:150'],
             'telefono' => ['nullable', 'string', 'max:50'],
             'foto_url' => ['nullable', 'string', 'max:500'],
-            'id_area' => ['nullable', 'integer', Rule::exists('BBF_AREAS', 'ID_AREA')],
-            'id_cargo' => ['nullable', 'integer', Rule::exists('BBF_CARGOS', 'ID_CARGO')],
-            'id_tipo_contrato' => ['nullable', 'integer', Rule::exists('BBF_TIPOS_CONTRATO', 'ID_TIPO_CONTRATO')],
+            'id_area' => ['nullable', 'integer', Rule::exists('bbf_areas', 'ID_AREA')],
+            'id_cargo' => ['nullable', 'integer', Rule::exists('bbf_cargos', 'ID_CARGO')],
+            'id_tipo_contrato' => ['nullable', 'integer', Rule::exists('bbf_tipos_contrato', 'ID_TIPO_CONTRATO')],
             'fecha_ingreso' => ['nullable', 'date'],
             'fecha_retiro' => ['nullable', 'date'],
             'estado_empleado' => ['required', Rule::in(EmployeeStatus::values())],

@@ -1,6 +1,6 @@
 :host { display: block; }
 .fixed-contract-doc { background:#d9dde1; padding-bottom:12mm; color:#000; font-family:Arial,Helvetica,sans-serif; }
-.fixed-contract-page { width:210mm; min-height:297mm; margin:0 auto 12mm; padding:10mm 14mm 11mm; box-sizing:border-box; background:#fff; box-shadow:0 0 0 1px rgba(0,0,0,.08); font-size:9.7pt; line-height:1.24; }
+.fixed-contract-page { width:216mm; min-height:279mm; margin:0 auto 12mm; padding:8mm 12mm 9mm; box-sizing:border-box; background:#fff; box-shadow:0 0 0 1px rgba(0,0,0,.08); font-size:9.7pt; line-height:1.24; }
 .fixed-header-table { width:100%; margin:0 0 4mm; border:1px solid #000; border-collapse:collapse; table-layout:fixed; color:#111; font-size:8.7pt; }
 .fixed-header-table td { border:1px solid #000; padding:1.35mm 1.5mm; vertical-align:middle; }
 .fixed-header-logo { width:19%; text-align:center; }
@@ -34,11 +34,11 @@
 .fixed-signature-caption { margin:10pt 0 8pt; }
 .fixed-signature-location { font-size:8.35pt; page-break-inside:avoid; break-inside:avoid; }
 .fixed-signature-location th { width:30%; background:#d7e0ea; text-align:left; }
-@page { size:A4; margin:0; }
+@page { size:Letter portrait; margin:0; }
 @media print {
   html,body { width:100%!important; margin:0!important; padding:0!important; background:#fff!important; }
   .fixed-contract-doc { padding:0; background:transparent; }
-  .fixed-contract-page { display:flex; flex-direction:column; width:210mm; height:297mm; min-height:0; margin:0; padding:10mm 14mm 11mm; box-shadow:none; page-break-after:always; break-after:page; page-break-inside:avoid; break-inside:avoid; }
+  .fixed-contract-page { display:flex; flex-direction:column; width:216mm; height:279mm; min-height:0; margin:0; padding:8mm 12mm 9mm; box-shadow:none; page-break-after:always; break-after:page; page-break-inside:avoid; break-inside:avoid; }
   .fixed-contract-page__header,.fixed-contract-page__footer { display:block; flex:0 0 auto; }
   .fixed-contract-page__content { display:block; flex:1 1 auto; min-height:0; }
   .fixed-contract-page__footer { margin-top:auto; }

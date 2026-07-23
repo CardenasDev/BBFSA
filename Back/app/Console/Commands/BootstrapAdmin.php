@@ -112,11 +112,11 @@ class BootstrapAdmin extends Command
     {
         $ids = [];
         foreach (self::PERMISSIONS as [$code, $name, $module]) {
-            DB::table('BBF_PERMISOS')->updateOrInsert(
+            DB::table('bbf_permisos')->updateOrInsert(
                 ['CODIGO' => $code],
                 ['NOMBRE' => $name, 'DESCRIPCION' => $name, 'MODULO' => $module, 'ACTIVO' => 1],
             );
-            $id = DB::table('BBF_PERMISOS')->where('CODIGO', $code)->value('ID_PERMISO');
+            $id = DB::table('bbf_permisos')->where('CODIGO', $code)->value('ID_PERMISO');
             if (! $id) {
                 throw new RuntimeException("No se pudo obtener el permiso {$code}.");
             }
@@ -128,7 +128,7 @@ class BootstrapAdmin extends Command
 
     private function ensureRole(): int
     {
-        $role = DB::table('BBF_ROLES')->where('NOMBRE', 'SUPER_ADMIN')->first();
+        $role = DB::table('bbf_roles')->where('NOMBRE', 'SUPER_ADMIN')->first();
         if (! $role) {
             $rows = DB::select('CALL SP_BBF_ROLES_CREAR(?, ?)', [
                 'SUPER_ADMIN',
@@ -139,7 +139,7 @@ class BootstrapAdmin extends Command
             $roleId = (int) $role->ID_ROL;
         }
 
-        $roleId ??= (int) DB::table('BBF_ROLES')->where('NOMBRE', 'SUPER_ADMIN')->value('ID_ROL');
+        $roleId ??= (int) DB::table('bbf_roles')->where('NOMBRE', 'SUPER_ADMIN')->value('ID_ROL');
         if ($roleId < 1) {
             throw new RuntimeException('No se pudo obtener el rol SUPER_ADMIN.');
         }
@@ -150,8 +150,8 @@ class BootstrapAdmin extends Command
 
     private function ensureUser(array $credentials): array
     {
-        $byEmail = DB::table('BBF_USUARIOS')->where('CORREO', $credentials['email'])->first();
-        $byUsername = DB::table('BBF_USUARIOS')->where('NOMBRE_USUARIO', $credentials['username'])->first();
+        $byEmail = DB::table('bbf_usuarios')->where('CORREO', $credentials['email'])->first();
+        $byUsername = DB::table('bbf_usuarios')->where('NOMBRE_USUARIO', $credentials['username'])->first();
         if ($byEmail && $byUsername && $byEmail->ID_USUARIO !== $byUsername->ID_USUARIO) {
             throw new RuntimeException('El correo y el nombre de usuario pertenecen a usuarios diferentes.');
         }
@@ -172,7 +172,7 @@ class BootstrapAdmin extends Command
             'ADMIN', 'LOCAL', 1, 1,
         ]);
         $userId = $this->returnedId($rows[0] ?? null, 'ID_USUARIO');
-        $userId ??= (int) DB::table('BBF_USUARIOS')->where('CORREO', $credentials['email'])->value('ID_USUARIO');
+        $userId ??= (int) DB::table('bbf_usuarios')->where('CORREO', $credentials['email'])->value('ID_USUARIO');
         if ($userId < 1) {
             throw new RuntimeException('No se pudo obtener el usuario administrador.');
         }

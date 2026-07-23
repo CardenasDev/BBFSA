@@ -58,8 +58,8 @@ class RoleRepository extends StoredProcedureRepository
 
     public function roleHasCriticalAdminPermissions(int $roleId): bool
     {
-        return DB::table('BBF_ROL_PERMISOS as rp')
-            ->join('BBF_PERMISOS as p', 'p.ID_PERMISO', '=', 'rp.ID_PERMISO')
+        return DB::table('bbf_rol_permisos as rp')
+            ->join('bbf_permisos as p', 'p.ID_PERMISO', '=', 'rp.ID_PERMISO')
             ->where('rp.ID_ROL', $roleId)
             ->where('p.ACTIVO', 1)
             ->whereIn('p.CODIGO', self::CRITICAL_ADMIN_PERMISSIONS)
@@ -68,9 +68,9 @@ class RoleRepository extends StoredProcedureRepository
 
     public function activeRolesWithCriticalAdminPermissionsExcept(int $roleId): int
     {
-        return DB::table('BBF_ROLES as r')
-            ->join('BBF_ROL_PERMISOS as rp', 'rp.ID_ROL', '=', 'r.ID_ROL')
-            ->join('BBF_PERMISOS as p', 'p.ID_PERMISO', '=', 'rp.ID_PERMISO')
+        return DB::table('bbf_roles as r')
+            ->join('bbf_rol_permisos as rp', 'rp.ID_ROL', '=', 'r.ID_ROL')
+            ->join('bbf_permisos as p', 'p.ID_PERMISO', '=', 'rp.ID_PERMISO')
             ->where('r.ID_ROL', '<>', $roleId)
             ->where('r.ACTIVO', 1)
             ->where('r.ELIMINADO', 0)
@@ -82,9 +82,9 @@ class RoleRepository extends StoredProcedureRepository
 
     public function activeSuperAdminUsersCount(): int
     {
-        return DB::table('BBF_USUARIOS as u')
-            ->join('BBF_USUARIO_ROLES as ur', 'ur.ID_USUARIO', '=', 'u.ID_USUARIO')
-            ->join('BBF_ROLES as r', 'r.ID_ROL', '=', 'ur.ID_ROL')
+        return DB::table('bbf_usuarios as u')
+            ->join('bbf_usuario_roles as ur', 'ur.ID_USUARIO', '=', 'u.ID_USUARIO')
+            ->join('bbf_roles as r', 'r.ID_ROL', '=', 'ur.ID_ROL')
             ->where('u.ESTADO', 'ACTIVO')
             ->where('r.NOMBRE', 'SUPER_ADMIN')
             ->where('r.ACTIVO', 1)

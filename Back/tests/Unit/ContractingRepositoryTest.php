@@ -94,8 +94,11 @@ class ContractingRepositoryTest extends TestCase
     public function test_save_profile_calls_stored_procedure_with_real_parameter_order(): void
     {
         DB::shouldReceive('select')->once()
-            ->with('CALL SP_BBF_CONTRATACION_FICHA_GUARDAR(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', [
+            ->with('CALL SP_BBF_CONTRATACION_FICHA_GUARDAR(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', [
                 5,
+                'CARP-001',
+                'FEMENINO',
+                '2016-05-20',
                 'Ibague',
                 'Tolima',
                 'Cajica',
@@ -107,6 +110,8 @@ class ContractingRepositoryTest extends TestCase
                 'PROFESIONAL',
                 1,
                 0,
+                4,
+                1,
                 'Sin novedades',
                 'Carlos Perez',
                 'Hermano',
@@ -118,6 +123,9 @@ class ContractingRepositoryTest extends TestCase
             ->andReturn([(object) ['ID_EMPLEADO' => 5]]);
 
         $row = app(ContractingRepository::class)->saveProfile(5, [
+            'numero_carpeta' => 'CARP-001',
+            'genero' => 'FEMENINO',
+            'fecha_expedicion_documento' => '2016-05-20',
             'lugar_nacimiento' => 'Ibague',
             'departamento_nacimiento' => 'Tolima',
             'ciudad_residencia' => 'Cajica',
@@ -129,6 +137,8 @@ class ContractingRepositoryTest extends TestCase
             'nivel_educativo' => 'PROFESIONAL',
             'personas_a_cargo' => 1,
             'numero_hijos' => 0,
+            'personas_vivienda' => 4,
+            'menores_estudian' => true,
             'observaciones' => 'Sin novedades',
             'contacto_emergencia' => [
                 'nombre_completo' => 'Carlos Perez',

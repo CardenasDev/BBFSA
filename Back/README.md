@@ -140,7 +140,7 @@ Content-Type: application/json
 }
 ```
 
-Para `tipo_usuario` igual a `EMPLEADO`, `numero_documento_empleado` es obligatorio y se resuelve internamente contra `BBF_EMPLEADOS.ID_EMPLEADO`. Para `ADMIN` y `PERSONAL_AUTORIZADO` puede omitirse.
+Para `tipo_usuario` igual a `EMPLEADO`, `numero_documento_empleado` es obligatorio y se resuelve internamente contra `bbf_empleados.ID_EMPLEADO`. Para `ADMIN` y `PERSONAL_AUTORIZADO` puede omitirse.
 
 ### Catalogos
 
@@ -184,7 +184,7 @@ Content-Type: application/json
 DELETE /api/users/1/roles/2
 ```
 
-Todos requieren Bearer token. Los códigos exigidos por las rutas son `USUARIOS_LISTAR`, `USUARIOS_VER`, `USUARIOS_CREAR`, `USUARIOS_CAMBIAR_ESTADO`, `USUARIOS_ASIGNAR_ROL`, `USUARIOS_QUITAR_ROL`, `USUARIOS_VER_ROLES`, `USUARIOS_VER_PERMISOS`, `ROLES_LISTAR` y `PERMISOS_LISTAR`; deben existir con esos valores en `BBF_PERMISOS.CODIGO` y estar asignados al rol correspondiente.
+Todos requieren Bearer token. Los códigos exigidos por las rutas son `USUARIOS_LISTAR`, `USUARIOS_VER`, `USUARIOS_CREAR`, `USUARIOS_CAMBIAR_ESTADO`, `USUARIOS_ASIGNAR_ROL`, `USUARIOS_QUITAR_ROL`, `USUARIOS_VER_ROLES`, `USUARIOS_VER_PERMISOS`, `ROLES_LISTAR` y `PERMISOS_LISTAR`; deben existir con esos valores en `bbf_permisos.CODIGO` y estar asignados al rol correspondiente.
 
 ## Arquitectura
 

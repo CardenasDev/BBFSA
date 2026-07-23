@@ -64,9 +64,14 @@ class ContractingApiTest extends TestCase
     {
         DB::shouldReceive('select')
             ->once()
-            ->with('CALL SP_BBF_CONTRATACION_FICHA_GUARDAR(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', [
+            ->with('CALL SP_BBF_CONTRATACION_FICHA_GUARDAR(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', [
                 5,
+                null,
+                null,
+                null,
                 'Ibague',
+                null,
+                null,
                 null,
                 null,
                 null,
@@ -102,9 +107,21 @@ class ContractingApiTest extends TestCase
         $this->withToken($this->tokenWithPermissions(['CONTRATACION_EDITAR']))
             ->postJson('/api/contracting/employees/5/profile', [
                 'correo_personal' => 'no-es-email',
+                'numero_carpeta' => str_repeat('A', 51),
+                'genero' => str_repeat('A', 21),
+                'fecha_expedicion_documento' => 'no-es-fecha',
+                'personas_vivienda' => -1,
+                'menores_estudian' => 'no-es-booleano',
             ])
             ->assertUnprocessable()
-            ->assertJsonValidationErrors(['correo_personal']);
+            ->assertJsonValidationErrors([
+                'correo_personal',
+                'numero_carpeta',
+                'genero',
+                'fecha_expedicion_documento',
+                'personas_vivienda',
+                'menores_estudian',
+            ]);
 
         $this->withToken($this->tokenWithPermissions(['CONTRATACION_CREAR']))
             ->postJson('/api/contracting/employees/5/contracts', [])
@@ -163,6 +180,11 @@ class ContractingApiTest extends TestCase
                 'DIRECCION_RESIDENCIA' => 'Calle 1',
                 'TELEFONO_ALTERNO' => '3001234567',
                 'CORREO_PERSONAL' => 'ana@example.com',
+                'NUMERO_CARPETA' => 'CARP-001',
+                'GENERO' => 'FEMENINO',
+                'FECHA_EXPEDICION_DOCUMENTO' => '2016-05-20',
+                'PERSONAS_VIVIENDA' => 4,
+                'MENORES_ESTUDIAN' => 1,
             ]]);
 
         $this->withToken($this->tokenWithPermissions(['CONTRATACION_VER']))
@@ -175,7 +197,12 @@ class ContractingApiTest extends TestCase
             ->assertJsonPath('data.lugar_nacimiento', 'Ibague')
             ->assertJsonPath('data.direccion_residencia', 'Calle 1')
             ->assertJsonPath('data.telefono_alterno', '3001234567')
-            ->assertJsonPath('data.correo_personal', 'ana@example.com');
+            ->assertJsonPath('data.correo_personal', 'ana@example.com')
+            ->assertJsonPath('data.numero_carpeta', 'CARP-001')
+            ->assertJsonPath('data.genero', 'FEMENINO')
+            ->assertJsonPath('data.fecha_expedicion_documento', '2016-05-20')
+            ->assertJsonPath('data.personas_vivienda', 4)
+            ->assertJsonPath('data.menores_estudian', 1);
     }
 
     public function test_employees_endpoint_uses_sp_and_maps_snake_case_response(): void

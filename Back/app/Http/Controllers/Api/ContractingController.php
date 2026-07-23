@@ -53,7 +53,7 @@ class ContractingController extends ApiController
      *
      * Permiso requerido: CONTRATACION_VER.
      *
-     * @response array{success: bool, message: string, data: array{id_empleado: int, estado_ficha: string|null, fecha_nacimiento: string|null, lugar_nacimiento: string|null, nacionalidad: string|null, direccion_residencia: string|null, telefono_alterno: string|null, correo_personal: string|null}}
+     * @response array{success: bool, message: string, data: array{id_empleado: int, estado_ficha: string|null, numero_carpeta: string|null, genero: string|null, fecha_expedicion_documento: string|null, fecha_nacimiento: string|null, lugar_nacimiento: string|null, nacionalidad: string|null, direccion_residencia: string|null, telefono_alterno: string|null, correo_personal: string|null, personas_vivienda: int|null, menores_estudian: int|null}}
      */
     public function getProfile(int $employeeId): JsonResponse
     {
@@ -109,7 +109,7 @@ class ContractingController extends ApiController
      *
      * Permiso requerido: CONTRATACION_CREAR o CONTRATACION_EDITAR.
      *
-     * @response array{success: bool, message: string, data: array{id_empleado: int, estado_ficha: string|null, fecha_nacimiento: string|null, lugar_nacimiento: string|null, nacionalidad: string|null, direccion_residencia: string|null, telefono_alterno: string|null, correo_personal: string|null}}
+     * @response array{success: bool, message: string, data: array{id_empleado: int, estado_ficha: string|null, numero_carpeta: string|null, genero: string|null, fecha_expedicion_documento: string|null, fecha_nacimiento: string|null, lugar_nacimiento: string|null, nacionalidad: string|null, direccion_residencia: string|null, telefono_alterno: string|null, correo_personal: string|null, personas_vivienda: int|null, menores_estudian: int|null}}
      */
     public function saveProfile(SaveContractingProfileRequest $request, int $employeeId): JsonResponse
     {

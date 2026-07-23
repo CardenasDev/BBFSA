@@ -10,7 +10,7 @@ BEGIN
         ACTIVO,
         CREATED_AT,
         UPDATED_AT
-    FROM BBF_TIPOS_DOCUMENTO
+    FROM bbf_tipos_documento
     WHERE COALESCE(P_SOLO_ACTIVOS, 1) = 0
         OR ACTIVO = 1
     ORDER BY NOMBRE;

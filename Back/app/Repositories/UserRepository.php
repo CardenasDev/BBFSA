@@ -105,9 +105,9 @@ class UserRepository extends StoredProcedureRepository
 
     public function activeSuperAdminCount(): int
     {
-        return (int) DB::table('BBF_USUARIOS as u')
-            ->join('BBF_USUARIO_ROLES as ur', 'ur.ID_USUARIO', '=', 'u.ID_USUARIO')
-            ->join('BBF_ROLES as r', 'r.ID_ROL', '=', 'ur.ID_ROL')
+        return (int) DB::table('bbf_usuarios as u')
+            ->join('bbf_usuario_roles as ur', 'ur.ID_USUARIO', '=', 'u.ID_USUARIO')
+            ->join('bbf_roles as r', 'r.ID_ROL', '=', 'ur.ID_ROL')
             ->where('u.ESTADO', 'ACTIVO')
             ->where('r.NOMBRE', 'SUPER_ADMIN')
             ->where('r.ACTIVO', 1)
@@ -117,7 +117,7 @@ class UserRepository extends StoredProcedureRepository
 
     public function roleName(int $roleId): ?string
     {
-        $name = DB::table('BBF_ROLES')->where('ID_ROL', $roleId)->value('NOMBRE');
+        $name = DB::table('bbf_roles')->where('ID_ROL', $roleId)->value('NOMBRE');
 
         return is_string($name) ? $name : null;
     }

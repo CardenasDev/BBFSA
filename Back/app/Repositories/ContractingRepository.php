@@ -22,6 +22,9 @@ class ContractingRepository extends StoredProcedureRepository
 
         return $this->first('SP_BBF_CONTRATACION_FICHA_GUARDAR', [
             $employeeId,
+            $data['numero_carpeta'] ?? null,
+            $data['genero'] ?? null,
+            $data['fecha_expedicion_documento'] ?? null,
             $data['lugar_nacimiento'] ?? null,
             $data['departamento_nacimiento'] ?? null,
             $data['ciudad_residencia'] ?? null,
@@ -33,6 +36,8 @@ class ContractingRepository extends StoredProcedureRepository
             $data['nivel_educativo'] ?? null,
             $data['personas_a_cargo'] ?? null,
             $data['numero_hijos'] ?? null,
+            $data['personas_vivienda'] ?? null,
+            $this->booleanToDatabase($data['menores_estudian'] ?? null),
             $data['observaciones'] ?? null,
             $contact['nombre_completo'] ?? null,
             $contact['parentesco'] ?? null,

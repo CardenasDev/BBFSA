@@ -7,6 +7,9 @@ class SaveContractingProfileRequest extends ApiRequest
     public function rules(): array
     {
         return [
+            'numero_carpeta' => ['nullable', 'string', 'max:50'],
+            'genero' => ['nullable', 'string', 'max:20'],
+            'fecha_expedicion_documento' => ['nullable', 'date'],
             'lugar_nacimiento' => ['nullable', 'string', 'max:150'],
             'departamento_nacimiento' => ['nullable', 'string', 'max:150'],
             'ciudad_residencia' => ['nullable', 'string', 'max:150'],
@@ -18,6 +21,8 @@ class SaveContractingProfileRequest extends ApiRequest
             'nivel_educativo' => ['nullable', 'string', 'in:PRIMARIA,BACHILLER,TECNICO,TECNOLOGO,PROFESIONAL,POSGRADO,NINGUNO,OTRO'],
             'personas_a_cargo' => ['nullable', 'integer', 'min:0'],
             'numero_hijos' => ['nullable', 'integer', 'min:0'],
+            'personas_vivienda' => ['nullable', 'integer', 'min:0'],
+            'menores_estudian' => ['nullable', 'boolean'],
             'observaciones' => ['nullable', 'string'],
             'contacto_emergencia' => ['nullable', 'array'],
             'contacto_emergencia.nombre_completo' => ['nullable', 'string', 'max:200'],

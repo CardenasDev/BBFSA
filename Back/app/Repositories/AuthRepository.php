@@ -6,7 +6,7 @@ class AuthRepository extends StoredProcedureRepository
 {
     public function findForLogin(string $login): ?array
     {
-        return $this->first('SP_BBF_LOGIN_OBTENER_USUARIO', [$login]);
+        return $this->first('SP_BBF_LOGIN_OBTENER_USUARIO', [$this->normalizeLogin($login)]);
     }
 
     public function markFailed(int $userId): void
@@ -27,6 +27,11 @@ class AuthRepository extends StoredProcedureRepository
     private function normalizeEmail(string $email): string
     {
         return mb_strtolower(trim($email));
+    }
+
+    private function normalizeLogin(string $login): string
+    {
+        return mb_strtolower(trim($login));
     }
 
     public function createSession(int $userId, string $tokenHash, ?string $ip, ?string $userAgent, string $expiresAt): int

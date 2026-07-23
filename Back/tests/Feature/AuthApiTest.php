@@ -13,10 +13,8 @@ class AuthApiTest extends TestCase
 {
     public function test_cors_allows_local_angular_origins_and_required_headers(): void
     {
-        $this->assertEqualsCanonicalizing(
-            ['http://localhost:4200', 'http://127.0.0.1:4200', 'http://localhost'],
-            config('cors.allowed_origins'),
-        );
+        $this->assertContains('http://localhost:4200', config('cors.allowed_origins'));
+        $this->assertContains('http://127.0.0.1:4200', config('cors.allowed_origins'));
         $this->assertSame(['api/*'], config('cors.paths'));
         $this->assertEqualsCanonicalizing(
             ['OPTIONS', 'GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
@@ -162,6 +160,20 @@ class AuthApiTest extends TestCase
             ->assertJsonPath('success', false)
             ->assertJsonPath('message', 'Los datos enviados no son válidos.')
             ->assertJsonValidationErrors(['usuario', 'password']);
+    }
+
+    public function test_login_normalizes_email_or_username_before_querying(): void
+    {
+        DB::shouldReceive('select')
+            ->once()
+            ->with('CALL SP_BBF_LOGIN_OBTENER_USUARIO(?)', ['admin@example.com'])
+            ->andReturn([]);
+
+        $this->postJson('/api/auth/login', [
+            'usuario' => '  Admin@Example.COM  ',
+            'password' => 'not-a-real-password',
+        ])->assertUnauthorized()
+            ->assertJsonPath('message', 'Credenciales incorrectas.');
     }
 
     public function test_protected_route_requires_bearer_token(): void

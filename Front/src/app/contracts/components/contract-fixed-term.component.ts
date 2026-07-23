@@ -13,7 +13,7 @@ import { ContractFixedDocumentHeaderComponent } from './contract-fixed-document-
     <article class="fixed-contract-doc" aria-label="Contrato de trabajo a término fijo inferior a un año">
       <section class="fixed-contract-page fixed-contract-page--1">
         <app-contract-fixed-document-header class="fixed-contract-page__header" [code]="headerCode()" [version]="templateVersion()" [validityDate]="templateValidityDate()" [pageNumber]="1" />
-        <main class="fixed-contract-page__content">
+        <main class="fixed-contract-page__content contract-body">
           <table class="fixed-data-table fixed-employer-table">
             <tbody>
               <tr><th colspan="2">EMPLEADOR</th></tr>
@@ -51,7 +51,7 @@ import { ContractFixedDocumentHeaderComponent } from './contract-fixed-document-
 
       <section class="fixed-contract-page fixed-contract-page--2">
         <app-contract-fixed-document-header class="fixed-contract-page__header" [code]="headerCode()" [version]="templateVersion()" [validityDate]="templateValidityDate()" [pageNumber]="2" />
-        <main class="fixed-contract-page__content fixed-contract-legal">
+        <main class="fixed-contract-page__content fixed-contract-legal contract-body contract-body--legal">
           <div class="fixed-literal-list">
             <p><span class="fixed-literal-marker">a)</span><span>Poner al servicio del EMPLEADOR toda su capacidad normal de trabajo, en forma exclusiva en el desempeño de las funciones propias del oficio mencionado y en las labores anexas y complementarias del mismo, de conformidad con las ordenes e instrucciones que le imparta EL EMPLEADOR o sus representantes, y</span></p>
             <p><span class="fixed-literal-marker">b)</span><span>A no prestar directa ni indirectamente servicios laborales a otros EMPLEADORES, ni a trabajar por cuenta propia en el mismo oficio, durante la vigencia de este contrato.</span></p>
@@ -69,7 +69,7 @@ import { ContractFixedDocumentHeaderComponent } from './contract-fixed-document-
 
       <section class="fixed-contract-page fixed-contract-page--3">
         <app-contract-fixed-document-header class="fixed-contract-page__header" [code]="headerCode()" [version]="templateVersion()" [validityDate]="templateValidityDate()" [pageNumber]="3" />
-        <main class="fixed-contract-page__content fixed-contract-legal">
+        <main class="fixed-contract-page__content fixed-contract-legal contract-body contract-body--legal">
           @if (remainingFunctions().length) {
             <ol class="fixed-number-list" [attr.start]="firstFunctionsPage().length + 1">
               @for (item of remainingFunctions(); track functionTrackBy($index, item)) {
@@ -89,7 +89,7 @@ import { ContractFixedDocumentHeaderComponent } from './contract-fixed-document-
 
       <section class="fixed-contract-page fixed-contract-page--4">
         <app-contract-fixed-document-header class="fixed-contract-page__header" [code]="headerCode()" [version]="templateVersion()" [validityDate]="templateValidityDate()" [pageNumber]="4" />
-        <main class="fixed-contract-page__content fixed-contract-legal">
+        <main class="fixed-contract-page__content fixed-contract-legal contract-body contract-body--legal">
           <p>El empleador, en consecuencia, no reconocerá ningún trabajo suplementario o en días de descanso legalmente obligatorio que no haya sido autorizado previamente o avisado inmediatamente, como queda dicho.</p>
           <p><strong>SÉPTIMA.</strong> El trabajador se obliga a laborar la jornada ordinaria en los turnos y dentro de las horas señaladas por el empleador, pudiendo hacer éste ajustes o cambios de horario cuando lo estime conveniente. Por el acuerdo expreso o tácito de las partes, podrán repartirse las horas jornada ordinaria de la forma prevista en la ley 2466 del 2025, teniendo en cuenta que los tiempos de descanso entre las secciones de la jornada no se computan dentro de la misma, según el artículo 167 ibidem.</p>
           <p><strong>OCTAVA.</strong> Son justas causas para dar por terminado unilateralmente este contrato por cualquiera de las partes, Código Sustantivo del Trabajo; y, además, por parte del empleado, las faltas que para el efecto se califiquen como graves en el reglamento Interno.</p>
@@ -102,7 +102,7 @@ import { ContractFixedDocumentHeaderComponent } from './contract-fixed-document-
 
       <section class="fixed-contract-page fixed-contract-page--5">
         <app-contract-fixed-document-header class="fixed-contract-page__header" [code]="headerCode()" [version]="templateVersion()" [validityDate]="templateValidityDate()" [pageNumber]="5" />
-        <main class="fixed-contract-page__content fixed-contract-legal">
+        <main class="fixed-contract-page__content fixed-contract-legal contract-body contract-body--legal">
           <p>La negativa del trabajador aún por la primera vez a permitir al empleador, o, sus delegados, para la práctica de los exámenes o pruebas anteriormente mencionados se considera como falta grave y por lo tanto justa causa para dar por terminado unilateralmente el contrato de trabajo por parte del empleador.</p>
           <p>Se entiende que el trabajador ha consumido se encuentra bajo los efectos de cualquier sustancia psicoactiva que afecte sus reflejos sus sentidos o la atención en el trabajo cuando una prueba para detectar la presencia de esas sustancias en el organismo entre el trabajador arroja como resultados una cifra superior a 0.0.</p>
           <p><strong>NOVENA.</strong> Las partes podrán convenir que el trabajo se preste en lugar distinto al inicialmente contratado, siempre que tales traslados no desmejoren las condiciones laborales o de remuneración del trabajador, o impliquen perjuicios para él. Los gastos que se originen con el traslado serán cubiertos por el empleador de conformidad con la ley 2466 del 2025. El trabajador se obliga a aceptar los cambios de oficio que decida el empleador dentro de su poder subordinante, siempre que se respeten las condiciones laborales del trabajador y no se le causen perjuicios. Todo ello sin que se afecte el honor, la dignidad y los derechos mínimos del trabajador, de conformidad Código Sustantivo del Trabajo y la ley 2466 de 2025.</p>
@@ -114,7 +114,7 @@ import { ContractFixedDocumentHeaderComponent } from './contract-fixed-document-
 
       <section class="fixed-contract-page fixed-contract-page--6">
         <app-contract-fixed-document-header class="fixed-contract-page__header" [code]="headerCode()" [version]="templateVersion()" [validityDate]="templateValidityDate()" [pageNumber]="6" />
-        <main class="fixed-contract-page__content fixed-contract-legal">
+        <main class="fixed-contract-page__content fixed-contract-legal contract-body contract-body--legal">
           <p>Las modificaciones que se acuerden al presente contrato se anotarán a continuación de su texto.</p>
           <p><strong>DÉCIMO SEGUNDA.</strong> El trabajador para todos los efectos legales y en especial para la aplicación de parágrafo 1 de artículo 6 de la ley 2466 del 25 de junio del 2025, inciso 1, se compromete a informar por escrito y de manera inmediata al empleador, cualquier cambio de direcciones de residencia, teniéndose como suya la última dirección registrada en la hoja de vida.</p>
           <p><strong>DÉCIMO TERCERA: CLÁUSULA DE CONFIDENCIALIDAD.</strong> El trabajador manifiesta la responsabilidad de no reproducir, hacer pública o divulgar a terceros la información objeto del presente contrato y cumplir con las medidas de seguridad adecuadas al tipo de documento con el que se trabaje en lo que se tiene que ver con todo el sistema financiero que tiene acceso en la compañía mientras exista y divulgación de información del personal.</p>

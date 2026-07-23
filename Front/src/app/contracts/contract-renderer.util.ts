@@ -1,6 +1,20 @@
 import { ContractGenerationData, ContractRendererType } from './models/contract-generation.models';
 
 export function resolveContractRenderer(data: ContractGenerationData): ContractRendererType {
+  const contractTypeId = Number(data.contrato.id_tipo_contrato ?? data.parametros.plantilla.id_tipo_contrato ?? 0);
+
+  if (contractTypeId === 4) {
+    return 'work';
+  }
+
+  if (contractTypeId === 3) {
+    return 'fixed-term';
+  }
+
+  if (contractTypeId === 2) {
+    return 'indefinite';
+  }
+
   const type = (
     data.contrato.tipo_contrato
     || data.contrato.nombre_tipo_contrato

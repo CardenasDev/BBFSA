@@ -19,6 +19,7 @@ import { AuthService } from '../../core/services/auth.service';
 import { CatalogService } from '../../core/services/catalog.service';
 import { ContractingService } from '../../core/services/contracting.service';
 import { apiErrorMessage } from '../../shared/api-error';
+import { parseContractFunctions } from '../../contracts/contract-work-validation.util';
 
 const CONTRACT_STATUSES = ['ACTIVO', 'VENCIDO', 'RENOVADO', 'FINALIZADO', 'ANULADO'];
 const CONTRACT_CHARGE_TYPES: ContractChargeType[] = ['ADMINISTRATIVO', 'OPERATIVO', 'OTRO'];
@@ -639,6 +640,18 @@ export class ContractingContractsComponent implements OnInit {
     if ((this.form.lugar_labores ?? '').length > 250) return 'El lugar de labores no puede superar 250 caracteres.';
     if ((this.form.jornada_laboral ?? '').length > 150) return 'La jornada laboral no puede superar 150 caracteres.';
     if (this.form.tipo_cargo_contrato && !CONTRACT_CHARGE_TYPES.includes(this.form.tipo_cargo_contrato)) return 'El tipo cargo contrato no es valido.';
+
+    if (this.selectedContractTypeLooksLikeWork()) {
+      const configuredFunctions = parseContractFunctions(this.form.clausula_funciones);
+      if (configuredFunctions.length === 0) {
+        return 'Debes configurar las funciones de la obra o labor antes de generar este contrato.';
+      }
+
+      if (!this.stringOrNull(this.form.objeto_obra_labor)) {
+        return 'Debes registrar la descripcion de la obra o labor contratada.';
+      }
+    }
+
     return this.validateTemplateRequirements(config);
   }
 

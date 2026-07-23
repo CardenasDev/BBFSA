@@ -6,7 +6,9 @@
     "start": "ng serve",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
-    "test": "ng test"
+    "test": "ng test",
+    "generate:work-contract-pdf": "node scripts/generate-work-contract-pdf.mjs",
+    "verify:work-contract-identity": "node scripts/verify-work-contract-identity.mjs"
   },
   "private": true,
   "packageManager": "npm@11.12.1",
@@ -24,7 +26,10 @@
     "@angular/build": "^22.0.3",
     "@angular/cli": "^22.0.3",
     "@angular/compiler-cli": "^22.0.0",
+    "fflate": "^0.8.2",
     "jsdom": "^28.0.0",
+    "pdfjs-dist": "^5.4.624",
+    "playwright-core": "^1.54.1",
     "prettier": "^3.8.1",
     "typescript": "~6.0.2",
     "vitest": "^4.0.8"

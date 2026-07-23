@@ -1,0 +1,11 @@
+<!doctype html>
+<meta charset="utf-8">
+<script>
+  const token = new URLSearchParams(location.hash.slice(1)).get('token');
+  if (!token) throw new Error('Token de prueba ausente');
+  localStorage.setItem('access_token', token);
+  localStorage.setItem('auth_user', JSON.stringify({ id_usuario: 99, nombre_usuario: 'Prueba impresión obra' }));
+  localStorage.setItem('roles', '[]');
+  localStorage.setItem('permissions', JSON.stringify([{ codigo: 'CONTRATACION_VER' }, { codigo: 'CONTRATACION_HISTORIAL_VER' }]));
+  location.replace('/admin/contracting/contracts/9/print');
+</script>

@@ -417,6 +417,51 @@ class ContractingApiTest extends TestCase
             ->assertJsonPath('data.parametros.reemplazos.FECHA_FIN_TEXTO', '23 de octubre de 2026');
     }
 
+    public function test_template_by_type_resolves_active_contract_templates_for_ids_2_3_and_4(): void
+    {
+        DB::shouldReceive('select')->once()
+            ->with('CALL SP_BBF_CONTRATO_PLANTILLA_POR_TIPO_OBTENER(?,?)', [2, 'ADMINISTRATIVO'])
+            ->andReturn([(object) [
+                'ID_PLANTILLA_CONTRATO' => 3,
+                'ID_TIPO_CONTRATO' => 2,
+                'CODIGO_FORMATO' => 'BBTH-F-016',
+                'NOMBRE_PLANTILLA' => 'Contrato de trabajo a término indefinido',
+            ]]);
+
+        DB::shouldReceive('select')->once()
+            ->with('CALL SP_BBF_CONTRATO_PLANTILLA_POR_TIPO_OBTENER(?,?)', [3, 'ADMINISTRATIVO'])
+            ->andReturn([(object) [
+                'ID_PLANTILLA_CONTRATO' => 1,
+                'ID_TIPO_CONTRATO' => 3,
+                'CODIGO_FORMATO' => 'BBTH-F-015',
+                'NOMBRE_PLANTILLA' => 'Contrato laboral a término fijo inferior a un año - Administrativo',
+            ]]);
+
+        DB::shouldReceive('select')->once()
+            ->with('CALL SP_BBF_CONTRATO_PLANTILLA_POR_TIPO_OBTENER(?,?)', [4, 'OPERATIVO'])
+            ->andReturn([(object) [
+                'ID_PLANTILLA_CONTRATO' => 2,
+                'ID_TIPO_CONTRATO' => 4,
+                'CODIGO_FORMATO' => 'BBTH-F-014',
+                'NOMBRE_PLANTILLA' => 'CONTRATO POR OBRA O LABOR DETERMINADA OPERATIVA',
+            ]]);
+
+        $this->withToken($this->tokenWithPermissions(['CONTRATACION_VER']))
+            ->getJson('/api/contracting/contract-templates/by-type?id_tipo_contrato=2&tipo_cargo_contrato=ADMINISTRATIVO')
+            ->assertOk()
+            ->assertJsonPath('data.codigo_formato', 'BBTH-F-016');
+
+        $this->withToken($this->tokenWithPermissions(['CONTRATACION_VER']))
+            ->getJson('/api/contracting/contract-templates/by-type?id_tipo_contrato=3&tipo_cargo_contrato=ADMINISTRATIVO')
+            ->assertOk()
+            ->assertJsonPath('data.codigo_formato', 'BBTH-F-015');
+
+        $this->withToken($this->tokenWithPermissions(['CONTRATACION_VER']))
+            ->getJson('/api/contracting/contract-templates/by-type?id_tipo_contrato=4&tipo_cargo_contrato=OPERATIVO')
+            ->assertOk()
+            ->assertJsonPath('data.codigo_formato', 'BBTH-F-014');
+    }
+
     public function test_alerts_endpoint_accepts_dias_antes(): void
     {
         DB::shouldReceive('select')->once()

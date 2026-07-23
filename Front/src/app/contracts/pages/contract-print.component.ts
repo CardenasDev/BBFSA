@@ -9,6 +9,7 @@ import { ContractGenerationData, ContractRendererType } from '../models/contract
 import { ContractService } from '../services/contract.service';
 import { apiErrorMessage } from '../../shared/api-error';
 import { resolveContractRenderer } from '../contract-renderer.util';
+import { validateWorkContractData } from '../contract-work-validation.util';
 
 @Component({
   standalone: true,
@@ -155,8 +156,17 @@ export class ContractPrintComponent implements OnInit {
       .pipe(finalize(() => this.loading.set(false)))
       .subscribe({
         next: (data) => {
+          const renderer = resolveContractRenderer(data);
+          const workValidationError = renderer === 'work' ? validateWorkContractData(data) : '';
+
+          if (workValidationError) {
+            this.error.set(workValidationError);
+            this.contractData.set(null);
+            return;
+          }
+
           this.contractData.set(data);
-          this.renderer.set(resolveContractRenderer(data));
+          this.renderer.set(renderer);
         },
         error: (error) => {
           this.error.set(apiErrorMessage(error, 'No fue posible cargar la vista de impresion del contrato.'));

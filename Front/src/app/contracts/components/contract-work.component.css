@@ -1,0 +1,68 @@
+@import './contract-fixed-term.component.css';
+
+:host {
+  display: block;
+}
+
+.work-contract-doc {
+  background: #d9dde1;
+}
+
+.work-contract-page {
+  position: relative;
+  overflow: hidden;
+}
+
+.work-contract-page::before {
+  content: '';
+  position: absolute;
+  inset: 17mm 14mm 17mm;
+  background-image: url('../../../assets/brand/bbf-logo.png');
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 122mm auto;
+  opacity: 0.075;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.work-contract-page__header,
+.work-contract-page__content,
+.work-contract-page__footer {
+  position: relative;
+  z-index: 1;
+}
+
+.work-signatures-title {
+  margin: 8pt 0 6pt;
+  font-size: 12pt;
+}
+
+.work-contract-page__content--page-2 p {
+  margin-bottom: 0;
+}
+
+.work-contract-page__content--page-2 {
+  line-height: 1.14;
+}
+
+.work-contract-page__content--page-2 .fixed-literal-list,
+.work-contract-page__content--page-2 .fixed-number-list {
+  margin-bottom: 1pt;
+}
+
+.work-contract-page__content--page-2 .fixed-literal-list p,
+.work-contract-page__content--page-2 .fixed-number-list li {
+  margin-bottom: 0;
+}
+
+@media print {
+  .work-contract-page {
+    overflow: hidden;
+  }
+
+  .work-contract-page::before {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}

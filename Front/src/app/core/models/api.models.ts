@@ -426,6 +426,9 @@ export interface ContractingProfile {
   cargo?: string | null;
   tipo_contrato?: string | null;
   id_ficha_ingreso?: number | null;
+  numero_carpeta?: string | null;
+  genero?: string | null;
+  fecha_expedicion_documento?: string | null;
   fecha_nacimiento?: string | null;
   lugar_nacimiento?: string | null;
   nacionalidad?: string | null;
@@ -439,6 +442,8 @@ export interface ContractingProfile {
   nivel_educativo?: string | null;
   personas_a_cargo?: number | null;
   numero_hijos?: number | null;
+  personas_vivienda?: number | null;
+  menores_estudian?: boolean | number | null;
   estado_ficha?: string | null;
   observaciones?: string | null;
   id_contacto_emergencia?: number | null;
@@ -451,6 +456,9 @@ export interface ContractingProfile {
 }
 
 export interface SaveContractingProfileRequest {
+  numero_carpeta?: string | null;
+  genero?: string | null;
+  fecha_expedicion_documento?: string | null;
   fecha_nacimiento?: string | null;
   lugar_nacimiento?: string | null;
   nacionalidad?: string | null;
@@ -464,6 +472,8 @@ export interface SaveContractingProfileRequest {
   nivel_educativo?: string | null;
   personas_a_cargo?: number | null;
   numero_hijos?: number | null;
+  personas_vivienda?: number | null;
+  menores_estudian?: boolean | null;
   observaciones?: string | null;
   contacto_emergencia?: {
     nombre_completo?: string | null;

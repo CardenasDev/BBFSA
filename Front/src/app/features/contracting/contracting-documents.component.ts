@@ -2,8 +2,9 @@ import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { finalize } from 'rxjs';
-import { EmployeeLaborDocument, RegisterEmployeeDocumentRequest } from '../../core/models/api.models';
+import { EmployeeLaborDocument, LaborDocumentType, RegisterEmployeeDocumentRequest } from '../../core/models/api.models';
 import { AuthService } from '../../core/services/auth.service';
+import { CatalogService } from '../../core/services/catalog.service';
 import { ContractingService } from '../../core/services/contracting.service';
 import { apiErrorMessage } from '../../shared/api-error';
 
@@ -68,7 +69,14 @@ const DOCUMENT_STATUSES = ['PENDIENTE', 'CARGADO', 'VALIDADO', 'RECHAZADO', 'VEN
         <p class="muted">Registra la informacion del archivo disponible para consulta del empleado.</p>
         @if (formError()) { <div class="alert error">{{ formError() }}</div> }
         <form class="form-grid" (ngSubmit)="registerDocument()">
-          <label>ID tipo documento laboral<input type="number" min="1" name="id_tipo_documento_laboral" [(ngModel)]="form.id_tipo_documento_laboral" required /></label>
+          <label>Tipo documento laboral
+            <select name="id_tipo_documento_laboral" [(ngModel)]="form.id_tipo_documento_laboral" required>
+              <option [ngValue]="null">{{ loadingDocumentTypes() ? 'Cargando...' : 'Seleccione...' }}</option>
+              @for (item of documentTypes(); track item.id_tipo_documento_laboral) {
+                <option [ngValue]="item.id_tipo_documento_laboral">{{ item.nombre }}</option>
+              }
+            </select>
+          </label>
           <label>Nombre archivo<input name="nombre_archivo" [(ngModel)]="form.nombre_archivo" required maxlength="255" /></label>
           <label class="form-wide">Archivo URL<input name="archivo_url" [(ngModel)]="form.archivo_url" required maxlength="500" /></label>
           <label>MIME type<input name="mime_type" [(ngModel)]="form.mime_type" maxlength="100" /></label>
@@ -93,7 +101,10 @@ export class ContractingDocumentsComponent implements OnInit {
   readonly auth = inject(AuthService);
   private readonly route = inject(ActivatedRoute);
   private readonly service = inject(ContractingService);
+  private readonly catalogs = inject(CatalogService);
   readonly documents = signal<EmployeeLaborDocument[]>([]);
+  readonly documentTypes = signal<LaborDocumentType[]>([]);
+  readonly loadingDocumentTypes = signal(false);
   readonly loading = signal(false);
   readonly saving = signal(false);
   readonly createOpen = signal(false);
@@ -107,6 +118,7 @@ export class ContractingDocumentsComponent implements OnInit {
   ngOnInit(): void {
     this.employeeId = Number(this.route.snapshot.paramMap.get('employeeId'));
     this.load();
+    this.loadDocumentTypes();
   }
 
   load(): void {
@@ -115,6 +127,14 @@ export class ContractingDocumentsComponent implements OnInit {
     this.service.getDocuments(this.employeeId).pipe(finalize(() => this.loading.set(false))).subscribe({
       next: (documents) => this.documents.set(documents),
       error: (error) => this.error.set(apiErrorMessage(error, 'No fue posible cargar la informacion de contratacion.')),
+    });
+  }
+
+  loadDocumentTypes(): void {
+    this.loadingDocumentTypes.set(true);
+    this.catalogs.getLaborDocumentTypesForContracting().pipe(finalize(() => this.loadingDocumentTypes.set(false))).subscribe({
+      next: (documentTypes) => this.documentTypes.set(documentTypes),
+      error: (error) => this.error.set(apiErrorMessage(error, 'No fue posible cargar los tipos de documento laboral.')),
     });
   }
 

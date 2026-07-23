@@ -104,6 +104,16 @@ export class CatalogService {
       map((response) => response.data ?? []),
     );
   }
+
+  getLaborDocumentTypesForContracting(): Observable<LaborDocumentType[]> {
+    const params = new HttpParams()
+      .set('active', '1')
+      .set('applies_contracting', '1');
+
+    return this.http.get<ApiResponse<LaborDocumentType[]>>(`${environment.apiUrl}/catalogs/labor-document-types`, { params }).pipe(
+      map((response) => response.data ?? []),
+    );
+  }
 }
 
 @Injectable({ providedIn: 'root' })

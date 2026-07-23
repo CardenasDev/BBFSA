@@ -9,8 +9,8 @@
 }
 
 .contract-sheet {
-  width: 210mm;
-  min-height: 297mm;
+  width: 216mm;
+  min-height: 279mm;
   margin: 0 auto;
   background: #fff;
   color: #000;
@@ -23,8 +23,8 @@
 }
 
 .contract-page {
-  width: 210mm;
-  min-height: 297mm;
+  width: 216mm;
+  min-height: 279mm;
   margin: 0 auto 12mm;
   padding: 14mm 16mm;
   box-sizing: border-box;
@@ -460,7 +460,7 @@
 }
 
 @page {
-  size: A4;
+  size: Letter portrait;
   margin: 0;
 }
 
@@ -487,8 +487,8 @@ app-contract-document-control {
   .contract-page {
     display: flex;
     flex-direction: column;
-    width: 210mm;
-    height: 297mm;
+    width: 216mm;
+    height: 279mm;
     margin: 0;
     padding: 14mm 16mm;
     box-shadow: none;

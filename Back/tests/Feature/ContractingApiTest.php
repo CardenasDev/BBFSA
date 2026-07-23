@@ -378,6 +378,10 @@ class ContractingApiTest extends TestCase
                 'NOMBRE_PLANTILLA' => 'Contrato operativo',
                 'FORMATO_SALIDA_DEFAULT' => 'PDF',
                 'FECHA_GENERACION' => '2026-07-09',
+                'FECHA_INICIO' => '2026-07-23',
+                'FECHA_FIN' => '2026-07-31',
+                'DURACION_MESES' => 3,
+                'VALORES_DEFAULT_JSON' => '{"termino_inicial_contrato":"TRES (03) MESES"}',
                 'CONFIG_CAMPOS_JSON' => '{"nombre":true}',
             ]]);
 
@@ -401,15 +405,16 @@ class ContractingApiTest extends TestCase
         $this->withToken($this->tokenWithPermissions(['CONTRATACION_VER']))
             ->getJson('/api/contracting/contracts/7/generation-data')
             ->assertOk()
-            ->assertJsonPath('data.empresa.razonSocial', 'FINCA BARRO BLANCO FARMS')
-            ->assertJsonPath('data.empresa.nit', '900.747.203-1')
-            ->assertJsonPath('data.empresa.domicilio', 'Vereda San José finca Barro Barro Blanco')
-            ->assertJsonPath('data.empresa.correo', 'BARROBLANCOFARMS@GMAIL.COM')
+            ->assertJsonPath('data.empresa.razonSocial', 'BARRO BLANCO FARMS S.A.S')
+            ->assertJsonPath('data.empresa.nit', '900747203-1')
+            ->assertJsonPath('data.empresa.domicilio', 'VEREDA SAN JOSE FINCA BARRO BLANCO')
+            ->assertJsonPath('data.empresa.correo', 'barroblancofarms@gmail.com')
             ->assertJsonPath('data.contrato.id_empleado_contrato', 7)
             ->assertJsonPath('data.empleado.nombre_completo', 'Ana Perez')
             ->assertJsonPath('data.parametros.plantilla.id_plantilla_contrato', 9)
             ->assertJsonPath('data.parametros.plantilla.config_campos.nombre', true)
-            ->assertJsonPath('data.parametros.plantilla.formato_salida_default', 'PDF');
+            ->assertJsonPath('data.parametros.plantilla.formato_salida_default', 'PDF')
+            ->assertJsonPath('data.parametros.reemplazos.FECHA_FIN_TEXTO', '23 de octubre de 2026');
     }
 
     public function test_alerts_endpoint_accepts_dias_antes(): void

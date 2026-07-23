@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Exceptions\ApiException;
 use App\Repositories\ContractingRepository;
+use DateTimeImmutable;
 
 class ContractingService
 {
@@ -103,28 +104,28 @@ class ContractingService
             'empresa' => [
                 'razonSocial' => $this->text(
                     $this->firstNonEmpty([
+                        $companyDefaults['razon_social'] ?? null,
                         $row['razon_social'] ?? null,
                         $row['nombre_empresa'] ?? null,
-                        $companyDefaults['razon_social'] ?? null,
                     ])
                 ),
                 'nit' => $this->text(
                     $this->firstNonEmpty([
+                        $companyDefaults['nit'] ?? null,
                         $row['nit'] ?? null,
                         $row['numero_documento_empresa'] ?? null,
-                        $companyDefaults['nit'] ?? null,
                     ])
                 ),
                 'domicilio' => $this->text(
                     $this->firstNonEmpty([
-                        $row['direccion_empresa'] ?? null,
                         $companyDefaults['domicilio'] ?? null,
+                        $row['direccion_empresa'] ?? null,
                     ])
                 ),
                 'correo' => $this->text(
                     $this->firstNonEmpty([
-                        $row['correo_empresa'] ?? null,
                         $companyDefaults['correo'] ?? null,
+                        $row['correo_empresa'] ?? null,
                     ])
                 ),
             ],
@@ -187,7 +188,7 @@ class ContractingService
                 'nombre_area',
             ]),
             'firmas' => $this->onlyPresent([
-                'ciudad_firma' => $this->firstValue($row, $defaults, ['ciudad_firma']) ?: 'Gachancipa, Cundinamarca',
+                'ciudad_firma' => $this->firstValue($row, $defaults, ['ciudad_firma']) ?: 'Gachancipá, Cundinamarca',
                 'fecha_firma' => $signatureDate,
                 'fecha_firma_texto' => $this->formatDateText($signatureDate),
                 'nombre_representante_legal' => $row['nombre_representante_legal'] ?? null,
@@ -355,6 +356,7 @@ class ContractingService
         $salaryBase = $this->formatCurrency($row['salario_base'] ?? null);
         $salaryText = $this->firstValue($row, $defaults, ['salario_texto', 'salario_texto_default']);
         $signatureDate = $this->firstValue($row, $defaults, ['fecha_firma']) ?: now()->toDateString();
+        $resolvedEndDate = $this->resolveContractEndDate($row, $defaults);
 
         return $this->onlyPresent([
             'NOMBRE_COMPLETO' => $this->text($row['nombre_completo'] ?? null),
@@ -374,11 +376,11 @@ class ContractingService
             'AUXILIO_TRANSPORTE_TEXTO' => $this->formatBooleanText($row['auxilio_transporte'] ?? null),
             'PERIODO_PAGO' => $this->text($row['periodo_pago'] ?? null),
             'FECHA_INICIO_TEXTO' => $this->formatDateText($row['fecha_inicio'] ?? null),
-            'FECHA_FIN_TEXTO' => $this->formatDateText($row['fecha_fin'] ?? null),
+            'FECHA_FIN_TEXTO' => $this->formatDateText($resolvedEndDate),
             'LUGAR_LABORES' => $this->text($row['lugar_labores'] ?? null),
             'TERMINO_INICIAL_CONTRATO' => $this->text($this->firstValue($row, $defaults, ['termino_inicial_contrato'])),
             'NUMERO_CONTRATO' => $this->text($row['numero_contrato'] ?? null),
-            'CIUDAD_FIRMA' => $this->text($this->firstValue($row, $defaults, ['ciudad_firma']) ?: 'Gachancipa, Cundinamarca'),
+            'CIUDAD_FIRMA' => $this->text($this->firstValue($row, $defaults, ['ciudad_firma']) ?: 'Gachancipá, Cundinamarca'),
             'FECHA_FIRMA_TEXTO' => $this->formatDateText($signatureDate),
             'JORNADA_LABORAL' => $this->text($row['jornada_laboral'] ?? null),
             'PERIODO_PRUEBA_DIAS' => $this->text($row['periodo_prueba_dias'] ?? null),
@@ -429,6 +431,81 @@ class ContractingService
             'TIPO_CONTRATO',
             'FECHA_VIGENCIA_TEXTO',
         ]);
+    }
+
+    private function resolveContractEndDate(array $row, array $defaults): ?string
+    {
+        $explicitEndDate = $this->blankToNull(is_string($row['fecha_fin'] ?? null) ? $row['fecha_fin'] : null);
+        $computedEndDate = $this->computeContractEndDate($row, $defaults);
+
+        if ($explicitEndDate === null) {
+            return $computedEndDate;
+        }
+
+        if ($computedEndDate === null || $computedEndDate === $explicitEndDate) {
+            return $explicitEndDate;
+        }
+
+        return $computedEndDate;
+    }
+
+    private function computeContractEndDate(array $row, array $defaults): ?string
+    {
+        $startDate = $this->safeDate(is_string($row['fecha_inicio'] ?? null) ? $row['fecha_inicio'] : null);
+        if ($startDate === null) {
+            return null;
+        }
+
+        $term = $this->resolveContractTerm($row, $defaults);
+        if ($term === null) {
+            return null;
+        }
+
+        $quantity = $term['quantity'];
+        if ($quantity <= 0) {
+            return null;
+        }
+
+        $interval = sprintf('+%d %s', $quantity, $term['unit']);
+
+        return $startDate->modify($interval)?->format('Y-m-d');
+    }
+
+    /**
+     * @return array{quantity:int, unit:string}|null
+     */
+    private function resolveContractTerm(array $row, array $defaults): ?array
+    {
+        $durationMonths = $row['duracion_meses'] ?? $defaults['duracion_meses'] ?? null;
+        if (is_numeric($durationMonths) && (int) $durationMonths > 0) {
+            return ['quantity' => (int) $durationMonths, 'unit' => 'months'];
+        }
+
+        $termText = $this->firstValue($row, $defaults, ['termino_inicial_contrato']);
+        if (! is_string($termText) || trim($termText) === '') {
+            return null;
+        }
+
+        if (! preg_match('/(\d+)/', $termText, $matches)) {
+            return null;
+        }
+
+        $quantity = (int) $matches[1];
+        $normalizedTerm = mb_strtolower($termText);
+
+        if (str_contains($normalizedTerm, 'dia')) {
+            return ['quantity' => $quantity, 'unit' => 'days'];
+        }
+
+        if (str_contains($normalizedTerm, 'año') || str_contains($normalizedTerm, 'ano')) {
+            return ['quantity' => $quantity, 'unit' => 'years'];
+        }
+
+        if (str_contains($normalizedTerm, 'mes')) {
+            return ['quantity' => $quantity, 'unit' => 'months'];
+        }
+
+        return null;
     }
 
     private function arrayValue(mixed $value): array
@@ -509,6 +586,17 @@ class ContractingService
         ];
 
         return (int) date('d', $timestamp).' de '.$months[(int) date('n', $timestamp)].' de '.date('Y', $timestamp);
+    }
+
+    private function safeDate(?string $date): ?DateTimeImmutable
+    {
+        if ($date === null || trim($date) === '') {
+            return null;
+        }
+
+        $parsed = DateTimeImmutable::createFromFormat('!Y-m-d', $date);
+
+        return $parsed ?: null;
     }
 
     private function formatBooleanText(mixed $value): string

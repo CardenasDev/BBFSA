@@ -45,6 +45,32 @@ class DotationController extends ApiController
     }
 
     /**
+     * Listar combinaciones de dotacion
+     *
+     * Retorna las combinaciones activas configuradas para entregas ordinarias.
+     */
+    public function combinations(): JsonResponse
+    {
+        return $this->success(
+            $this->dotations->combinations(),
+            'Combinaciones de dotacion consultadas correctamente',
+        );
+    }
+
+    /**
+     * Consultar detalle de combinacion de dotacion
+     *
+     * Retorna las prendas activas que conforman una combinacion activa.
+     */
+    public function combinationDetails(int $combinationId): JsonResponse
+    {
+        return $this->success(
+            $this->dotations->combinationDetails($combinationId),
+            'Detalle de combinacion de dotacion consultado correctamente',
+        );
+    }
+
+    /**
      * Consultar mis tallas
      *
      * Retorna las tallas de dotacion asociadas al usuario autenticado.

@@ -105,6 +105,22 @@ class ContractingRepository extends StoredProcedureRepository
         ]) ?? [];
     }
 
+    public function signContract(int $employeeContractId, int $userId, array $data): array
+    {
+        return $this->first('SP_BBF_CONTRATACION_CONTRATO_FIRMADO_REGISTRAR', [
+            $employeeContractId,
+            $data['fecha_firma'],
+            $data['nombre_archivo'],
+            $data['nombre_original'] ?? null,
+            $data['archivo_url'] ?? null,
+            $data['archivo_ruta'] ?? null,
+            $data['mime_type'] ?? null,
+            $data['peso_bytes'] ?? null,
+            $data['observaciones'] ?? null,
+            $userId,
+        ]) ?? [];
+    }
+
     private function booleanToDatabase(mixed $value): ?int
     {
         if ($value === null || $value === '') {

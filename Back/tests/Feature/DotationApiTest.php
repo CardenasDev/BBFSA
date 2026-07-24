@@ -20,6 +20,8 @@ class DotationApiTest extends TestCase
         $this->assertEqualsCanonicalizing([
             'GET|HEAD api/dotations/types',
             'GET|HEAD api/dotations/sizes',
+            'GET|HEAD api/dotations/combinations',
+            'GET|HEAD api/dotations/combinations/{combinationId}',
             'GET|HEAD api/dotations/my-sizes',
             'POST api/dotations/my-sizes',
             'GET|HEAD api/dotations/my-deliveries',
@@ -114,6 +116,57 @@ class DotationApiTest extends TestCase
             ->assertJsonValidationErrors(['detalles']);
     }
 
+    public function test_ordinary_delivery_requires_combination(): void
+    {
+        $this->withToken($this->tokenWithPermissions(['DOTACIONES_ENTREGAS_CREAR']))
+            ->postJson('/api/dotations/deliveries', [
+                'id_empleado' => 5,
+                'fecha_entrega' => '2026-07-24',
+                'tipo_entrega' => 'ORDINARIA',
+                'detalles' => [[
+                    'id_tipo_dotacion' => 7,
+                    'id_talla_dotacion' => 30,
+                    'cantidad' => 1,
+                ]],
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['id_dotacion_combinacion']);
+    }
+
+    public function test_extraordinary_delivery_rejects_combination(): void
+    {
+        $this->withToken($this->tokenWithPermissions(['DOTACIONES_ENTREGAS_CREAR']))
+            ->postJson('/api/dotations/deliveries', [
+                'id_empleado' => 5,
+                'fecha_entrega' => '2026-07-24',
+                'tipo_entrega' => 'EXTRAORDINARIA',
+                'id_dotacion_combinacion' => 1,
+                'detalles' => [[
+                    'id_tipo_dotacion' => 7,
+                    'id_talla_dotacion' => 30,
+                    'cantidad' => 1,
+                ]],
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['id_dotacion_combinacion']);
+    }
+
+    public function test_create_delivery_rejects_zero_quantity(): void
+    {
+        $this->withToken($this->tokenWithPermissions(['DOTACIONES_ENTREGAS_CREAR']))
+            ->postJson('/api/dotations/deliveries', [
+                'id_empleado' => 5,
+                'fecha_entrega' => '2026-07-24',
+                'tipo_entrega' => 'EXTRAORDINARIA',
+                'detalles' => [[
+                    'id_tipo_dotacion' => 7,
+                    'cantidad' => 0,
+                ]],
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['detalles.0.cantidad']);
+    }
+
     public function test_confirm_delivery_received_validates_confirmation_observation_max_length(): void
     {
         $this->withToken($this->tokenWithPermissions(['DOTACIONES_MIS_ENTREGAS_CONFIRMAR']))
@@ -180,6 +233,58 @@ class DotationApiTest extends TestCase
             ]);
     }
 
+    public function test_combinations_endpoint_uses_stored_procedure_and_maps_response(): void
+    {
+        DB::shouldReceive('select')
+            ->once()
+            ->with('CALL SP_BBF_DOTACION_COMBINACIONES_LISTAR()', [])
+            ->andReturn([
+                (object) [
+                    'ID_DOTACION_COMBINACION' => 1,
+                    'CODIGO' => 'DOT-01',
+                    'NOMBRE' => 'Chaqueta, pantalon y zapatos',
+                    'DESCRIPCION' => 'Dotacion estandar',
+                    'ACTIVO' => 1,
+                ],
+            ]);
+
+        $this->withToken($this->tokenWithPermissions(['DOTACIONES_CATALOGOS_VER']))
+            ->getJson('/api/dotations/combinations')
+            ->assertOk()
+            ->assertJsonPath('data.0.id_dotacion_combinacion', 1)
+            ->assertJsonPath('data.0.codigo', 'DOT-01')
+            ->assertJsonPath('data.0.activo', true);
+    }
+
+    public function test_combination_details_endpoint_uses_stored_procedure_and_maps_response(): void
+    {
+        DB::shouldReceive('select')
+            ->once()
+            ->with('CALL SP_BBF_DOTACION_COMBINACION_DETALLE_LISTAR(?)', [1])
+            ->andReturn([
+                (object) [
+                    'ID_DOTACION_COMBINACION_DETALLE' => 1,
+                    'ID_DOTACION_COMBINACION' => 1,
+                    'CODIGO_COMBINACION' => 'DOT-01',
+                    'COMBINACION' => 'Chaqueta, pantalon y zapatos',
+                    'ID_TIPO_DOTACION' => 7,
+                    'TIPO_DOTACION' => 'Chaqueta',
+                    'REQUIERE_TALLA' => 1,
+                    'CANTIDAD' => 1,
+                    'ORDEN' => 1,
+                    'ACTIVO' => 1,
+                ],
+            ]);
+
+        $this->withToken($this->tokenWithPermissions(['DOTACIONES_CATALOGOS_VER']))
+            ->getJson('/api/dotations/combinations/1')
+            ->assertOk()
+            ->assertJsonPath('data.0.codigo_combinacion', 'DOT-01')
+            ->assertJsonPath('data.0.tipo_dotacion', 'Chaqueta')
+            ->assertJsonPath('data.0.requiere_talla', true)
+            ->assertJsonPath('data.0.cantidad', 1);
+    }
+
     public function test_deliveries_endpoint_maps_confirmation_fields(): void
     {
         DB::shouldReceive('select')
@@ -218,6 +323,10 @@ class DotationApiTest extends TestCase
                     'numero_documento' => '123456789',
                     'nombre_completo' => 'Ana Perez',
                     'fecha_entrega' => '2026-06-23',
+                    'tipo_entrega' => 'ORDINARIA',
+                    'id_dotacion_combinacion' => null,
+                    'codigo_combinacion' => null,
+                    'nombre_combinacion' => null,
                     'fecha_confirmacion' => '2026-06-23 18:30:00',
                     'estado' => 'ENTREGADA',
                     'observaciones' => 'Entrega inicial',
@@ -317,6 +426,10 @@ class DotationApiTest extends TestCase
                     'area' => 'Cultivo',
                     'cargo' => 'Operario',
                     'fecha_entrega' => '2026-06-23',
+                    'tipo_entrega' => 'ORDINARIA',
+                    'id_dotacion_combinacion' => null,
+                    'codigo_combinacion' => null,
+                    'nombre_combinacion' => null,
                     'fecha_confirmacion' => null,
                     'estado' => 'REGISTRADA',
                     'observaciones_entrega' => 'Entrega inicial',

@@ -29,12 +29,13 @@ import { apiErrorMessage } from '../../shared/api-error';
       @if (success()) { <div class="alert success" role="status">{{ success() }}</div> }
       <div class="table-wrap">
         <table>
-          <thead><tr><th>ID</th><th>Fecha entrega</th><th>Documento</th><th>Nombre empleado</th><th>Estado</th><th>Fecha confirmacion</th><th>Confirmado por</th><th>Registrado por</th><th>Observaciones</th><th>Acciones</th></tr></thead>
+          <thead><tr><th>ID</th><th>Fecha entrega</th><th>Tipo / combinacion</th><th>Documento</th><th>Nombre empleado</th><th>Estado</th><th>Fecha confirmacion</th><th>Confirmado por</th><th>Registrado por</th><th>Observaciones</th><th>Acciones</th></tr></thead>
           <tbody>
             @for (delivery of deliveries(); track delivery.id_dotacion_entrega) {
               <tr>
                 <td><strong>#{{ delivery.id_dotacion_entrega }}</strong></td>
                 <td>{{ delivery.fecha_entrega }}</td>
+                <td><span class="badge">{{ delivery.tipo_entrega === 'EXTRAORDINARIA' ? 'Extraordinaria' : 'Ordinaria' }}</span><br><span class="muted">{{ combinationLabel(delivery) }}</span></td>
                 <td>{{ delivery.numero_documento }}</td>
                 <td>{{ delivery.nombre_completo }}</td>
                 <td><span class="badge" [class.success]="delivery.estado === 'ENTREGADA'" [class.danger]="delivery.estado === 'ANULADA'">{{ delivery.estado }}</span></td>
@@ -52,7 +53,7 @@ import { apiErrorMessage } from '../../shared/api-error';
                 </td>
               </tr>
             } @empty {
-              <tr><td colspan="10" class="empty">{{ loading() ? 'Cargando entregas...' : 'No se encontraron entregas.' }}</td></tr>
+              <tr><td colspan="11" class="empty">{{ loading() ? 'Cargando entregas...' : 'No se encontraron entregas.' }}</td></tr>
             }
           </tbody>
         </table>
@@ -124,6 +125,12 @@ export class DotationDeliveriesComponent implements OnInit {
     return this.auth.hasPermission('DOTACIONES_ENTREGAS_ELIMINAR')
       && delivery.estado === 'REGISTRADA'
       && !delivery.fecha_confirmacion;
+  }
+
+  combinationLabel(delivery: DotationDelivery): string {
+    return delivery.codigo_combinacion
+      ? `${delivery.codigo_combinacion} - ${delivery.nombre_combinacion ?? ''}`.trim()
+      : '—';
   }
 
   openDeleteDelivery(delivery: DotationDelivery): void {

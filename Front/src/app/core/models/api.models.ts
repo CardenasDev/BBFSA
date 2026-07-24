@@ -109,11 +109,31 @@ export interface LoginResponse {
 export type UserStatus = 'ACTIVO' | 'INACTIVO' | 'BLOQUEADO' | 'ELIMINADO';
 export type UserType = 'EMPLEADO' | 'PERSONAL_AUTORIZADO' | 'ADMIN';
 export type AuthenticationType = 'LOCAL' | 'DOMINIO_EMPRESA';
-export type EmployeeStatus = 'ACTIVO' | 'RETIRADO' | 'SUSPENDIDO' | 'INCAPACITADO' | 'EN_PROCESO_RETIRO';
+export type EmployeeStatus =
+  | 'ACTIVO'
+  | 'RETIRADO'
+  | 'SUSPENDIDO'
+  | 'INCAPACITADO'
+  | 'EN_PROCESO_RETIRO';
 export type ContractChargeType = 'ADMINISTRATIVO' | 'OPERATIVO' | 'OTRO';
 export type ContractOutputFormat = 'DOCX' | 'PDF' | 'AMBOS';
-export type ApplicantCivilState = 'SOLTERO' | 'CASADO' | 'UNION_LIBRE' | 'SEPARADO' | 'DIVORCIADO' | 'VIUDO' | 'OTRO';
-export type ApplicantEducationLevel = 'PRIMARIA' | 'BACHILLER' | 'TECNICO' | 'TECNOLOGO' | 'PROFESIONAL' | 'POSGRADO' | 'NINGUNO' | 'OTRO';
+export type ApplicantCivilState =
+  | 'SOLTERO'
+  | 'CASADO'
+  | 'UNION_LIBRE'
+  | 'SEPARADO'
+  | 'DIVORCIADO'
+  | 'VIUDO'
+  | 'OTRO';
+export type ApplicantEducationLevel =
+  | 'PRIMARIA'
+  | 'BACHILLER'
+  | 'TECNICO'
+  | 'TECNOLOGO'
+  | 'PROFESIONAL'
+  | 'POSGRADO'
+  | 'NINGUNO'
+  | 'OTRO';
 
 export interface User extends AuthUser {
   fecha_creacion?: string;
@@ -214,6 +234,29 @@ export interface DotationSize {
   activo: boolean;
 }
 
+export type DotationDeliveryType = 'ORDINARIA' | 'EXTRAORDINARIA';
+
+export interface DotationCombination {
+  id_dotacion_combinacion: number;
+  codigo: string;
+  nombre: string;
+  descripcion?: string | null;
+  activo: boolean;
+}
+
+export interface DotationCombinationDetail {
+  id_dotacion_combinacion_detalle: number;
+  id_dotacion_combinacion: number;
+  codigo_combinacion: string;
+  combinacion: string;
+  id_tipo_dotacion: number;
+  tipo_dotacion: string;
+  requiere_talla: boolean;
+  cantidad: number;
+  orden: number;
+  activo: boolean;
+}
+
 export interface MyDotationSize {
   id_tipo_dotacion: number;
   tipo_dotacion: string;
@@ -274,6 +317,10 @@ export interface EmployeeDotationHistory {
   area?: string | null;
   cargo?: string | null;
   fecha_entrega: string;
+  tipo_entrega: DotationDeliveryType;
+  id_dotacion_combinacion?: number | null;
+  codigo_combinacion?: string | null;
+  nombre_combinacion?: string | null;
   fecha_confirmacion?: string | null;
   estado: string;
   observaciones_entrega?: string | null;
@@ -300,6 +347,10 @@ export interface DotationDelivery {
   numero_documento: string;
   nombre_completo: string;
   fecha_entrega: string;
+  tipo_entrega: DotationDeliveryType;
+  id_dotacion_combinacion?: number | null;
+  codigo_combinacion?: string | null;
+  nombre_combinacion?: string | null;
   fecha_confirmacion?: string | null;
   estado: string;
   observaciones?: string | null;
@@ -319,6 +370,10 @@ export interface MyDotationDelivery {
   numero_documento: string;
   nombre_completo: string;
   fecha_entrega: string;
+  tipo_entrega: DotationDeliveryType;
+  id_dotacion_combinacion?: number | null;
+  codigo_combinacion?: string | null;
+  nombre_combinacion?: string | null;
   fecha_confirmacion?: string | null;
   estado: string;
   observaciones?: string | null;
@@ -359,8 +414,18 @@ export interface DeleteDotationDeliveryResponse {
 export interface DotationDeliveryDetail {
   id_dotacion_entrega_detalle: number;
   id_dotacion_entrega: number;
+  id_empleado?: number | null;
+  fecha_entrega?: string | null;
+  tipo_entrega: DotationDeliveryType;
+  id_dotacion_combinacion?: number | null;
+  codigo_combinacion?: string | null;
+  nombre_combinacion?: string | null;
+  estado?: string | null;
+  observaciones_entrega?: string | null;
+  fecha_confirmacion?: string | null;
   id_tipo_dotacion: number;
   tipo_dotacion: string;
+  requiere_talla?: boolean;
   id_talla_dotacion?: number | null;
   talla?: string | null;
   cantidad: number;
@@ -371,6 +436,8 @@ export interface DotationDeliveryDetail {
 export interface CreateDotationDeliveryRequest {
   id_empleado: number;
   fecha_entrega: string;
+  tipo_entrega: DotationDeliveryType;
+  id_dotacion_combinacion: number | null;
   observaciones?: string | null;
   detalles: {
     id_tipo_dotacion: number;
@@ -584,6 +651,8 @@ export interface EmployeeContract {
   estado_contrato?: string | null;
   archivo_contrato_url?: string | null;
   observaciones?: string | null;
+  fecha_firma?: string | null;
+  contrato_firmado?: boolean | number | string | null;
   dias_para_vencer?: number | null;
   estado_vencimiento?: string | null;
   registrado_por?: string | null;
@@ -675,12 +744,33 @@ export interface SaveSocialSecurityRequest {
   observaciones?: string | null;
 }
 
-export type SocialSecurityType =
-  | 'EPS'
-  | 'ARL'
-  | 'PENSION'
-  | 'CESANTIAS'
-  | 'CAJA_COMPENSACION';
+export type SignedContractOrigin = 'ARCHIVO' | 'URL';
+
+export interface SignEmployeeContractRequest {
+  fecha_firma: string;
+  origen: SignedContractOrigin;
+  archivo?: File | null;
+  url?: string | null;
+  nombre_archivo?: string | null;
+  observaciones?: string | null;
+}
+
+export interface SignedEmployeeContract {
+  id_empleado_contrato: number;
+  id_empleado: number;
+  numero_contrato?: string | null;
+  fecha_firma: string;
+  id_empleado_documento: number;
+  nombre_archivo: string;
+  nombre_original?: string | null;
+  archivo_url?: string | null;
+  archivo_ruta?: string | null;
+  estado_documento: string;
+  observaciones?: string | null;
+  estado_firma: string;
+}
+
+export type SocialSecurityType = 'EPS' | 'ARL' | 'PENSION' | 'CESANTIAS' | 'CAJA_COMPENSACION';
 
 export interface SocialSecurityEntity {
   id_entidad_seguridad_social: number;
@@ -761,7 +851,12 @@ export type ApplicantStatus =
   | 'CONVERTIDO_EMPLEADO'
   | 'CANCELADO';
 
-export type ApplicantDocumentStatus = 'PENDIENTE' | 'CARGADO' | 'VALIDADO' | 'RECHAZADO' | 'VENCIDO';
+export type ApplicantDocumentStatus =
+  | 'PENDIENTE'
+  | 'CARGADO'
+  | 'VALIDADO'
+  | 'RECHAZADO'
+  | 'VENCIDO';
 export type ApplicantDocumentOrigin = 'PENDIENTE' | 'URL_EXTERNA' | 'ARCHIVO_FISICO';
 
 export interface Applicant {

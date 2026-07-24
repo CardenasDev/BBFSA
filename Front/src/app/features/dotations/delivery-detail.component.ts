@@ -16,6 +16,16 @@ import { apiErrorMessage } from '../../shared/api-error';
 
     <section class="panel">
       @if (error()) { <div class="alert error">{{ error() }} <button class="btn small ghost" type="button" (click)="load()" [disabled]="loading()">Reintentar</button></div> }
+      @if (header(); as delivery) {
+        <dl>
+          <dt>Tipo de entrega</dt><dd>{{ delivery.tipo_entrega === 'EXTRAORDINARIA' ? 'Extraordinaria' : 'Ordinaria' }}</dd>
+          <dt>Combinacion</dt><dd>{{ combinationLabel(delivery) }}</dd>
+          <dt>Fecha</dt><dd>{{ delivery.fecha_entrega || 'Sin dato' }}</dd>
+          <dt>Estado</dt><dd>{{ delivery.estado || 'Sin dato' }}</dd>
+          <dt>Observaciones</dt><dd>{{ delivery.observaciones_entrega || 'Sin observaciones' }}</dd>
+          <dt>Fecha confirmacion</dt><dd>{{ delivery.fecha_confirmacion || 'Pendiente' }}</dd>
+        </dl>
+      }
       <div class="table-wrap">
         <table>
           <thead><tr><th>Tipo dotacion</th><th>Talla</th><th>Cantidad</th><th>Observaciones</th></tr></thead>
@@ -60,5 +70,15 @@ export class DotationDeliveryDetailComponent implements OnInit {
       next: (details) => this.details.set(details),
       error: (error) => this.error.set(apiErrorMessage(error, 'No fue posible cargar el detalle de la entrega.')),
     });
+  }
+
+  header(): DotationDeliveryDetail | undefined {
+    return this.details()[0];
+  }
+
+  combinationLabel(delivery: DotationDeliveryDetail): string {
+    return delivery.codigo_combinacion
+      ? `${delivery.codigo_combinacion} - ${delivery.nombre_combinacion ?? ''}`.trim()
+      : 'No aplica';
   }
 }

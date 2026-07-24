@@ -2,14 +2,24 @@ import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { finalize, forkJoin } from 'rxjs';
-import { CreateDotationDeliveryRequest, DotationEmployeeSummary, DotationSize, DotationType } from '../../core/models/api.models';
+import {
+  CreateDotationDeliveryRequest,
+  DotationCombination,
+  DotationDeliveryType,
+  DotationEmployeeSummary,
+  DotationType,
+  EmployeeDotationSize,
+} from '../../core/models/api.models';
 import { DotationService } from '../../core/services/dotation.service';
 import { apiErrorMessage } from '../../shared/api-error';
 
 interface DeliveryDetailDraft {
   clientId: number;
   id_tipo_dotacion: number | null;
+  tipo_dotacion: string;
+  requiere_talla: boolean;
   id_talla_dotacion: number | null;
+  talla: string | null;
   cantidad: number;
   observaciones: string;
 }
@@ -19,7 +29,7 @@ interface DeliveryDetailDraft {
   imports: [FormsModule, RouterLink],
   template: `
     <div class="page-heading">
-      <div><p class="eyebrow">Dotaciones</p><h1>Nueva entrega</h1><p class="muted">Registra una entrega real de dotacion.</p></div>
+      <div><p class="eyebrow">Dotaciones</p><h1>Nueva entrega</h1><p class="muted">Registra una entrega ordinaria o extraordinaria.</p></div>
       <a class="btn ghost" routerLink="/admin/dotations/deliveries">Volver</a>
     </div>
 
@@ -32,48 +42,88 @@ interface DeliveryDetailDraft {
         <label class="form-wide">Buscar empleado
           <input name="employeeSearch" [(ngModel)]="employeeSearch" placeholder="Documento, nombre, area o cargo" />
         </label>
-        <label class="form-wide">Empleado
-          <select name="id_empleado" [(ngModel)]="idEmpleado" required>
+        <label class="form-wide">Empleado *
+          <select name="id_empleado" [ngModel]="idEmpleado" (ngModelChange)="changeEmployee($event)" required>
             <option [ngValue]="null">{{ loading() ? 'Cargando...' : 'Selecciona un empleado' }}</option>
             @for (employee of filteredEmployees(); track employee.id_empleado) {
               <option [ngValue]="employee.id_empleado">{{ employee.numero_documento }} - {{ employee.nombre_completo }}</option>
             }
           </select>
         </label>
-        <label>Fecha entrega<input type="date" name="fecha_entrega" [(ngModel)]="fechaEntrega" required /></label>
+
+        <label>Tipo de entrega *
+          <select name="tipo_entrega" [ngModel]="tipoEntrega" (ngModelChange)="changeDeliveryType($event)" required>
+            <option value="ORDINARIA">Ordinaria</option>
+            <option value="EXTRAORDINARIA">Extraordinaria</option>
+          </select>
+        </label>
+
+        @if (tipoEntrega === 'ORDINARIA') {
+          <label>Combinacion de dotacion *
+            <select name="id_dotacion_combinacion" [ngModel]="idCombinacion" (ngModelChange)="changeCombination($event)" required [disabled]="combinationLoading()">
+              <option [ngValue]="null">{{ combinationLoading() ? 'Cargando detalle...' : 'Selecciona una combinacion' }}</option>
+              @for (combination of combinations(); track combination.id_dotacion_combinacion) {
+                <option [ngValue]="combination.id_dotacion_combinacion">{{ combination.codigo }} - {{ combination.nombre }}</option>
+              }
+            </select>
+          </label>
+        }
+
+        <label>Fecha entrega *<input type="date" name="fecha_entrega" [(ngModel)]="fechaEntrega" required /></label>
         <label class="form-wide">Observaciones<textarea rows="3" name="observaciones" [(ngModel)]="observaciones"></textarea></label>
 
         <div class="form-wide section-title">
-          <h2>Detalles</h2>
-          <button class="btn secondary" type="button" (click)="addDetail()">Agregar fila</button>
+          <div><h2>Prendas</h2><p class="muted">{{ tipoEntrega === 'ORDINARIA' ? 'Definidas por la combinacion seleccionada.' : 'Agrega las prendas de esta entrega extraordinaria.' }}</p></div>
+          @if (tipoEntrega === 'EXTRAORDINARIA') {
+            <button class="btn secondary" type="button" (click)="addDetail()">Agregar prenda</button>
+          }
         </div>
+
+        @if (employeeSizesLoading()) {
+          <div class="form-wide empty">Cargando tallas registradas del empleado...</div>
+        }
 
         <div class="form-wide table-wrap">
           <table>
-            <thead><tr><th>Tipo dotacion</th><th>Talla</th><th>Cantidad</th><th>Observaciones</th><th>Acciones</th></tr></thead>
+            <thead><tr><th>Tipo dotacion</th><th>Talla registrada</th><th>Cantidad</th><th>Observaciones</th>@if (tipoEntrega === 'EXTRAORDINARIA') { <th>Acciones</th> }</tr></thead>
             <tbody>
               @for (detail of details(); track detail.clientId) {
                 <tr>
                   <td>
-                    <select [ngModel]="detail.id_tipo_dotacion" [name]="'tipo_' + detail.clientId" (ngModelChange)="updateType(detail.clientId, $event)">
-                      <option [ngValue]="null">Selecciona</option>
-                      @for (type of types(); track type.id_tipo_dotacion) {
-                        <option [ngValue]="type.id_tipo_dotacion">{{ type.nombre }}</option>
-                      }
-                    </select>
+                    @if (tipoEntrega === 'ORDINARIA') {
+                      <strong>{{ detail.tipo_dotacion }}</strong>
+                    } @else {
+                      <select [ngModel]="detail.id_tipo_dotacion" [name]="'tipo_' + detail.clientId" (ngModelChange)="updateType(detail.clientId, $event)">
+                        <option [ngValue]="null">Selecciona</option>
+                        @for (type of types(); track type.id_tipo_dotacion) {
+                          <option [ngValue]="type.id_tipo_dotacion" [disabled]="isTypeSelected(type.id_tipo_dotacion, detail.clientId)">{{ type.nombre }}</option>
+                        }
+                      </select>
+                    }
                   </td>
                   <td>
-                    <select [ngModel]="detail.id_talla_dotacion" [name]="'talla_' + detail.clientId" (ngModelChange)="updateDetail(detail.clientId, 'id_talla_dotacion', $event)">
-                      <option [ngValue]="null">{{ requiresSize(detail.id_tipo_dotacion) ? 'Requerida' : 'Opcional' }}</option>
-                      @for (size of sizesByType(detail.id_tipo_dotacion); track size.id_talla_dotacion) {
-                        <option [ngValue]="size.id_talla_dotacion">{{ size.talla }}</option>
-                      }
-                    </select>
+                    @if (!detail.requiere_talla) {
+                      <span class="muted">No requiere talla</span>
+                    } @else if (detail.id_talla_dotacion) {
+                      <strong>{{ detail.talla }}</strong>
+                    } @else {
+                      <span class="badge danger">Talla no registrada</span>
+                    }
                   </td>
-                  <td><input type="number" min="1" [ngModel]="detail.cantidad" [name]="'cantidad_' + detail.clientId" (ngModelChange)="updateDetail(detail.clientId, 'cantidad', $event)" /></td>
+                  <td>
+                    @if (tipoEntrega === 'ORDINARIA') {
+                      <strong>{{ detail.cantidad }}</strong>
+                    } @else {
+                      <input type="number" min="1" [ngModel]="detail.cantidad" [name]="'cantidad_' + detail.clientId" (ngModelChange)="updateDetail(detail.clientId, 'cantidad', $event)" />
+                    }
+                  </td>
                   <td><input maxlength="250" [ngModel]="detail.observaciones" [name]="'observaciones_' + detail.clientId" (ngModelChange)="updateDetail(detail.clientId, 'observaciones', $event)" /></td>
-                  <td><button class="btn small danger-outline" type="button" (click)="removeDetail(detail.clientId)" [disabled]="details().length === 1">Eliminar</button></td>
+                  @if (tipoEntrega === 'EXTRAORDINARIA') {
+                    <td><button class="btn small danger-outline" type="button" (click)="removeDetail(detail.clientId)">Eliminar</button></td>
+                  }
                 </tr>
+              } @empty {
+                <tr><td [attr.colspan]="tipoEntrega === 'EXTRAORDINARIA' ? 5 : 4" class="empty">{{ tipoEntrega === 'ORDINARIA' ? 'Selecciona una combinacion.' : 'Agrega al menos una prenda.' }}</td></tr>
               }
             </tbody>
           </table>
@@ -81,7 +131,7 @@ interface DeliveryDetailDraft {
 
         <div class="form-actions form-wide">
           <a class="btn ghost" routerLink="/admin/dotations/deliveries">Cancelar</a>
-          <button class="btn primary" type="submit" [disabled]="saving()">{{ saving() ? 'Guardando...' : 'Registrar entrega' }}</button>
+          <button class="btn primary" type="submit" [disabled]="saving() || loading() || employeeSizesLoading() || combinationLoading()">{{ saving() ? 'Guardando...' : 'Registrar entrega' }}</button>
         </div>
       </form>
     </section>
@@ -93,16 +143,21 @@ export class DotationDeliveryCreateComponent implements OnInit {
   private readonly router = inject(Router);
   readonly employees = signal<DotationEmployeeSummary[]>([]);
   readonly types = signal<DotationType[]>([]);
-  readonly sizes = signal<DotationSize[]>([]);
-  private nextDetailId = 1;
-  readonly details = signal<DeliveryDetailDraft[]>([this.newDetail()]);
+  readonly combinations = signal<DotationCombination[]>([]);
+  readonly employeeSizes = signal<EmployeeDotationSize[]>([]);
+  readonly details = signal<DeliveryDetailDraft[]>([]);
   readonly loading = signal(false);
+  readonly employeeSizesLoading = signal(false);
+  readonly combinationLoading = signal(false);
   readonly saving = signal(false);
   readonly error = signal('');
   readonly catalogError = signal('');
   readonly success = signal('');
+  private nextDetailId = 1;
   employeeSearch = '';
   idEmpleado: number | null = null;
+  tipoEntrega: DotationDeliveryType = 'ORDINARIA';
+  idCombinacion: number | null = null;
   fechaEntrega = new Date().toISOString().slice(0, 10);
   observaciones = '';
 
@@ -118,14 +173,15 @@ export class DotationDeliveryCreateComponent implements OnInit {
     forkJoin({
       employees: this.service.getEmployees(),
       types: this.service.getTypes(true),
-      sizes: this.service.getSizes(),
+      combinations: this.service.getCombinations(),
     }).pipe(finalize(() => this.loading.set(false))).subscribe({
-      next: ({ employees, types, sizes }) => {
+      next: ({ employees, types, combinations }) => {
         this.employees.set(employees);
         this.types.set(types);
-        this.sizes.set(sizes);
+        this.combinations.set(combinations);
+        if (this.idEmpleado) this.loadEmployeeSizes(this.idEmpleado);
       },
-      error: (error) => this.catalogError.set(apiErrorMessage(error, 'No fue posible cargar empleados, tipos o tallas.')),
+      error: (error) => this.catalogError.set(apiErrorMessage(error, 'No fue posible cargar empleados, tipos o combinaciones.')),
     });
   }
 
@@ -133,11 +189,43 @@ export class DotationDeliveryCreateComponent implements OnInit {
     const term = this.employeeSearch.trim().toLowerCase();
     if (!term) return this.employees();
     return this.employees().filter((employee) => [
-      employee.numero_documento,
-      employee.nombre_completo,
-      employee.area ?? '',
-      employee.cargo ?? '',
+      employee.numero_documento, employee.nombre_completo, employee.area ?? '', employee.cargo ?? '',
     ].some((value) => value.toLowerCase().includes(term)));
+  }
+
+  changeEmployee(employeeId: number | null): void {
+    this.idEmpleado = employeeId ? Number(employeeId) : null;
+    this.employeeSizes.set([]);
+    this.details.update((details) => details.map((detail) => ({ ...detail, id_talla_dotacion: null, talla: null })));
+    if (this.idEmpleado) this.loadEmployeeSizes(this.idEmpleado);
+  }
+
+  changeDeliveryType(type: DotationDeliveryType): void {
+    this.tipoEntrega = type;
+    this.idCombinacion = null;
+    this.details.set(type === 'EXTRAORDINARIA' ? [this.newDetail()] : []);
+    this.error.set('');
+  }
+
+  changeCombination(combinationId: number | null): void {
+    this.idCombinacion = combinationId ? Number(combinationId) : null;
+    this.details.set([]);
+    if (!this.idCombinacion) return;
+    this.combinationLoading.set(true);
+    this.error.set('');
+    this.service.getCombinationDetail(this.idCombinacion).pipe(finalize(() => this.combinationLoading.set(false))).subscribe({
+      next: (items) => this.details.set(items.map((item) => this.withEmployeeSize({
+        clientId: this.nextDetailId++,
+        id_tipo_dotacion: item.id_tipo_dotacion,
+        tipo_dotacion: item.tipo_dotacion,
+        requiere_talla: item.requiere_talla,
+        id_talla_dotacion: null,
+        talla: null,
+        cantidad: item.cantidad,
+        observaciones: '',
+      }))),
+      error: (error) => this.error.set(apiErrorMessage(error, 'No fue posible cargar el detalle de la combinacion.')),
+    });
   }
 
   addDetail(): void {
@@ -145,28 +233,35 @@ export class DotationDeliveryCreateComponent implements OnInit {
   }
 
   removeDetail(clientId: number): void {
-    this.details.update((details) => details.length === 1 ? details : details.filter((detail) => detail.clientId !== clientId));
+    this.details.update((details) => details.filter((detail) => detail.clientId !== clientId));
   }
 
   updateType(clientId: number, typeId: number | null): void {
-    this.details.update((details) => details.map((detail) => detail.clientId === clientId ? { ...detail, id_tipo_dotacion: typeId, id_talla_dotacion: null } : detail));
+    const normalizedId = typeId ? Number(typeId) : null;
+    const type = this.types().find((item) => item.id_tipo_dotacion === normalizedId);
+    this.details.update((details) => details.map((detail) => detail.clientId === clientId
+      ? this.withEmployeeSize({
+        ...detail,
+        id_tipo_dotacion: normalizedId,
+        tipo_dotacion: type?.nombre ?? '',
+        requiere_talla: Boolean(type?.requiere_talla),
+        id_talla_dotacion: null,
+        talla: null,
+      })
+      : detail));
   }
 
-  updateDetail(clientId: number, key: 'id_talla_dotacion' | 'cantidad' | 'observaciones', value: number | string | null): void {
+  updateDetail(clientId: number, key: 'cantidad' | 'observaciones', value: number | string | null): void {
     this.details.update((details) => details.map((detail) => {
       if (detail.clientId !== clientId) return detail;
-      if (key === 'cantidad') return { ...detail, cantidad: Number(value) };
-      if (key === 'observaciones') return { ...detail, observaciones: String(value ?? '').slice(0, 250) };
-      return { ...detail, id_talla_dotacion: value ? Number(value) : null };
+      return key === 'cantidad'
+        ? { ...detail, cantidad: Number(value) }
+        : { ...detail, observaciones: String(value ?? '').slice(0, 250) };
     }));
   }
 
-  sizesByType(typeId: number | null): DotationSize[] {
-    return typeId ? this.sizes().filter((size) => size.id_tipo_dotacion === typeId) : [];
-  }
-
-  requiresSize(typeId: number | null): boolean {
-    return Boolean(this.types().find((type) => type.id_tipo_dotacion === typeId)?.requiere_talla);
+  isTypeSelected(typeId: number, currentClientId: number): boolean {
+    return this.details().some((detail) => detail.clientId !== currentClientId && detail.id_tipo_dotacion === typeId);
   }
 
   submit(): void {
@@ -181,10 +276,12 @@ export class DotationDeliveryCreateComponent implements OnInit {
     const payload: CreateDotationDeliveryRequest = {
       id_empleado: this.idEmpleado!,
       fecha_entrega: this.fechaEntrega,
+      tipo_entrega: this.tipoEntrega,
+      id_dotacion_combinacion: this.tipoEntrega === 'ORDINARIA' ? this.idCombinacion : null,
       observaciones: this.blankToNull(this.observaciones),
       detalles: this.details().map((detail) => ({
         id_tipo_dotacion: detail.id_tipo_dotacion!,
-        id_talla_dotacion: detail.id_talla_dotacion,
+        id_talla_dotacion: detail.requiere_talla ? detail.id_talla_dotacion : null,
         cantidad: Number(detail.cantidad),
         observaciones: this.blankToNull(detail.observaciones),
       })),
@@ -200,21 +297,46 @@ export class DotationDeliveryCreateComponent implements OnInit {
     });
   }
 
+  private loadEmployeeSizes(employeeId: number): void {
+    this.employeeSizesLoading.set(true);
+    this.service.getEmployeeSizes(employeeId).pipe(finalize(() => this.employeeSizesLoading.set(false))).subscribe({
+      next: (sizes) => {
+        if (employeeId !== this.idEmpleado) return;
+        this.employeeSizes.set(sizes);
+        this.details.update((details) => details.map((detail) => this.withEmployeeSize(detail)));
+      },
+      error: (error) => this.error.set(apiErrorMessage(error, 'No fue posible cargar las tallas del empleado.')),
+    });
+  }
+
+  private withEmployeeSize(detail: DeliveryDetailDraft): DeliveryDetailDraft {
+    if (!detail.id_tipo_dotacion || !detail.requiere_talla) {
+      return { ...detail, id_talla_dotacion: null, talla: null };
+    }
+    const registered = this.employeeSizes().find((item) => item.id_tipo_dotacion === detail.id_tipo_dotacion);
+    return { ...detail, id_talla_dotacion: registered?.id_talla_dotacion ?? null, talla: registered?.talla ?? null };
+  }
+
   private validate(): string {
     if (!this.idEmpleado) return 'Selecciona un empleado.';
+    if (!this.tipoEntrega) return 'Selecciona el tipo de entrega.';
     if (!this.fechaEntrega) return 'Selecciona la fecha de entrega.';
-    if (!this.details().length) return 'Agrega al menos un detalle.';
+    if (this.tipoEntrega === 'ORDINARIA' && !this.idCombinacion) return 'Selecciona una combinacion de dotacion.';
+    if (!this.details().length) return 'Agrega al menos una prenda.';
+    const selected = new Set<number>();
     for (const [index, detail] of this.details().entries()) {
       const row = index + 1;
       if (!detail.id_tipo_dotacion) return `Selecciona el tipo de dotacion en la fila ${row}.`;
+      if (selected.has(detail.id_tipo_dotacion)) return `La prenda ${detail.tipo_dotacion} esta duplicada.`;
+      selected.add(detail.id_tipo_dotacion);
       if (!Number.isFinite(Number(detail.cantidad)) || Number(detail.cantidad) < 1) return `La cantidad de la fila ${row} debe ser mayor a cero.`;
-      if (this.requiresSize(detail.id_tipo_dotacion) && !detail.id_talla_dotacion) return `Selecciona la talla en la fila ${row}.`;
+      if (detail.requiere_talla && !detail.id_talla_dotacion) return `El empleado no tiene registrada talla para ${detail.tipo_dotacion}.`;
     }
     return '';
   }
 
   private newDetail(): DeliveryDetailDraft {
-    return { clientId: this.nextDetailId++, id_tipo_dotacion: null, id_talla_dotacion: null, cantidad: 1, observaciones: '' };
+    return { clientId: this.nextDetailId++, id_tipo_dotacion: null, tipo_dotacion: '', requiere_talla: false, id_talla_dotacion: null, talla: null, cantidad: 1, observaciones: '' };
   }
 
   private blankToNull(value: string): string | null {

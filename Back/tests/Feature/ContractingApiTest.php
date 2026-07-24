@@ -3,7 +3,9 @@
 namespace Tests\Feature;
 
 use App\Services\JwtService;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Route;
 use Tests\TestCase;
 
@@ -23,6 +25,7 @@ class ContractingApiTest extends TestCase
             'GET|HEAD api/contracting/contract-templates/by-type',
             'GET|HEAD api/contracting/contract-templates/{templateId}',
             'GET|HEAD api/contracting/contracts/{employeeContractId}/generation-data',
+            'POST api/contracting/contracts/{employeeContractId}/sign',
             'GET|HEAD api/contracting/employees/{employeeId}/profile',
             'POST api/contracting/employees/{employeeId}/profile',
             'GET|HEAD api/contracting/employees/{employeeId}/contracts',
@@ -370,6 +373,8 @@ class ContractingApiTest extends TestCase
                 'OBJETO_OBRA_LABOR' => 'Gestion administrativa',
                 'PRORROGA_DIAS' => 0,
                 'CLAUSULA_FUNCIONES' => 'Funciones administrativas del cargo.',
+                'FECHA_FIRMA' => '2026-07-24',
+                'CONTRATO_FIRMADO' => 1,
             ]]);
 
         $this->withToken($this->tokenWithPermissions(['CONTRATACION_HISTORIAL_VER']))
@@ -389,7 +394,9 @@ class ContractingApiTest extends TestCase
             ->assertJsonPath('data.0.tipo_cargo_contrato', 'ADMINISTRATIVO')
             ->assertJsonPath('data.0.objeto_obra_labor', 'Gestion administrativa')
             ->assertJsonPath('data.0.prorroga_dias', 0)
-            ->assertJsonPath('data.0.clausula_funciones', 'Funciones administrativas del cargo.');
+            ->assertJsonPath('data.0.clausula_funciones', 'Funciones administrativas del cargo.')
+            ->assertJsonPath('data.0.fecha_firma', '2026-07-24')
+            ->assertJsonPath('data.0.contrato_firmado', 1);
     }
 
     public function test_contract_template_endpoints_and_generation_data_use_expected_stored_procedures(): void
@@ -526,6 +533,139 @@ class ContractingApiTest extends TestCase
             ->assertJsonPath('data.0.tipo_alerta', 'PROXIMO_VENCER');
     }
 
+    public function test_sign_contract_with_external_url(): void
+    {
+        DB::shouldReceive('select')->once()
+            ->with('CALL SP_BBF_CONTRATACION_CONTRATO_FIRMADO_REGISTRAR(?,?,?,?,?,?,?,?,?,?)', [
+                7,
+                '2026-07-24',
+                'Contrato firmado',
+                null,
+                'https://example.com/contrato-firmado.pdf',
+                null,
+                null,
+                null,
+                'Firmado externamente',
+                99,
+            ])
+            ->andReturn([(object) [
+                'ID_EMPLEADO_CONTRATO' => 7,
+                'ID_EMPLEADO' => 5,
+                'NUMERO_CONTRATO' => 'CT-007',
+                'FECHA_FIRMA' => '2026-07-24',
+                'ID_EMPLEADO_DOCUMENTO' => 21,
+                'NOMBRE_ARCHIVO' => 'Contrato firmado',
+                'NOMBRE_ORIGINAL' => null,
+                'ARCHIVO_URL' => 'https://example.com/contrato-firmado.pdf',
+                'ARCHIVO_RUTA' => null,
+                'ESTADO_DOCUMENTO' => 'CARGADO',
+                'OBSERVACIONES' => 'Firmado externamente',
+                'ESTADO_FIRMA' => 'FIRMADO',
+            ]]);
+
+        $this->withToken($this->tokenWithPermissions(['CONTRATACION_EDITAR']))
+            ->postJson('/api/contracting/contracts/7/sign', [
+                'fecha_firma' => '2026-07-24',
+                'origen' => 'URL',
+                'url' => 'https://example.com/contrato-firmado.pdf',
+                'observaciones' => 'Firmado externamente',
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.id_empleado_contrato', 7)
+            ->assertJsonPath('data.estado_firma', 'FIRMADO')
+            ->assertJsonPath('data.archivo_url', 'https://example.com/contrato-firmado.pdf');
+    }
+
+    public function test_sign_contract_with_physical_file(): void
+    {
+        DB::shouldReceive('select')->once()
+            ->withArgs(function (string $sql, array $parameters): bool {
+                return $sql === 'CALL SP_BBF_CONTRATACION_CONTRATO_FIRMADO_REGISTRAR(?,?,?,?,?,?,?,?,?,?)'
+                    && $parameters[0] === 7
+                    && $parameters[1] === '2026-07-24'
+                    && $parameters[2] === 'firmado.pdf'
+                    && $parameters[3] === 'firmado.pdf'
+                    && $parameters[4] === null
+                    && str_starts_with($parameters[5], 'uploads/contracts/7/documents/')
+                    && $parameters[6] === 'application/pdf'
+                    && $parameters[8] === 'Firma presencial'
+                    && $parameters[9] === 99;
+            })
+            ->andReturn([(object) [
+                'ID_EMPLEADO_CONTRATO' => 7,
+                'ID_EMPLEADO' => 5,
+                'FECHA_FIRMA' => '2026-07-24',
+                'ID_EMPLEADO_DOCUMENTO' => 21,
+                'NOMBRE_ARCHIVO' => 'firmado.pdf',
+                'NOMBRE_ORIGINAL' => 'firmado.pdf',
+                'ESTADO_DOCUMENTO' => 'CARGADO',
+                'ESTADO_FIRMA' => 'FIRMADO',
+            ]]);
+
+        $response = $this->withToken($this->tokenWithPermissions(['CONTRATACION_EDITAR']))
+            ->post('/api/contracting/contracts/7/sign', [
+                'fecha_firma' => '2026-07-24',
+                'origen' => 'ARCHIVO',
+                'observaciones' => 'Firma presencial',
+                'archivo' => UploadedFile::fake()->create('firmado.pdf', 128, 'application/pdf'),
+            ]);
+
+        $response->assertOk()->assertJsonPath('data.estado_firma', 'FIRMADO');
+        File::deleteDirectory(public_path('uploads/contracts/7'));
+    }
+
+    public function test_sign_contract_validates_required_and_exclusive_origin_fields(): void
+    {
+        $token = $this->tokenWithPermissions(['CONTRATACION_EDITAR']);
+
+        $this->withToken($token)->postJson('/api/contracting/contracts/7/sign', [
+            'origen' => 'URL',
+            'url' => 'https://example.com/firmado.pdf',
+        ])->assertUnprocessable()->assertJsonValidationErrors('fecha_firma');
+
+        $this->withToken($token)->postJson('/api/contracting/contracts/7/sign', [
+            'fecha_firma' => '2026-07-24',
+            'origen' => 'ARCHIVO',
+        ])->assertUnprocessable()->assertJsonValidationErrors('archivo');
+
+        $this->withToken($token)->postJson('/api/contracting/contracts/7/sign', [
+            'fecha_firma' => '2026-07-24',
+            'origen' => 'URL',
+        ])->assertUnprocessable()->assertJsonValidationErrors('url');
+
+        $this->withToken($token)->post('/api/contracting/contracts/7/sign', [
+            'fecha_firma' => '2026-07-24',
+            'origen' => 'ARCHIVO',
+            'url' => 'https://example.com/firmado.pdf',
+            'archivo' => UploadedFile::fake()->create('firmado.pdf', 1, 'application/pdf'),
+        ])->assertUnprocessable()->assertJsonValidationErrors('url');
+    }
+
+    public function test_sign_contract_deletes_new_file_when_stored_procedure_returns_no_result(): void
+    {
+        File::deleteDirectory(public_path('uploads/contracts/404'));
+
+        DB::shouldReceive('select')->once()
+            ->withArgs(fn (string $sql, array $parameters): bool => $sql === 'CALL SP_BBF_CONTRATACION_CONTRATO_FIRMADO_REGISTRAR(?,?,?,?,?,?,?,?,?,?)'
+                && $parameters[0] === 404
+                && str_starts_with($parameters[5], 'uploads/contracts/404/documents/')
+            )
+            ->andReturn([]);
+
+        $this->withToken($this->tokenWithPermissions(['CONTRATACION_EDITAR']))
+            ->post('/api/contracting/contracts/404/sign', [
+                'fecha_firma' => '2026-07-24',
+                'origen' => 'ARCHIVO',
+                'archivo' => UploadedFile::fake()->create('firmado.pdf', 1, 'application/pdf'),
+            ])
+            ->assertUnprocessable()
+            ->assertJsonPath('message', 'No fue posible registrar el contrato firmado.');
+
+        $this->assertFalse(File::isDirectory(public_path('uploads/contracts/404/documents'))
+            && count(File::files(public_path('uploads/contracts/404/documents'))) > 0);
+        File::deleteDirectory(public_path('uploads/contracts/404'));
+    }
+
     public function test_health_employees_and_dotations_routes_still_exist(): void
     {
         $this->getJson('/api/health')->assertOk();
@@ -541,6 +681,7 @@ class ContractingApiTest extends TestCase
             ['GET', '/api/contracting/contract-templates/9'],
             ['GET', '/api/contracting/contract-templates/by-type'],
             ['GET', '/api/contracting/contracts/7/generation-data'],
+            ['POST', '/api/contracting/contracts/7/sign'],
             ['GET', '/api/contracting/employees/5/profile'],
             ['POST', '/api/contracting/employees/5/profile'],
             ['GET', '/api/contracting/employees/5/contracts'],

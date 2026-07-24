@@ -14,6 +14,16 @@ class DotationRepository extends StoredProcedureRepository
         return $this->call('SP_BBF_DOTACION_TALLAS_LISTAR', [$dotationTypeId, (int) $onlyActive]);
     }
 
+    public function combinations(): array
+    {
+        return $this->call('SP_BBF_DOTACION_COMBINACIONES_LISTAR');
+    }
+
+    public function combinationDetails(int $combinationId): array
+    {
+        return $this->call('SP_BBF_DOTACION_COMBINACION_DETALLE_LISTAR', [$combinationId]);
+    }
+
     public function mySizes(int $userId): array
     {
         return $this->call('SP_BBF_DOTACION_MIS_TALLAS_LISTAR', [$userId]);
@@ -49,11 +59,20 @@ class DotationRepository extends StoredProcedureRepository
         return $this->call('SP_BBF_DOTACION_HISTORIAL_EMPLEADO', [$employeeId]);
     }
 
-    public function createDelivery(int $employeeId, string $deliveryDate, int $registeredBy, ?string $observations): int
+    public function createDelivery(
+        int $employeeId,
+        string $deliveryDate,
+        string $deliveryType,
+        ?int $combinationId,
+        int $registeredBy,
+        ?string $observations,
+    ): int
     {
         $row = $this->first('SP_BBF_DOTACION_ENTREGA_CREAR', [
             $employeeId,
             $deliveryDate,
+            $deliveryType,
+            $combinationId,
             $registeredBy,
             $observations,
         ]);

@@ -8,6 +8,30 @@ use Tests\TestCase;
 
 class ContractingRepositoryTest extends TestCase
 {
+    public function test_sign_contract_calls_expected_stored_procedure(): void
+    {
+        DB::shouldReceive('select')->once()
+            ->with('CALL SP_BBF_CONTRATACION_CONTRATO_FIRMADO_REGISTRAR(?,?,?,?,?,?,?,?,?,?)', [
+                7, '2026-07-24', 'firmado.pdf', 'original.pdf', null,
+                'uploads/contracts/7/documents/firmado.pdf', 'application/pdf', 1024,
+                'Firma presencial', 99,
+            ])
+            ->andReturn([(object) ['ID_EMPLEADO_CONTRATO' => 7]]);
+
+        $result = app(ContractingRepository::class)->signContract(7, 99, [
+            'fecha_firma' => '2026-07-24',
+            'nombre_archivo' => 'firmado.pdf',
+            'nombre_original' => 'original.pdf',
+            'archivo_url' => null,
+            'archivo_ruta' => 'uploads/contracts/7/documents/firmado.pdf',
+            'mime_type' => 'application/pdf',
+            'peso_bytes' => 1024,
+            'observaciones' => 'Firma presencial',
+        ]);
+
+        $this->assertSame(7, $result['id_empleado_contrato']);
+    }
+
     public function test_read_methods_call_expected_stored_procedures(): void
     {
         DB::shouldReceive('select')->once()
@@ -59,7 +83,12 @@ class ContractingRepositoryTest extends TestCase
             ->andReturn([]);
         DB::shouldReceive('select')->once()
             ->with('CALL SP_BBF_CONTRATACION_DOCUMENTOS_LISTAR(?)', [5])
-            ->andReturn([]);
+            ->andReturn([(object) [
+                'ID_EMPLEADO_DOCUMENTO' => 21,
+                'ID_EMPLEADO_CONTRATO' => 7,
+                'NOMBRE_ORIGINAL' => 'firmado-original.pdf',
+                'ARCHIVO_RUTA' => 'uploads/contracts/7/documents/firmado.pdf',
+            ]]);
         DB::shouldReceive('select')->once()
             ->with('CALL SP_BBF_CONTRATACION_ALERTAS_LISTAR(?)', [30])
             ->andReturn([]);
@@ -87,7 +116,10 @@ class ContractingRepositoryTest extends TestCase
         $this->assertSame(7, $repository->getContractGenerationData(7)['id_empleado_contrato']);
         $repository->getSocialSecurity(5);
         $repository->listMedicalExams(5);
-        $repository->listDocuments(5);
+        $documents = $repository->listDocuments(5);
+        $this->assertSame(7, $documents[0]['id_empleado_contrato']);
+        $this->assertSame('firmado-original.pdf', $documents[0]['nombre_original']);
+        $this->assertSame('uploads/contracts/7/documents/firmado.pdf', $documents[0]['archivo_ruta']);
         $repository->listAlerts(30);
     }
 

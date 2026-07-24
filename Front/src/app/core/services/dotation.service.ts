@@ -8,6 +8,8 @@ import {
   ConfirmedDotationDelivery,
   CreateDotationDeliveryRequest,
   DeleteDotationDeliveryResponse,
+  DotationCombination,
+  DotationCombinationDetail,
   DotationDelivery,
   DotationDeliveryDetail,
   DotationDeliveryFilters,
@@ -40,6 +42,18 @@ export class DotationService {
       params = params.set('id_tipo_dotacion', String(idTipoDotacion));
     }
     return this.http.get<ApiResponse<DotationSize[]>>(`${this.url}/sizes`, { params }).pipe(
+      map((response) => response.data ?? []),
+    );
+  }
+
+  getCombinations(): Observable<DotationCombination[]> {
+    return this.http.get<ApiResponse<DotationCombination[]>>(`${this.url}/combinations`).pipe(
+      map((response) => response.data ?? []),
+    );
+  }
+
+  getCombinationDetail(combinationId: number): Observable<DotationCombinationDetail[]> {
+    return this.http.get<ApiResponse<DotationCombinationDetail[]>>(`${this.url}/combinations/${combinationId}`).pipe(
       map((response) => response.data ?? []),
     );
   }

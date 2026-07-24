@@ -11,6 +11,9 @@ import { apiErrorMessage } from '../../shared/api-error';
 interface DeliveryHistoryGroup {
   id_dotacion_entrega: number;
   fecha_entrega: string;
+  tipo_entrega: EmployeeDotationHistory['tipo_entrega'];
+  codigo_combinacion?: string | null;
+  nombre_combinacion?: string | null;
   fecha_confirmacion?: string | null;
   estado: string;
   registrado_por?: string | null;
@@ -71,6 +74,8 @@ interface DeliveryHistoryGroup {
           </div>
 
           <dl>
+            <dt>Tipo de entrega</dt><dd>{{ group.tipo_entrega === 'EXTRAORDINARIA' ? 'Extraordinaria' : 'Ordinaria' }}</dd>
+            <dt>Combinacion</dt><dd>{{ combinationLabel(group) }}</dd>
             <dt>Fecha confirmacion</dt><dd>{{ group.fecha_confirmacion || 'Pendiente' }}</dd>
             <dt>Confirmado por</dt><dd>{{ group.confirmado_por || (group.id_confirmado_por ? 'ID ' + group.id_confirmado_por : 'Pendiente') }}</dd>
             <dt>Registrado por</dt><dd>{{ group.registrado_por || (group.id_registrado_por ? 'ID ' + group.id_registrado_por : 'Sin dato') }}</dd>
@@ -167,6 +172,9 @@ export class EmployeeDotationHistoryComponent implements OnInit {
       const group = groups.get(item.id_dotacion_entrega) ?? {
         id_dotacion_entrega: item.id_dotacion_entrega,
         fecha_entrega: item.fecha_entrega,
+        tipo_entrega: item.tipo_entrega,
+        codigo_combinacion: item.codigo_combinacion,
+        nombre_combinacion: item.nombre_combinacion,
         fecha_confirmacion: item.fecha_confirmacion,
         estado: item.estado,
         registrado_por: item.registrado_por,
@@ -185,6 +193,12 @@ export class EmployeeDotationHistoryComponent implements OnInit {
 
   totalDeliveries(): number {
     return this.deliveryGroups().length;
+  }
+
+  combinationLabel(delivery: DeliveryHistoryGroup): string {
+    return delivery.codigo_combinacion
+      ? `${delivery.codigo_combinacion} - ${delivery.nombre_combinacion ?? ''}`.trim()
+      : '—';
   }
 
   totalItemsDelivered(): number {

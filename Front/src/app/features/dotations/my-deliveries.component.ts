@@ -30,6 +30,8 @@ import { apiErrorMessage } from '../../shared/api-error';
           </div>
 
           <dl>
+            <dt>Tipo de entrega</dt><dd>{{ delivery.tipo_entrega === 'EXTRAORDINARIA' ? 'Extraordinaria' : 'Ordinaria' }}</dd>
+            <dt>Combinacion</dt><dd>{{ combinationLabel(delivery) }}</dd>
             <dt>Observaciones entrega</dt><dd>{{ delivery.observaciones || 'Sin observaciones' }}</dd>
             <dt>Fecha confirmacion</dt><dd>{{ delivery.fecha_confirmacion || 'Pendiente' }}</dd>
             <dt>Observacion confirmacion</dt><dd>{{ delivery.observacion_confirmacion || 'Sin observacion' }}</dd>
@@ -131,6 +133,12 @@ export class MyDotationDeliveriesComponent implements OnInit {
     if (status === 'ENTREGADA') return 'Confirmada';
     if (status === 'ANULADA') return 'Anulada';
     return status;
+  }
+
+  combinationLabel(delivery: MyDotationDelivery): string {
+    return delivery.codigo_combinacion
+      ? `${delivery.codigo_combinacion} - ${delivery.nombre_combinacion ?? ''}`.trim()
+      : '—';
   }
 
   load(): void {

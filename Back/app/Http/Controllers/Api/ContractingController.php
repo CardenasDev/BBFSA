@@ -8,9 +8,10 @@ use App\Http\Requests\GetContractTemplateByTypeRequest;
 use App\Http\Requests\ListContractAlertsRequest;
 use App\Http\Requests\ListContractTemplatesRequest;
 use App\Http\Requests\RegisterEmployeeDocumentRequest;
-use App\Http\Resources\ContractGenerationDataResource;
 use App\Http\Requests\SaveContractingProfileRequest;
 use App\Http\Requests\SaveSocialSecurityRequest;
+use App\Http\Requests\SignEmployeeContractRequest;
+use App\Http\Resources\ContractGenerationDataResource;
 use App\Services\ContractingService;
 use Dedoc\Scramble\Attributes\Group;
 use Illuminate\Http\JsonResponse;
@@ -156,6 +157,23 @@ class ContractingController extends ApiController
         return $this->success(
             new ContractGenerationDataResource($this->contracting->getContractGenerationData($employeeContractId)),
             'Datos de contrato para generacion consultados correctamente',
+        );
+    }
+
+    /**
+     * Registrar contrato firmado
+     *
+     * Permiso requerido: CONTRATACION_EDITAR.
+     *
+     * Acepta multipart/form-data. Para origen ARCHIVO recibe archivo; para origen URL recibe url.
+     *
+     * @response array{success: bool, message: string, data: array{id_empleado_contrato: int, id_empleado: int, numero_contrato: string, fecha_firma: string, id_empleado_documento: int, nombre_archivo: string, nombre_original: string|null, archivo_url: string|null, archivo_ruta: string|null, estado_documento: string, observaciones: string|null, estado_firma: string}}
+     */
+    public function signContract(SignEmployeeContractRequest $request, int $employeeContractId): JsonResponse
+    {
+        return $this->success(
+            $this->contracting->signContract($employeeContractId, $this->actorId($request), $request->validated(), $this->context($request)),
+            'Contrato firmado registrado correctamente',
         );
     }
 

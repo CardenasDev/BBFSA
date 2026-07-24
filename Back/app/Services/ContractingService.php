@@ -5,6 +5,10 @@ namespace App\Services;
 use App\Exceptions\ApiException;
 use App\Repositories\ContractingRepository;
 use DateTimeImmutable;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\File;
+use Illuminate\Support\Str;
+use Throwable;
 
 class ContractingService
 {
@@ -89,6 +93,35 @@ class ContractingService
         ], $context);
 
         return $created;
+    }
+
+    public function signContract(int $employeeContractId, int $userId, array $data, array $context): array
+    {
+        $payload = $this->buildSignedContractPayload($employeeContractId, $this->normalizeData($data));
+        $storedPath = $payload['archivo_ruta'];
+
+        try {
+            $registered = $this->contracting->signContract($employeeContractId, $userId, $payload);
+        } catch (Throwable $exception) {
+            $this->deleteSignedContractFile($storedPath);
+            throw $exception;
+        }
+
+        if (! $registered) {
+            $this->deleteSignedContractFile($storedPath);
+            throw new ApiException('No fue posible registrar el contrato firmado.', 422);
+        }
+
+        $this->audit->record($userId, 'CONTRATACION', 'CONTRATACION_CONTRATO_FIRMADO_REGISTRAR', 'CONTRATO_EMPLEADO', $employeeContractId, null, [
+            'id_empleado_contrato' => $employeeContractId,
+            'fecha_firma' => $payload['fecha_firma'],
+            'origen' => $data['origen'],
+            'archivo_url' => $payload['archivo_url'],
+            'archivo_ruta' => $payload['archivo_ruta'],
+            'result' => $registered,
+        ], $context);
+
+        return $registered;
     }
 
     public function getContractGenerationData(int $employeeContractId): array
@@ -308,6 +341,76 @@ class ContractingService
 
             return is_string($value) ? $this->blankToNull($value) : $value;
         }, $data);
+    }
+
+    private function buildSignedContractPayload(int $employeeContractId, array $data): array
+    {
+        $base = [
+            'fecha_firma' => $data['fecha_firma'],
+            'observaciones' => $this->blankToNull($data['observaciones'] ?? null),
+            'nombre_original' => null,
+            'archivo_url' => null,
+            'archivo_ruta' => null,
+            'mime_type' => null,
+            'peso_bytes' => null,
+        ];
+
+        if ($data['origen'] === 'ARCHIVO') {
+            $file = $data['archivo'] ?? null;
+            if (! $file instanceof UploadedFile) {
+                throw new ApiException('Debe cargar el archivo del contrato firmado.', 422);
+            }
+
+            $metadata = $this->storeSignedContractFile($employeeContractId, $file);
+
+            return array_merge($base, $metadata, [
+                'nombre_archivo' => $this->blankToNull($data['nombre_archivo'] ?? null) ?? $metadata['nombre_original'],
+            ]);
+        }
+
+        return array_merge($base, [
+            'nombre_archivo' => $this->blankToNull($data['nombre_archivo'] ?? null) ?? 'Contrato firmado',
+            'archivo_url' => $this->blankToNull($data['url'] ?? null),
+        ]);
+    }
+
+    private function storeSignedContractFile(int $employeeContractId, UploadedFile $file): array
+    {
+        $relativeDirectory = "uploads/contracts/{$employeeContractId}/documents";
+        $directory = public_path($relativeDirectory);
+
+        if (! File::isDirectory($directory)) {
+            File::makeDirectory($directory, 0755, true);
+        }
+
+        $originalName = $file->getClientOriginalName();
+        $baseName = pathinfo($originalName, PATHINFO_FILENAME);
+        $safeName = Str::slug($baseName) ?: 'documento';
+        $extension = strtolower($file->getClientOriginalExtension() ?: $file->extension() ?: 'bin');
+        $filename = sprintf('%s_%s.%s', now()->format('Ymd_His'), $safeName, $extension);
+        $mimeType = $file->getMimeType();
+        $size = $file->getSize();
+
+        $file->move($directory, $filename);
+
+        return [
+            'nombre_original' => $originalName,
+            'archivo_ruta' => "{$relativeDirectory}/{$filename}",
+            'mime_type' => $mimeType,
+            'peso_bytes' => $size,
+        ];
+    }
+
+    private function deleteSignedContractFile(?string $relativePath): void
+    {
+        if (! $relativePath || ! str_starts_with($relativePath, 'uploads/contracts/')) {
+            return;
+        }
+
+        $path = public_path($relativePath);
+        if (File::exists($path)) {
+            File::delete($path);
+        }
     }
 
     private function nullableInt(array $row, string $key): ?int

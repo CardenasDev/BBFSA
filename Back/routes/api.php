@@ -81,6 +81,8 @@ Route::middleware('auth.jwt')->group(function (): void {
     Route::prefix('dotations')->group(function (): void {
         Route::get('types', [DotationController::class, 'types'])->middleware('permission:DOTACIONES_CATALOGOS_VER');
         Route::get('sizes', [DotationController::class, 'sizes'])->middleware('permission:DOTACIONES_CATALOGOS_VER');
+        Route::get('combinations', [DotationController::class, 'combinations'])->middleware('permission:DOTACIONES_CATALOGOS_VER');
+        Route::get('combinations/{combinationId}', [DotationController::class, 'combinationDetails'])->whereNumber('combinationId')->middleware('permission:DOTACIONES_CATALOGOS_VER');
         Route::get('my-sizes', [DotationController::class, 'mySizes'])->middleware('permission:DOTACIONES_MIS_TALLAS_VER');
         Route::post('my-sizes', [DotationController::class, 'saveMySize'])->middleware('permission:DOTACIONES_MIS_TALLAS_EDITAR');
         Route::get('my-deliveries', [DotationController::class, 'myDeliveries'])->middleware('permission:DOTACIONES_MIS_ENTREGAS_VER');
@@ -99,6 +101,7 @@ Route::middleware('auth.jwt')->group(function (): void {
         Route::get('contract-templates/by-type', [ContractingController::class, 'getContractTemplateByType'])->middleware('permission:CONTRATACION_VER');
         Route::get('contract-templates/{templateId}', [ContractingController::class, 'getContractTemplate'])->whereNumber('templateId')->middleware('permission:CONTRATACION_VER');
         Route::get('contracts/{employeeContractId}/generation-data', [ContractingController::class, 'getContractGenerationData'])->whereNumber('employeeContractId')->middleware('permission:CONTRATACION_VER');
+        Route::post('contracts/{employeeContractId}/sign', [ContractingController::class, 'signContract'])->whereNumber('employeeContractId')->middleware('permission:CONTRATACION_EDITAR');
         Route::get('employees/{employeeId}/profile', [ContractingController::class, 'getProfile'])->whereNumber('employeeId')->middleware('permission:CONTRATACION_VER');
         Route::post('employees/{employeeId}/profile', [ContractingController::class, 'saveProfile'])->whereNumber('employeeId')->middleware('permission:CONTRATACION_CREAR,CONTRATACION_EDITAR');
         Route::get('employees/{employeeId}/contracts', [ContractingController::class, 'listContracts'])->whereNumber('employeeId')->middleware('permission:CONTRATACION_HISTORIAL_VER');

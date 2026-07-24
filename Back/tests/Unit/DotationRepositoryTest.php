@@ -40,6 +40,23 @@ class DotationRepositoryTest extends TestCase
         app(DotationRepository::class)->sizes(1, false);
     }
 
+    public function test_combinations_call_expected_stored_procedures(): void
+    {
+        DB::shouldReceive('select')
+            ->once()
+            ->with('CALL SP_BBF_DOTACION_COMBINACIONES_LISTAR()', [])
+            ->andReturn([]);
+
+        DB::shouldReceive('select')
+            ->once()
+            ->with('CALL SP_BBF_DOTACION_COMBINACION_DETALLE_LISTAR(?)', [2])
+            ->andReturn([]);
+
+        $repository = app(DotationRepository::class);
+        $repository->combinations();
+        $repository->combinationDetails(2);
+    }
+
     public function test_save_my_size_calls_stored_procedure_with_authenticated_user_first(): void
     {
         DB::shouldReceive('select')
@@ -115,9 +132,11 @@ class DotationRepositoryTest extends TestCase
     {
         DB::shouldReceive('select')
             ->once()
-            ->with('CALL SP_BBF_DOTACION_ENTREGA_CREAR(?,?,?,?)', [
+            ->with('CALL SP_BBF_DOTACION_ENTREGA_CREAR(?,?,?,?,?,?)', [
                 5,
                 '2026-06-23',
+                'ORDINARIA',
+                1,
                 99,
                 'Entrega inicial',
             ])
@@ -135,7 +154,7 @@ class DotationRepositoryTest extends TestCase
             ->andReturn([]);
 
         $repository = app(DotationRepository::class);
-        $deliveryId = $repository->createDelivery(5, '2026-06-23', 99, 'Entrega inicial');
+        $deliveryId = $repository->createDelivery(5, '2026-06-23', 'ORDINARIA', 1, 99, 'Entrega inicial');
         $repository->addDeliveryDetail($deliveryId, 1, 3, 2, 'Camisas institucionales');
 
         $this->assertSame(7, $deliveryId);

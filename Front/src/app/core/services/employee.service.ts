@@ -1,4 +1,4 @@
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpParams, HttpResponse } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable, map } from 'rxjs';
 import { environment } from '../../../environments/environment';
@@ -23,6 +23,13 @@ export class EmployeeService {
       }
     });
     return this.http.get<ApiResponse<Employee[]>>(this.url, { params }).pipe(map((response) => response.data));
+  }
+
+  exportEmployees(): Observable<HttpResponse<Blob>> {
+    return this.http.get(`${this.url}/export`, {
+      observe: 'response',
+      responseType: 'blob',
+    });
   }
 
   getEmployee(id: number): Observable<Employee> {

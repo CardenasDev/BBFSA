@@ -10,6 +10,7 @@ use App\Services\EmployeeService;
 use Dedoc\Scramble\Attributes\Group;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 #[Group('Employees', 'Administracion de empleados.', weight: 5)]
 class EmployeeController extends ApiController
@@ -29,6 +30,20 @@ class EmployeeController extends ApiController
             $request->integer('id_cargo') ?: null,
             $request->query('texto_busqueda'),
         ));
+    }
+
+    /**
+     * Exportar empleados activos
+     *
+     * Descarga el reporte consolidado de empleados activos en formato XLSX.
+     */
+    public function export(): BinaryFileResponse
+    {
+        $export = $this->employees->exportActiveEmployees();
+
+        return response()->download($export['path'], $export['filename'], [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        ])->deleteFileAfterSend(true);
     }
 
     /**

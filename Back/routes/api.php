@@ -45,6 +45,7 @@ Route::middleware('auth.jwt')->group(function (): void {
         Route::post('{applicantId}/convert-to-employee', [ApplicantController::class, 'convertToEmployee'])->whereNumber('applicantId')->middleware('permission:ASPIRANTES_CONVERTIR_EMPLEADO');
     });
     Route::get('employees', [EmployeeController::class, 'index'])->middleware('permission:EMPLEADOS_LISTAR,EMPLEADOS_VER');
+    Route::get('employees/export', [EmployeeController::class, 'export'])->middleware('permission:EMPLEADOS_LISTAR,EMPLEADOS_VER');
     Route::post('employees', [EmployeeController::class, 'store'])->middleware('permission:EMPLEADOS_CREAR');
     Route::get('employees/by-document/{document}', [EmployeeController::class, 'byDocument'])->middleware('permission:EMPLEADOS_VER,USUARIOS_CREAR,USUARIOS_EDITAR');
     Route::get('employees/{id}', [EmployeeController::class, 'show'])->whereNumber('id')->middleware('permission:EMPLEADOS_VER');

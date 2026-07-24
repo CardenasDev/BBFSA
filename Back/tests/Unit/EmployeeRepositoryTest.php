@@ -8,6 +8,18 @@ use Tests\TestCase;
 
 class EmployeeRepositoryTest extends TestCase
 {
+    public function test_active_employees_report_calls_expected_stored_procedure_without_parameters(): void
+    {
+        DB::shouldReceive('select')
+            ->once()
+            ->with('CALL SP_BBF_EMPLEADOS_REPORTE_ACTIVOS()', [])
+            ->andReturn([(object) ['DOCUMENTO' => '00123']]);
+
+        $rows = app(EmployeeRepository::class)->getActiveEmployeesReport();
+
+        $this->assertSame([['documento' => '00123']], $rows);
+    }
+
     public function test_create_sends_photo_url_to_stored_procedure_in_expected_position(): void
     {
         DB::shouldReceive('select')

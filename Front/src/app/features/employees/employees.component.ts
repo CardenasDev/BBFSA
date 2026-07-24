@@ -21,9 +21,16 @@ const EMPLOYEE_STATUSES: EmployeeStatus[] = ['ACTIVO', 'RETIRADO', 'SUSPENDIDO',
         <h1>Empleados</h1>
         <p class="muted">Administra la informacion laboral del personal.</p>
       </div>
-      @if (auth.hasPermission('EMPLEADOS_CREAR')) {
-        <button class="btn primary" type="button" (click)="openCreate()">Crear empleado</button>
-      }
+      <div class="heading-actions">
+        @if (auth.hasAnyPermission(['EMPLEADOS_LISTAR', 'EMPLEADOS_VER'])) {
+          <button class="btn secondary" type="button" (click)="exportEmployees()" [disabled]="isExporting()">
+            {{ isExporting() ? 'Exportando...' : 'Exportar XLS' }}
+          </button>
+        }
+        @if (auth.hasPermission('EMPLEADOS_CREAR')) {
+          <button class="btn primary" type="button" (click)="openCreate()">Crear empleado</button>
+        }
+      </div>
     </div>
 
     <section class="panel">
@@ -271,6 +278,21 @@ const EMPLOYEE_STATUSES: EmployeeStatus[] = ['ACTIVO', 'RETIRADO', 'SUSPENDIDO',
       </aside>
     }
   `,
+  styles: [`
+    .heading-actions {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: .75rem;
+    }
+
+    @media (max-width: 640px) {
+      .heading-actions {
+        width: 100%;
+        justify-content: flex-start;
+      }
+    }
+  `],
 })
 export class EmployeesComponent implements OnInit {
   readonly auth = inject(AuthService);
@@ -289,6 +311,7 @@ export class EmployeesComponent implements OnInit {
   readonly catalogsError = signal('');
   readonly employees = signal<Employee[]>([]);
   readonly loading = signal(false);
+  readonly isExporting = signal(false);
   readonly error = signal('');
   readonly success = signal('');
   readonly formOpen = signal(false);
@@ -375,6 +398,29 @@ export class EmployeesComponent implements OnInit {
     }).pipe(finalize(() => this.loading.set(false))).subscribe({
       next: (employees) => this.employees.set(employees),
       error: (error) => this.error.set(apiErrorMessage(error, 'No fue posible cargar los empleados.')),
+    });
+  }
+
+  exportEmployees(): void {
+    if (this.isExporting()) {
+      return;
+    }
+
+    this.isExporting.set(true);
+    this.error.set('');
+    this.service.exportEmployees().pipe(
+      finalize(() => this.isExporting.set(false)),
+    ).subscribe({
+      next: (response) => {
+        if (!response.body) {
+          this.error.set('No fue posible exportar la informacion de empleados.');
+          return;
+        }
+
+        const filename = employeeExportFilename(response.headers.get('Content-Disposition'));
+        this.downloadBlob(response.body, filename);
+      },
+      error: () => this.error.set('No fue posible exportar la informacion de empleados.'),
     });
   }
 
@@ -652,4 +698,49 @@ export class EmployeesComponent implements OnInit {
 
     return this.publicPhotoUrl(currentUrl);
   }
+
+  private downloadBlob(blob: Blob, filename: string): void {
+    const objectUrl = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = objectUrl;
+    link.download = filename;
+    link.style.display = 'none';
+    document.body.appendChild(link);
+
+    try {
+      link.click();
+    } finally {
+      link.remove();
+      URL.revokeObjectURL(objectUrl);
+    }
+  }
+}
+
+export function employeeExportFilename(contentDisposition: string | null): string {
+  const fallback = 'empleados_activos.xlsx';
+  if (!contentDisposition) {
+    return fallback;
+  }
+
+  const encodedMatch = contentDisposition.match(/filename\*\s*=\s*(?:UTF-8'')?([^;]+)/i);
+  const regularMatch = contentDisposition.match(/filename\s*=\s*(?:"([^"]+)"|([^;]+))/i);
+  const rawFilename = encodedMatch?.[1] ?? regularMatch?.[1] ?? regularMatch?.[2];
+  if (!rawFilename) {
+    return fallback;
+  }
+
+  let decodedFilename: string;
+  try {
+    decodedFilename = decodeURIComponent(rawFilename.trim().replace(/^["']|["']$/g, ''));
+  } catch {
+    decodedFilename = rawFilename.trim().replace(/^["']|["']$/g, '');
+  }
+
+  const safeFilename = decodedFilename
+    .split(/[\\/]/)
+    .pop()
+    ?.replace(/[\u0000-\u001F\u007F]/g, '')
+    .trim();
+
+  return safeFilename || fallback;
 }

@@ -19,6 +19,11 @@ class EmployeeRepository extends StoredProcedureRepository
         return $this->first('SP_BBF_EMPLEADOS_OBTENER_POR_DOCUMENTO', [$document]);
     }
 
+    public function getActiveEmployeesReport(): array
+    {
+        return $this->call('SP_BBF_EMPLEADOS_REPORTE_ACTIVOS');
+    }
+
     public function create(array $data): int
     {
         $row = $this->first('SP_BBF_EMPLEADOS_CREAR', $this->payload($data));

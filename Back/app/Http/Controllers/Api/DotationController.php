@@ -159,7 +159,8 @@ class DotationController extends ApiController
     /**
      * Registrar entrega de dotacion
      *
-     * Crea una entrega de dotacion y sus detalles en una transaccion.
+     * Crea una entrega de dotacion, su evidencia obligatoria y sus detalles en una transaccion.
+     * Acepta multipart/form-data con origen_evidencia ARCHIVO o URL.
      */
     public function createDelivery(CreateDotationDeliveryRequest $request): JsonResponse
     {

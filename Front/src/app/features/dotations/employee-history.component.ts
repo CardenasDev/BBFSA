@@ -5,7 +5,7 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { finalize } from 'rxjs';
 import { EmployeeDotationHistory } from '../../core/models/api.models';
 import { AuthService } from '../../core/services/auth.service';
-import { DotationService } from '../../core/services/dotation.service';
+import { DotationService, resolveDotationEvidenceUrl } from '../../core/services/dotation.service';
 import { apiErrorMessage } from '../../shared/api-error';
 
 interface DeliveryHistoryGroup {
@@ -14,6 +14,10 @@ interface DeliveryHistoryGroup {
   tipo_entrega: EmployeeDotationHistory['tipo_entrega'];
   codigo_combinacion?: string | null;
   nombre_combinacion?: string | null;
+  evidencia_nombre_archivo?: string | null;
+  evidencia_nombre_original?: string | null;
+  evidencia_url_publica?: string | null;
+  evidencia_fecha_carga?: string | null;
   fecha_confirmacion?: string | null;
   estado: string;
   registrado_por?: string | null;
@@ -81,6 +85,13 @@ interface DeliveryHistoryGroup {
             <dt>Registrado por</dt><dd>{{ group.registrado_por || (group.id_registrado_por ? 'ID ' + group.id_registrado_por : 'Sin dato') }}</dd>
             <dt>Observacion entrega</dt><dd>{{ group.observaciones_entrega || 'Sin observaciones' }}</dd>
             <dt>Observacion confirmacion</dt><dd>{{ group.observacion_confirmacion || 'Sin observacion' }}</dd>
+            <dt>Evidencia</dt>
+            <dd>
+              @if (evidenceUrl(group); as url) {
+                <a [href]="url" target="_blank" rel="noopener noreferrer">Ver {{ group.evidencia_nombre_original || group.evidencia_nombre_archivo || 'evidencia' }}</a>
+                <span class="muted"> {{ group.evidencia_fecha_carga || '' }}</span>
+              } @else { — }
+            </dd>
           </dl>
 
           <div class="table-wrap">
@@ -175,6 +186,10 @@ export class EmployeeDotationHistoryComponent implements OnInit {
         tipo_entrega: item.tipo_entrega,
         codigo_combinacion: item.codigo_combinacion,
         nombre_combinacion: item.nombre_combinacion,
+        evidencia_nombre_archivo: item.evidencia_nombre_archivo,
+        evidencia_nombre_original: item.evidencia_nombre_original,
+        evidencia_url_publica: item.evidencia_url_publica,
+        evidencia_fecha_carga: item.evidencia_fecha_carga,
         fecha_confirmacion: item.fecha_confirmacion,
         estado: item.estado,
         registrado_por: item.registrado_por,
@@ -199,6 +214,10 @@ export class EmployeeDotationHistoryComponent implements OnInit {
     return delivery.codigo_combinacion
       ? `${delivery.codigo_combinacion} - ${delivery.nombre_combinacion ?? ''}`.trim()
       : '—';
+  }
+
+  evidenceUrl(delivery: DeliveryHistoryGroup): string | null {
+    return resolveDotationEvidenceUrl(delivery.evidencia_url_publica);
   }
 
   totalItemsDelivered(): number {

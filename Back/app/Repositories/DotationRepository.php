@@ -66,6 +66,12 @@ class DotationRepository extends StoredProcedureRepository
         ?int $combinationId,
         int $registeredBy,
         ?string $observations,
+        ?string $evidenceFilename,
+        ?string $evidenceOriginalName,
+        ?string $evidenceUrl,
+        ?string $evidencePath,
+        ?string $evidenceMimeType,
+        ?int $evidenceSizeBytes,
     ): int
     {
         $row = $this->first('SP_BBF_DOTACION_ENTREGA_CREAR', [
@@ -75,6 +81,12 @@ class DotationRepository extends StoredProcedureRepository
             $combinationId,
             $registeredBy,
             $observations,
+            $evidenceFilename,
+            $evidenceOriginalName,
+            $evidenceUrl,
+            $evidencePath,
+            $evidenceMimeType,
+            $evidenceSizeBytes,
         ]);
 
         return (int) ($row['id_dotacion_entrega'] ?? 0);

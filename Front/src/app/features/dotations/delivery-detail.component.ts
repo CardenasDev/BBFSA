@@ -2,7 +2,7 @@ import { Component, OnInit, inject, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { finalize } from 'rxjs';
 import { DotationDeliveryDetail } from '../../core/models/api.models';
-import { DotationService } from '../../core/services/dotation.service';
+import { DotationService, resolveDotationEvidenceUrl } from '../../core/services/dotation.service';
 import { apiErrorMessage } from '../../shared/api-error';
 
 @Component({
@@ -25,6 +25,19 @@ import { apiErrorMessage } from '../../shared/api-error';
           <dt>Observaciones</dt><dd>{{ delivery.observaciones_entrega || 'Sin observaciones' }}</dd>
           <dt>Fecha confirmacion</dt><dd>{{ delivery.fecha_confirmacion || 'Pendiente' }}</dd>
         </dl>
+        <section class="drawer-section">
+          <div class="section-title"><div><h2>Evidencia de entrega</h2><p class="muted">Evidencia registrada por quien realizó la entrega.</p></div></div>
+          @if (evidenceUrl(delivery); as url) {
+            <dl>
+              <dt>Nombre</dt><dd>{{ delivery.evidencia_nombre_original || delivery.evidencia_nombre_archivo || 'Evidencia entrega' }}</dd>
+              <dt>Fecha carga</dt><dd>{{ delivery.evidencia_fecha_carga || 'Sin dato' }}</dd>
+              <dt>Tamaño</dt><dd>{{ evidenceSize(delivery.evidencia_peso_bytes) }}</dd>
+            </dl>
+            <a class="btn secondary" [href]="url" target="_blank" rel="noopener noreferrer">Ver evidencia</a>
+          } @else {
+            <p class="muted">Esta entrega histórica no tiene evidencia registrada.</p>
+          }
+        </section>
       }
       <div class="table-wrap">
         <table>
@@ -80,5 +93,14 @@ export class DotationDeliveryDetailComponent implements OnInit {
     return delivery.codigo_combinacion
       ? `${delivery.codigo_combinacion} - ${delivery.nombre_combinacion ?? ''}`.trim()
       : 'No aplica';
+  }
+
+  evidenceSize(bytes?: number | null): string {
+    if (!bytes) return 'No aplica';
+    return bytes < 1024 * 1024 ? `${Math.max(1, Math.round(bytes / 1024))} KB` : `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+  }
+
+  evidenceUrl(delivery: DotationDeliveryDetail): string | null {
+    return resolveDotationEvidenceUrl(delivery.evidencia_url_publica);
   }
 }

@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { finalize } from 'rxjs';
 import { DotationDeliveryDetail, MyDotationDelivery } from '../../core/models/api.models';
 import { AuthService } from '../../core/services/auth.service';
-import { DotationService } from '../../core/services/dotation.service';
+import { DotationService, resolveDotationEvidenceUrl } from '../../core/services/dotation.service';
 import { apiErrorMessage } from '../../shared/api-error';
 
 @Component({
@@ -38,6 +38,9 @@ import { apiErrorMessage } from '../../shared/api-error';
           </dl>
 
           <div class="row-actions">
+            @if (evidenceUrl(delivery); as url) {
+              <a class="btn small secondary" [href]="url" target="_blank" rel="noopener noreferrer">Ver evidencia</a>
+            }
             <button class="btn small ghost" type="button" (click)="toggleDetails(delivery)" [disabled]="detailsLoadingId() === delivery.id_dotacion_entrega">
               {{ isExpanded(delivery.id_dotacion_entrega) ? 'Ocultar detalle' : detailsLoadingId() === delivery.id_dotacion_entrega ? 'Cargando...' : 'Ver detalle' }}
             </button>
@@ -139,6 +142,10 @@ export class MyDotationDeliveriesComponent implements OnInit {
     return delivery.codigo_combinacion
       ? `${delivery.codigo_combinacion} - ${delivery.nombre_combinacion ?? ''}`.trim()
       : '—';
+  }
+
+  evidenceUrl(delivery: MyDotationDelivery): string | null {
+    return resolveDotationEvidenceUrl(delivery.evidencia_url_publica);
   }
 
   load(): void {

@@ -5,7 +5,7 @@ import { RouterLink } from '@angular/router';
 import { finalize } from 'rxjs';
 import { DotationDelivery } from '../../core/models/api.models';
 import { AuthService } from '../../core/services/auth.service';
-import { DotationService } from '../../core/services/dotation.service';
+import { DotationService, resolveDotationEvidenceUrl } from '../../core/services/dotation.service';
 import { apiErrorMessage } from '../../shared/api-error';
 
 @Component({
@@ -46,6 +46,9 @@ import { apiErrorMessage } from '../../shared/api-error';
                 <td>
                   <div class="row-actions">
                     <a class="btn small ghost" [routerLink]="['/admin/dotations/deliveries', delivery.id_dotacion_entrega]">Ver detalle</a>
+                    @if (evidenceUrl(delivery); as url) {
+                      <a class="btn small secondary" [href]="url" target="_blank" rel="noopener noreferrer">Ver evidencia</a>
+                    }
                     @if (canDeleteDelivery(delivery)) {
                       <button class="btn small danger-outline" type="button" (click)="openDeleteDelivery(delivery)" [disabled]="deleting()">Eliminar</button>
                     }
@@ -131,6 +134,10 @@ export class DotationDeliveriesComponent implements OnInit {
     return delivery.codigo_combinacion
       ? `${delivery.codigo_combinacion} - ${delivery.nombre_combinacion ?? ''}`.trim()
       : '—';
+  }
+
+  evidenceUrl(delivery: DotationDelivery): string | null {
+    return resolveDotationEvidenceUrl(delivery.evidencia_url_publica);
   }
 
   openDeleteDelivery(delivery: DotationDelivery): void {

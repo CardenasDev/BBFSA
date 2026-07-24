@@ -235,6 +235,18 @@ export interface DotationSize {
 }
 
 export type DotationDeliveryType = 'ORDINARIA' | 'EXTRAORDINARIA';
+export type DotationEvidenceOrigin = 'ARCHIVO' | 'URL';
+
+export interface DotationEvidence {
+  evidencia_nombre_archivo?: string | null;
+  evidencia_nombre_original?: string | null;
+  evidencia_url?: string | null;
+  evidencia_ruta?: string | null;
+  evidencia_url_publica?: string | null;
+  evidencia_mime_type?: string | null;
+  evidencia_peso_bytes?: number | null;
+  evidencia_fecha_carga?: string | null;
+}
 
 export interface DotationCombination {
   id_dotacion_combinacion: number;
@@ -309,7 +321,7 @@ export interface EmployeeDotationSize {
   updated_at?: string | null;
 }
 
-export interface EmployeeDotationHistory {
+export interface EmployeeDotationHistory extends DotationEvidence {
   id_dotacion_entrega: number;
   id_empleado: number;
   numero_documento: string;
@@ -341,7 +353,7 @@ export interface EmployeeDotationHistory {
   updated_at?: string | null;
 }
 
-export interface DotationDelivery {
+export interface DotationDelivery extends DotationEvidence {
   id_dotacion_entrega: number;
   id_empleado: number;
   numero_documento: string;
@@ -364,7 +376,7 @@ export interface DotationDelivery {
   updated_at?: string | null;
 }
 
-export interface MyDotationDelivery {
+export interface MyDotationDelivery extends DotationEvidence {
   id_dotacion_entrega: number;
   id_empleado: number;
   numero_documento: string;
@@ -411,7 +423,7 @@ export interface DeleteDotationDeliveryResponse {
   fecha_eliminacion: string;
 }
 
-export interface DotationDeliveryDetail {
+export interface DotationDeliveryDetail extends DotationEvidence {
   id_dotacion_entrega_detalle: number;
   id_dotacion_entrega: number;
   id_empleado?: number | null;
@@ -438,6 +450,10 @@ export interface CreateDotationDeliveryRequest {
   fecha_entrega: string;
   tipo_entrega: DotationDeliveryType;
   id_dotacion_combinacion: number | null;
+  origen_evidencia: DotationEvidenceOrigin;
+  evidencia_archivo?: File | null;
+  evidencia_url?: string | null;
+  evidencia_nombre_archivo?: string | null;
   observaciones?: string | null;
   detalles: {
     id_tipo_dotacion: number;
@@ -445,6 +461,15 @@ export interface CreateDotationDeliveryRequest {
     cantidad: number;
     observaciones?: string | null;
   }[];
+}
+
+export interface CreatedDotationDelivery extends DotationEvidence {
+  id_dotacion_entrega: number;
+  id_empleado?: number;
+  fecha_entrega?: string;
+  tipo_entrega?: DotationDeliveryType;
+  id_dotacion_combinacion?: number | null;
+  estado?: string;
 }
 
 export interface DotationEmployeeFilters {

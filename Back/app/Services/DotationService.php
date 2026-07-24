@@ -4,7 +4,11 @@ namespace App\Services;
 
 use App\Exceptions\ApiException;
 use App\Repositories\DotationRepository;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\File;
+use Illuminate\Support\Str;
+use Throwable;
 
 class DotationService
 {
@@ -93,8 +97,10 @@ class DotationService
             $combinationId,
             $data['detalles'],
         );
+        $evidence = $this->buildEvidencePayload($data);
 
-        $deliveryId = DB::transaction(function () use ($data, $registeredBy, $deliveryType, $combinationId, $details): int {
+        try {
+            $deliveryId = DB::transaction(function () use ($data, $registeredBy, $deliveryType, $combinationId, $details, $evidence): int {
             $deliveryId = $this->dotations->createDelivery(
                 (int) $data['id_empleado'],
                 (string) $data['fecha_entrega'],
@@ -102,6 +108,12 @@ class DotationService
                 $combinationId,
                 $registeredBy,
                 $data['observaciones'] ?? null,
+                $evidence['evidencia_nombre_archivo'],
+                $evidence['evidencia_nombre_original'],
+                $evidence['evidencia_url'],
+                $evidence['evidencia_ruta'],
+                $evidence['evidencia_mime_type'],
+                $evidence['evidencia_peso_bytes'],
             );
 
             if ($deliveryId < 1) {
@@ -119,12 +131,92 @@ class DotationService
             }
 
             return $deliveryId;
-        });
+            });
+        } catch (Throwable $exception) {
+            $this->deleteEvidenceFile($evidence['evidencia_ruta']);
+            throw $exception;
+        }
 
-        $result = ['id_dotacion_entrega' => $deliveryId];
-        $this->audit->record($registeredBy, 'DOTACIONES', 'DOTACIONES_ENTREGA_CREAR', 'DOTACION_ENTREGA', $deliveryId, null, ['request' => $data, 'result' => $result], $context);
+        $result = [
+            'id_dotacion_entrega' => $deliveryId,
+            'id_empleado' => (int) $data['id_empleado'],
+            'fecha_entrega' => (string) $data['fecha_entrega'],
+            'tipo_entrega' => $deliveryType,
+            'id_dotacion_combinacion' => $combinationId,
+            'estado' => 'REGISTRADA',
+            ...$this->mapEvidence($evidence),
+        ];
+        $auditRequest = $data;
+        unset($auditRequest['evidencia_archivo']);
+        $auditRequest['origen_evidencia'] = $data['origen_evidencia'];
+        $this->audit->record($registeredBy, 'DOTACIONES', 'DOTACIONES_ENTREGA_CREAR', 'DOTACION_ENTREGA', $deliveryId, null, ['request' => $auditRequest, 'result' => $result], $context);
 
         return $result;
+    }
+
+    private function buildEvidencePayload(array $data): array
+    {
+        $base = [
+            'evidencia_nombre_original' => null,
+            'evidencia_url' => null,
+            'evidencia_ruta' => null,
+            'evidencia_mime_type' => null,
+            'evidencia_peso_bytes' => null,
+            'evidencia_fecha_carga' => now()->toDateTimeString(),
+        ];
+
+        if (($data['origen_evidencia'] ?? null) === 'ARCHIVO') {
+            $file = $data['evidencia_archivo'] ?? null;
+            if (! $file instanceof UploadedFile) {
+                throw new ApiException('Debe cargar el archivo de evidencia de la entrega.', 422);
+            }
+            $metadata = $this->storeEvidenceFile($file);
+
+            return array_merge($base, $metadata, [
+                'evidencia_nombre_archivo' => $this->blankToNull($data['evidencia_nombre_archivo'] ?? null)
+                    ?? $metadata['evidencia_nombre_original'],
+            ]);
+        }
+
+        return array_merge($base, [
+            'evidencia_nombre_archivo' => $this->blankToNull($data['evidencia_nombre_archivo'] ?? null) ?? 'Evidencia entrega',
+            'evidencia_url' => $this->blankToNull($data['evidencia_url'] ?? null),
+        ]);
+    }
+
+    private function storeEvidenceFile(UploadedFile $file): array
+    {
+        $relativeDirectory = 'uploads/dotations/deliveries';
+        $directory = public_path($relativeDirectory);
+        if (! File::isDirectory($directory)) {
+            File::makeDirectory($directory, 0755, true);
+        }
+
+        $originalName = $file->getClientOriginalName();
+        $safeName = Str::slug(pathinfo($originalName, PATHINFO_FILENAME)) ?: 'evidencia';
+        $extension = strtolower($file->getClientOriginalExtension() ?: $file->extension() ?: 'bin');
+        $filename = sprintf('%s_%s_%s.%s', now()->format('Ymd_His'), Str::lower(Str::random(8)), $safeName, $extension);
+        $mimeType = $file->getMimeType();
+        $size = $file->getSize();
+        $file->move($directory, $filename);
+
+        return [
+            'evidencia_nombre_original' => $originalName,
+            'evidencia_ruta' => "{$relativeDirectory}/{$filename}",
+            'evidencia_mime_type' => $mimeType,
+            'evidencia_peso_bytes' => $size,
+        ];
+    }
+
+    private function deleteEvidenceFile(?string $relativePath): void
+    {
+        if (! $relativePath || ! str_starts_with($relativePath, 'uploads/dotations/deliveries/')) {
+            return;
+        }
+        $path = public_path($relativePath);
+        if (File::exists($path)) {
+            File::delete($path);
+        }
     }
 
     private function validateDelivery(int $employeeId, string $deliveryType, ?int $combinationId, array $details): array
@@ -433,6 +525,7 @@ class DotationService
             'observaciones_detalle' => $row['observaciones_detalle'] ?? null,
             'created_at' => $row['created_at'] ?? null,
             'updated_at' => $row['updated_at'] ?? null,
+            ...$this->mapEvidence($row),
         ];
     }
 
@@ -459,6 +552,7 @@ class DotationService
             'confirmado_por' => $row['confirmado_por'] ?? null,
             'created_at' => $row['created_at'] ?? null,
             'updated_at' => $row['updated_at'] ?? null,
+            ...$this->mapEvidence($row),
         ];
     }
 
@@ -509,6 +603,24 @@ class DotationService
             'cantidad' => (int) ($row['cantidad'] ?? 0),
             'observaciones' => $row['observaciones'] ?? null,
             'created_at' => $row['created_at'] ?? null,
+            ...$this->mapEvidence($row),
+        ];
+    }
+
+    private function mapEvidence(array $row): array
+    {
+        $externalUrl = $row['evidencia_url'] ?? null;
+        $relativePath = $row['evidencia_ruta'] ?? null;
+
+        return [
+            'evidencia_nombre_archivo' => $row['evidencia_nombre_archivo'] ?? null,
+            'evidencia_nombre_original' => $row['evidencia_nombre_original'] ?? null,
+            'evidencia_url' => $externalUrl,
+            'evidencia_ruta' => $relativePath,
+            'evidencia_url_publica' => $externalUrl ?: ($relativePath ? '/'.ltrim((string) $relativePath, '/') : null),
+            'evidencia_mime_type' => $row['evidencia_mime_type'] ?? null,
+            'evidencia_peso_bytes' => $this->nullableInt($row, 'evidencia_peso_bytes'),
+            'evidencia_fecha_carga' => $row['evidencia_fecha_carga'] ?? null,
         ];
     }
 

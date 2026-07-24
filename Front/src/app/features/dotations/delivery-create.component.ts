@@ -5,6 +5,7 @@ import { finalize, forkJoin } from 'rxjs';
 import {
   CreateDotationDeliveryRequest,
   DotationCombination,
+  DotationEvidenceOrigin,
   DotationDeliveryType,
   DotationEmployeeSummary,
   DotationType,
@@ -71,6 +72,36 @@ interface DeliveryDetailDraft {
 
         <label>Fecha entrega *<input type="date" name="fecha_entrega" [(ngModel)]="fechaEntrega" required /></label>
         <label class="form-wide">Observaciones<textarea rows="3" name="observaciones" [(ngModel)]="observaciones"></textarea></label>
+
+        <div class="form-wide drawer-section">
+          <div class="section-title">
+            <div><h2>Evidencia de entrega *</h2><p class="muted">Adjunta una fotografia o documento que evidencie la entrega de la dotacion al empleado.</p></div>
+          </div>
+          <div class="form-grid">
+            <label>Origen de evidencia *
+              <select name="origen_evidencia" [ngModel]="origenEvidencia" (ngModelChange)="changeEvidenceOrigin($event)" required>
+                <option value="ARCHIVO">Archivo</option>
+                <option value="URL">URL externa</option>
+              </select>
+            </label>
+            @if (origenEvidencia === 'ARCHIVO') {
+              <label class="form-wide">Archivo de evidencia *
+                <input #evidenceInput type="file" name="evidencia_archivo" accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx" (change)="selectEvidenceFile($event)" />
+              </label>
+              @if (evidenciaArchivo) {
+                <div class="form-wide row-actions">
+                  <span><strong>{{ evidenciaArchivo.name }}</strong> <span class="muted">{{ readableFileSize(evidenciaArchivo.size) }}</span></span>
+                  <button class="btn small danger-outline" type="button" (click)="removeEvidenceFile(evidenceInput)">Quitar</button>
+                </div>
+              }
+            } @else {
+              <label class="form-wide">URL de evidencia *
+                <input type="url" name="evidencia_url" [(ngModel)]="evidenciaUrl" maxlength="500" placeholder="https://..." />
+              </label>
+            }
+            @if (evidenceError()) { <div class="form-wide alert error">{{ evidenceError() }}</div> }
+          </div>
+        </div>
 
         <div class="form-wide section-title">
           <div><h2>Prendas</h2><p class="muted">{{ tipoEntrega === 'ORDINARIA' ? 'Definidas por la combinacion seleccionada.' : 'Agrega las prendas de esta entrega extraordinaria.' }}</p></div>
@@ -153,6 +184,7 @@ export class DotationDeliveryCreateComponent implements OnInit {
   readonly error = signal('');
   readonly catalogError = signal('');
   readonly success = signal('');
+  readonly evidenceError = signal('');
   private nextDetailId = 1;
   employeeSearch = '';
   idEmpleado: number | null = null;
@@ -160,6 +192,9 @@ export class DotationDeliveryCreateComponent implements OnInit {
   idCombinacion: number | null = null;
   fechaEntrega = new Date().toISOString().slice(0, 10);
   observaciones = '';
+  origenEvidencia: DotationEvidenceOrigin = 'ARCHIVO';
+  evidenciaArchivo: File | null = null;
+  evidenciaUrl = '';
 
   ngOnInit(): void {
     const employeeId = Number(this.route.snapshot.queryParamMap.get('employeeId'));
@@ -264,6 +299,41 @@ export class DotationDeliveryCreateComponent implements OnInit {
     return this.details().some((detail) => detail.clientId !== currentClientId && detail.id_tipo_dotacion === typeId);
   }
 
+  changeEvidenceOrigin(origin: DotationEvidenceOrigin): void {
+    this.origenEvidencia = origin;
+    this.evidenciaArchivo = null;
+    this.evidenciaUrl = '';
+    this.evidenceError.set('');
+  }
+
+  selectEvidenceFile(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0] ?? null;
+    this.evidenceError.set('');
+    if (!file) {
+      this.evidenciaArchivo = null;
+      return;
+    }
+    const validation = this.validateEvidenceFile(file);
+    if (validation) {
+      this.evidenciaArchivo = null;
+      input.value = '';
+      this.evidenceError.set(validation);
+      return;
+    }
+    this.evidenciaArchivo = file;
+  }
+
+  removeEvidenceFile(input: HTMLInputElement): void {
+    this.evidenciaArchivo = null;
+    input.value = '';
+    this.evidenceError.set('');
+  }
+
+  readableFileSize(bytes: number): string {
+    return bytes < 1024 * 1024 ? `${Math.max(1, Math.round(bytes / 1024))} KB` : `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+  }
+
   submit(): void {
     this.error.set('');
     this.success.set('');
@@ -279,6 +349,10 @@ export class DotationDeliveryCreateComponent implements OnInit {
       tipo_entrega: this.tipoEntrega,
       id_dotacion_combinacion: this.tipoEntrega === 'ORDINARIA' ? this.idCombinacion : null,
       observaciones: this.blankToNull(this.observaciones),
+      origen_evidencia: this.origenEvidencia,
+      evidencia_archivo: this.origenEvidencia === 'ARCHIVO' ? this.evidenciaArchivo : null,
+      evidencia_url: this.origenEvidencia === 'URL' ? this.evidenciaUrl.trim() : null,
+      evidencia_nombre_archivo: 'Evidencia entrega',
       detalles: this.details().map((detail) => ({
         id_tipo_dotacion: detail.id_tipo_dotacion!,
         id_talla_dotacion: detail.requiere_talla ? detail.id_talla_dotacion : null,
@@ -290,6 +364,8 @@ export class DotationDeliveryCreateComponent implements OnInit {
     this.saving.set(true);
     this.service.createDelivery(payload).pipe(finalize(() => this.saving.set(false))).subscribe({
       next: (result) => {
+        this.evidenciaArchivo = null;
+        this.evidenciaUrl = '';
         this.success.set('Entrega de dotacion registrada correctamente.');
         void this.router.navigate(['/admin/dotations/deliveries', result.id_dotacion_entrega]);
       },
@@ -321,6 +397,14 @@ export class DotationDeliveryCreateComponent implements OnInit {
     if (!this.idEmpleado) return 'Selecciona un empleado.';
     if (!this.tipoEntrega) return 'Selecciona el tipo de entrega.';
     if (!this.fechaEntrega) return 'Selecciona la fecha de entrega.';
+    if (!this.origenEvidencia) return 'Selecciona el origen de la evidencia.';
+    if (this.origenEvidencia === 'ARCHIVO') {
+      if (!this.evidenciaArchivo) return 'Selecciona el archivo de evidencia.';
+      const evidenceValidation = this.validateEvidenceFile(this.evidenciaArchivo);
+      if (evidenceValidation) return evidenceValidation;
+    } else if (!this.isValidHttpUrl(this.evidenciaUrl)) {
+      return this.evidenciaUrl.trim() ? 'La URL de evidencia no es valida.' : 'Ingresa la URL de evidencia.';
+    }
     if (this.tipoEntrega === 'ORDINARIA' && !this.idCombinacion) return 'Selecciona una combinacion de dotacion.';
     if (!this.details().length) return 'Agrega al menos una prenda.';
     const selected = new Set<number>();
@@ -333,6 +417,22 @@ export class DotationDeliveryCreateComponent implements OnInit {
       if (detail.requiere_talla && !detail.id_talla_dotacion) return `El empleado no tiene registrada talla para ${detail.tipo_dotacion}.`;
     }
     return '';
+  }
+
+  private validateEvidenceFile(file: File): string {
+    if (file.size > 5 * 1024 * 1024) return 'El archivo de evidencia no puede superar 5 MB.';
+    const extension = file.name.split('.').pop()?.toLowerCase() ?? '';
+    if (!['pdf', 'jpg', 'jpeg', 'png', 'webp', 'doc', 'docx'].includes(extension)) return 'Formato de evidencia no permitido.';
+    return '';
+  }
+
+  private isValidHttpUrl(value: string): boolean {
+    try {
+      const url = new URL(value.trim());
+      return url.protocol === 'http:' || url.protocol === 'https:';
+    } catch {
+      return false;
+    }
   }
 
   private newDetail(): DeliveryDetailDraft {

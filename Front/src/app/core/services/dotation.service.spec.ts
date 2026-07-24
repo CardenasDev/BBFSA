@@ -4,7 +4,7 @@ import { TestBed } from '@angular/core/testing';
 import { describe, expect, it } from 'vitest';
 import { environment } from '../../../environments/environment';
 import { CreateDotationDeliveryRequest } from '../models/api.models';
-import { DotationService } from './dotation.service';
+import { DotationService, resolveDotationEvidenceUrl } from './dotation.service';
 
 describe('DotationService combinations and deliveries', () => {
   function setup(): { service: DotationService; http: HttpTestingController } {
@@ -16,6 +16,12 @@ describe('DotationService combinations and deliveries', () => {
       http: TestBed.inject(HttpTestingController),
     };
   }
+
+  it('resolves physical evidence against backendUrl and preserves external URLs', () => {
+    expect(resolveDotationEvidenceUrl('/uploads/dotations/evidence.jpg')).toBe(`${environment.backendUrl}/uploads/dotations/evidence.jpg`);
+    expect(resolveDotationEvidenceUrl('https://cdn.example.com/evidence.jpg')).toBe('https://cdn.example.com/evidence.jpg');
+    expect(resolveDotationEvidenceUrl(null)).toBeNull();
+  });
 
   it('loads combinations and their detail from the backend', () => {
     const { service, http } = setup();
@@ -42,37 +48,58 @@ describe('DotationService combinations and deliveries', () => {
     http.verify();
   });
 
-  it('sends the ordinary delivery type, combination and generated details unchanged', () => {
+  it('sends an ordinary delivery and physical evidence as FormData', () => {
     const { service, http } = setup();
+    const file = new File(['evidence'], 'entrega.jpg', { type: 'image/jpeg' });
     const payload: CreateDotationDeliveryRequest = {
       id_empleado: 5,
       fecha_entrega: '2026-07-24',
       tipo_entrega: 'ORDINARIA',
       id_dotacion_combinacion: 1,
       observaciones: null,
+      origen_evidencia: 'ARCHIVO',
+      evidencia_archivo: file,
+      evidencia_nombre_archivo: 'Evidencia entrega',
       detalles: [{ id_tipo_dotacion: 7, id_talla_dotacion: 30, cantidad: 1 }],
     };
     service.createDelivery(payload).subscribe();
     const request = http.expectOne(`${environment.apiUrl}/dotations/deliveries`);
+    const body = request.request.body as FormData;
     expect(request.request.method).toBe('POST');
-    expect(request.request.body).toEqual(payload);
+    expect(request.request.headers.has('Content-Type')).toBe(false);
+    expect(body).toBeInstanceOf(FormData);
+    expect(body.get('tipo_entrega')).toBe('ORDINARIA');
+    expect(body.get('id_dotacion_combinacion')).toBe('1');
+    expect(body.get('origen_evidencia')).toBe('ARCHIVO');
+    expect(body.get('evidencia_archivo')).toBe(file);
+    expect(body.has('evidencia_url')).toBe(false);
+    expect(body.get('detalles[0][id_tipo_dotacion]')).toBe('7');
+    expect(body.get('detalles[0][id_talla_dotacion]')).toBe('30');
+    expect(body.get('detalles[0][cantidad]')).toBe('1');
     request.flush({ success: true, message: 'ok', data: { id_dotacion_entrega: 20 } });
     http.verify();
   });
 
-  it('sends extraordinary deliveries with a null combination', () => {
+  it('sends an extraordinary delivery and external URL as FormData without a combination', () => {
     const { service, http } = setup();
     const payload: CreateDotationDeliveryRequest = {
       id_empleado: 5,
       fecha_entrega: '2026-07-24',
       tipo_entrega: 'EXTRAORDINARIA',
       id_dotacion_combinacion: null,
+      origen_evidencia: 'URL',
+      evidencia_url: 'https://example.com/evidencia.jpg',
       detalles: [{ id_tipo_dotacion: 3, id_talla_dotacion: 25, cantidad: 1 }],
     };
     service.createDelivery(payload).subscribe();
     const request = http.expectOne(`${environment.apiUrl}/dotations/deliveries`);
-    expect(request.request.body.tipo_entrega).toBe('EXTRAORDINARIA');
-    expect(request.request.body.id_dotacion_combinacion).toBeNull();
+    const body = request.request.body as FormData;
+    expect(request.request.headers.has('Content-Type')).toBe(false);
+    expect(body.get('tipo_entrega')).toBe('EXTRAORDINARIA');
+    expect(body.has('id_dotacion_combinacion')).toBe(false);
+    expect(body.get('origen_evidencia')).toBe('URL');
+    expect(body.get('evidencia_url')).toBe('https://example.com/evidencia.jpg');
+    expect(body.has('evidencia_archivo')).toBe(false);
     request.flush({ success: true, message: 'ok', data: { id_dotacion_entrega: 21 } });
     http.verify();
   });

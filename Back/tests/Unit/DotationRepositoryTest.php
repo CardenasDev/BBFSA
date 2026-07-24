@@ -132,13 +132,19 @@ class DotationRepositoryTest extends TestCase
     {
         DB::shouldReceive('select')
             ->once()
-            ->with('CALL SP_BBF_DOTACION_ENTREGA_CREAR(?,?,?,?,?,?)', [
+            ->with('CALL SP_BBF_DOTACION_ENTREGA_CREAR(?,?,?,?,?,?,?,?,?,?,?,?)', [
                 5,
                 '2026-06-23',
                 'ORDINARIA',
                 1,
                 99,
                 'Entrega inicial',
+                'Evidencia entrega',
+                null,
+                'https://example.com/evidencia.jpg',
+                null,
+                null,
+                null,
             ])
             ->andReturn([(object) ['ID_DOTACION_ENTREGA' => 7]]);
 
@@ -154,7 +160,20 @@ class DotationRepositoryTest extends TestCase
             ->andReturn([]);
 
         $repository = app(DotationRepository::class);
-        $deliveryId = $repository->createDelivery(5, '2026-06-23', 'ORDINARIA', 1, 99, 'Entrega inicial');
+        $deliveryId = $repository->createDelivery(
+            5,
+            '2026-06-23',
+            'ORDINARIA',
+            1,
+            99,
+            'Entrega inicial',
+            'Evidencia entrega',
+            null,
+            'https://example.com/evidencia.jpg',
+            null,
+            null,
+            null,
+        );
         $repository->addDeliveryDetail($deliveryId, 1, 3, 2, 'Camisas institucionales');
 
         $this->assertSame(7, $deliveryId);

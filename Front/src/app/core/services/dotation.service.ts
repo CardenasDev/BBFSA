@@ -6,6 +6,7 @@ import {
   ApiResponse,
   ConfirmDotationDeliveryRequest,
   ConfirmedDotationDelivery,
+  CreatedDotationDelivery,
   CreateDotationDeliveryRequest,
   DeleteDotationDeliveryResponse,
   DotationCombination,
@@ -23,6 +24,13 @@ import {
   MyDotationSize,
   SaveMyDotationSizeRequest,
 } from '../models/api.models';
+
+export function resolveDotationEvidenceUrl(publicUrl?: string | null): string | null {
+  const value = publicUrl?.trim();
+  if (!value) return null;
+  if (/^https?:\/\//i.test(value)) return value;
+  return `${environment.backendUrl.replace(/\/$/, '')}/${value.replace(/^\//, '')}`;
+}
 
 @Injectable({ providedIn: 'root' })
 export class DotationService {
@@ -100,8 +108,39 @@ export class DotationService {
     );
   }
 
-  createDelivery(payload: CreateDotationDeliveryRequest): Observable<{ id_dotacion_entrega: number }> {
-    return this.http.post<ApiResponse<{ id_dotacion_entrega: number }>>(`${this.url}/deliveries`, payload).pipe(
+  createDelivery(payload: CreateDotationDeliveryRequest): Observable<CreatedDotationDelivery> {
+    const formData = new FormData();
+    formData.append('id_empleado', String(payload.id_empleado));
+    formData.append('fecha_entrega', payload.fecha_entrega);
+    formData.append('tipo_entrega', payload.tipo_entrega);
+    if (payload.id_dotacion_combinacion != null) {
+      formData.append('id_dotacion_combinacion', String(payload.id_dotacion_combinacion));
+    }
+    if (payload.observaciones) {
+      formData.append('observaciones', payload.observaciones);
+    }
+    formData.append('origen_evidencia', payload.origen_evidencia);
+    if (payload.evidencia_nombre_archivo) {
+      formData.append('evidencia_nombre_archivo', payload.evidencia_nombre_archivo);
+    }
+    if (payload.origen_evidencia === 'ARCHIVO' && payload.evidencia_archivo) {
+      formData.append('evidencia_archivo', payload.evidencia_archivo);
+    }
+    if (payload.origen_evidencia === 'URL' && payload.evidencia_url) {
+      formData.append('evidencia_url', payload.evidencia_url);
+    }
+    payload.detalles.forEach((detail, index) => {
+      formData.append(`detalles[${index}][id_tipo_dotacion]`, String(detail.id_tipo_dotacion));
+      if (detail.id_talla_dotacion != null) {
+        formData.append(`detalles[${index}][id_talla_dotacion]`, String(detail.id_talla_dotacion));
+      }
+      formData.append(`detalles[${index}][cantidad]`, String(detail.cantidad));
+      if (detail.observaciones) {
+        formData.append(`detalles[${index}][observaciones]`, detail.observaciones);
+      }
+    });
+
+    return this.http.post<ApiResponse<CreatedDotationDelivery>>(`${this.url}/deliveries`, formData).pipe(
       map((response) => response.data),
     );
   }

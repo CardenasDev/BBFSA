@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Services\JwtService;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 use Tests\TestCase;
@@ -167,6 +168,69 @@ class DotationApiTest extends TestCase
             ->assertJsonValidationErrors(['detalles.0.cantidad']);
     }
 
+    public function test_create_delivery_requires_evidence_origin(): void
+    {
+        $this->withToken($this->tokenWithPermissions(['DOTACIONES_ENTREGAS_CREAR']))
+            ->postJson('/api/dotations/deliveries', [
+                'id_empleado' => 5,
+                'fecha_entrega' => '2026-07-24',
+                'tipo_entrega' => 'EXTRAORDINARIA',
+                'detalles' => [['id_tipo_dotacion' => 3, 'cantidad' => 1]],
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['origen_evidencia']);
+    }
+
+    public function test_file_evidence_requires_file_and_prohibits_url(): void
+    {
+        $payload = [
+            'id_empleado' => 5,
+            'fecha_entrega' => '2026-07-24',
+            'tipo_entrega' => 'EXTRAORDINARIA',
+            'origen_evidencia' => 'ARCHIVO',
+            'evidencia_url' => 'https://example.com/evidencia.jpg',
+            'detalles' => [['id_tipo_dotacion' => 3, 'cantidad' => 1]],
+        ];
+
+        $this->withToken($this->tokenWithPermissions(['DOTACIONES_ENTREGAS_CREAR']))
+            ->postJson('/api/dotations/deliveries', $payload)
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['evidencia_archivo', 'evidencia_url']);
+    }
+
+    public function test_url_evidence_requires_valid_url_and_prohibits_file(): void
+    {
+        $payload = [
+            'id_empleado' => 5,
+            'fecha_entrega' => '2026-07-24',
+            'tipo_entrega' => 'EXTRAORDINARIA',
+            'origen_evidencia' => 'URL',
+            'evidencia_url' => 'no-es-url',
+            'evidencia_archivo' => UploadedFile::fake()->create('evidencia.pdf', 10, 'application/pdf'),
+            'detalles' => [['id_tipo_dotacion' => 3, 'cantidad' => 1]],
+        ];
+
+        $this->withToken($this->tokenWithPermissions(['DOTACIONES_ENTREGAS_CREAR']))
+            ->post('/api/dotations/deliveries', $payload, ['Accept' => 'application/json'])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['evidencia_url', 'evidencia_archivo']);
+    }
+
+    public function test_evidence_file_rejects_disallowed_extension(): void
+    {
+        $this->withToken($this->tokenWithPermissions(['DOTACIONES_ENTREGAS_CREAR']))
+            ->post('/api/dotations/deliveries', [
+                'id_empleado' => 5,
+                'fecha_entrega' => '2026-07-24',
+                'tipo_entrega' => 'EXTRAORDINARIA',
+                'origen_evidencia' => 'ARCHIVO',
+                'evidencia_archivo' => UploadedFile::fake()->create('evidencia.exe', 10, 'application/octet-stream'),
+                'detalles' => [['id_tipo_dotacion' => 3, 'cantidad' => 1]],
+            ], ['Accept' => 'application/json'])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['evidencia_archivo']);
+    }
+
     public function test_confirm_delivery_received_validates_confirmation_observation_max_length(): void
     {
         $this->withToken($this->tokenWithPermissions(['DOTACIONES_MIS_ENTREGAS_CONFIRMAR']))
@@ -329,6 +393,14 @@ class DotationApiTest extends TestCase
                     'nombre_combinacion' => null,
                     'fecha_confirmacion' => '2026-06-23 18:30:00',
                     'estado' => 'ENTREGADA',
+                    'evidencia_nombre_archivo' => null,
+                    'evidencia_nombre_original' => null,
+                    'evidencia_url' => null,
+                    'evidencia_ruta' => null,
+                    'evidencia_url_publica' => null,
+                    'evidencia_mime_type' => null,
+                    'evidencia_peso_bytes' => null,
+                    'evidencia_fecha_carga' => null,
                     'observaciones' => 'Entrega inicial',
                     'observacion_confirmacion' => 'Recibido completo y en buen estado.',
                     'firma_url' => null,
@@ -432,6 +504,14 @@ class DotationApiTest extends TestCase
                     'nombre_combinacion' => null,
                     'fecha_confirmacion' => null,
                     'estado' => 'REGISTRADA',
+                    'evidencia_nombre_archivo' => null,
+                    'evidencia_nombre_original' => null,
+                    'evidencia_url' => null,
+                    'evidencia_ruta' => null,
+                    'evidencia_url_publica' => null,
+                    'evidencia_mime_type' => null,
+                    'evidencia_peso_bytes' => null,
+                    'evidencia_fecha_carga' => null,
                     'observaciones_entrega' => 'Entrega inicial',
                     'observacion_confirmacion' => null,
                     'firma_url' => null,

@@ -2,7 +2,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable, map } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { ApiResponse, Area, ContractType, Department, DocumentType, Domain, HealthStatus, LaborDocumentType, Municipality, Permission, Position, Role, SocialSecurityEntity, SocialSecurityType } from '../models/api.models';
+import { ApiResponse, Area, ContractType, Department, DocumentType, Domain, HealthStatus, LaborDocumentType, MedicalExamType, Municipality, Permission, Position, Role, SocialSecurityEntity, SocialSecurityType } from '../models/api.models';
 
 @Injectable({ providedIn: 'root' })
 export class RoleService {
@@ -131,6 +131,12 @@ export class CatalogService {
     const params = new HttpParams().set('type', type);
     return this.http.get<ApiResponse<SocialSecurityEntity[]>>(`${environment.apiUrl}/catalogs/social-security-entities`, { params }).pipe(
       map((response) => (response.data ?? []).filter((entity) => entity.tipo === type)),
+    );
+  }
+
+  getMedicalExamTypes(): Observable<MedicalExamType[]> {
+    return this.http.get<ApiResponse<MedicalExamType[]>>(`${environment.apiUrl}/catalogs/medical-exam-types`).pipe(
+      map((response) => response.data ?? []),
     );
   }
 }

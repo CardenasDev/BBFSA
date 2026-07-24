@@ -86,3 +86,27 @@ describe('CatalogService social security catalogs', () => {
     },
   );
 });
+
+describe('CatalogService medical exam types', () => {
+  it('loads medical exam types with their internal ids', () => {
+    TestBed.configureTestingModule({
+      providers: [CatalogService, provideHttpClient(), provideHttpClientTesting()],
+    });
+    const service = TestBed.inject(CatalogService);
+    const http = TestBed.inject(HttpTestingController);
+    let result: { id_tipo_examen_medico: number; nombre: string }[] = [];
+
+    service.getMedicalExamTypes().subscribe((examTypes) => result = examTypes);
+
+    const request = http.expectOne(`${environment.apiUrl}/catalogs/medical-exam-types`);
+    expect(request.request.method).toBe('GET');
+    request.flush({
+      success: true,
+      message: 'ok',
+      data: [{ id_tipo_examen_medico: 1, nombre: 'Ingreso' }],
+    });
+
+    expect(result).toEqual([{ id_tipo_examen_medico: 1, nombre: 'Ingreso' }]);
+    http.verify();
+  });
+});

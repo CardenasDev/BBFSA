@@ -2,8 +2,9 @@ import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { finalize } from 'rxjs';
-import { CreateMedicalExamRequest, EmployeeMedicalExam } from '../../core/models/api.models';
+import { CreateMedicalExamRequest, EmployeeMedicalExam, MedicalExamType } from '../../core/models/api.models';
 import { AuthService } from '../../core/services/auth.service';
+import { CatalogService } from '../../core/services/catalog.service';
 import { ContractingService } from '../../core/services/contracting.service';
 import { apiErrorMessage } from '../../shared/api-error';
 
@@ -30,6 +31,7 @@ import { apiErrorMessage } from '../../shared/api-error';
 
       @if (success()) { <div class="alert success">{{ success() }}</div> }
       @if (error()) { <div class="alert error">{{ error() }} <button class="btn small ghost" type="button" (click)="load()" [disabled]="loading()">Reintentar</button></div> }
+      @if (medicalExamTypesError()) { <div class="alert error">{{ medicalExamTypesError() }} <button class="btn small ghost" type="button" (click)="loadMedicalExamTypes()" [disabled]="isLoadingMedicalExamTypes()">Reintentar</button></div> }
 
       <div class="table-wrap">
         <table>
@@ -37,7 +39,7 @@ import { apiErrorMessage } from '../../shared/api-error';
           <tbody>
             @for (exam of exams(); track exam.id_examen_medico || exam.fecha_examen) {
               <tr>
-                <td>{{ exam.tipo_examen_medico || displayId(exam.id_tipo_examen_medico) }}</td>
+                <td>{{ displayExamType(exam) }}</td>
                 <td>{{ exam.fecha_examen }}</td>
                 <td>{{ exam.entidad_realiza || 'Sin dato' }}</td>
                 <td>{{ exam.resultado_general || 'Sin resultado' }}</td>
@@ -64,7 +66,14 @@ import { apiErrorMessage } from '../../shared/api-error';
         <p class="muted">Registra la informacion del examen medico y su fecha de vencimiento.</p>
         @if (formError()) { <div class="alert error">{{ formError() }}</div> }
         <form class="form-grid" (ngSubmit)="createExam()">
-          <label>ID tipo examen<input type="number" min="1" name="id_tipo_examen_medico" [(ngModel)]="form.id_tipo_examen_medico" required /></label>
+          <label>Tipo de examen
+            <select name="id_tipo_examen_medico" [(ngModel)]="form.id_tipo_examen_medico" [disabled]="isLoadingMedicalExamTypes()" required>
+              <option [ngValue]="null">{{ isLoadingMedicalExamTypes() ? 'Cargando...' : 'Seleccione tipo de examen' }}</option>
+              @for (examType of medicalExamTypes(); track examType.id_tipo_examen_medico) {
+                <option [ngValue]="examType.id_tipo_examen_medico">{{ examType.nombre }}</option>
+              }
+            </select>
+          </label>
           <label>Fecha examen<input type="date" name="fecha_examen" [(ngModel)]="form.fecha_examen" required /></label>
           <label>Entidad realiza<input name="entidad_realiza" [(ngModel)]="form.entidad_realiza" maxlength="200" /></label>
           <label>Resultado general<input name="resultado_general" [(ngModel)]="form.resultado_general" maxlength="250" /></label>
@@ -84,11 +93,15 @@ export class ContractingMedicalExamsComponent implements OnInit {
   readonly auth = inject(AuthService);
   private readonly route = inject(ActivatedRoute);
   private readonly service = inject(ContractingService);
+  private readonly catalogs = inject(CatalogService);
   readonly exams = signal<EmployeeMedicalExam[]>([]);
+  readonly medicalExamTypes = signal<MedicalExamType[]>([]);
   readonly loading = signal(false);
+  readonly isLoadingMedicalExamTypes = signal(false);
   readonly saving = signal(false);
   readonly createOpen = signal(false);
   readonly error = signal('');
+  readonly medicalExamTypesError = signal('');
   readonly formError = signal('');
   readonly success = signal('');
   employeeId = 0;
@@ -96,7 +109,21 @@ export class ContractingMedicalExamsComponent implements OnInit {
 
   ngOnInit(): void {
     this.employeeId = Number(this.route.snapshot.paramMap.get('employeeId'));
+    this.loadMedicalExamTypes();
     this.load();
+  }
+
+  loadMedicalExamTypes(): void {
+    if (this.isLoadingMedicalExamTypes()) return;
+    this.isLoadingMedicalExamTypes.set(true);
+    this.medicalExamTypesError.set('');
+    this.catalogs.getMedicalExamTypes().pipe(finalize(() => this.isLoadingMedicalExamTypes.set(false))).subscribe({
+      next: (examTypes) => this.medicalExamTypes.set(examTypes),
+      error: (error) => {
+        this.medicalExamTypes.set([]);
+        this.medicalExamTypesError.set(apiErrorMessage(error, 'No fue posible cargar los tipos de examen médico.'));
+      },
+    });
   }
 
   load(): void {
@@ -143,8 +170,10 @@ export class ContractingMedicalExamsComponent implements OnInit {
     return 'Vigente';
   }
 
-  displayId(value?: number | null): string {
-    return value ? `ID ${value}` : 'Sin dato';
+  displayExamType(exam: EmployeeMedicalExam): string {
+    if (exam.tipo_examen_medico) return exam.tipo_examen_medico;
+    const examType = this.medicalExamTypes().find((item) => item.id_tipo_examen_medico === Number(exam.id_tipo_examen_medico));
+    return examType?.nombre ?? (exam.id_tipo_examen_medico ? `ID ${exam.id_tipo_examen_medico}` : 'Sin dato');
   }
 
   private validate(): string {

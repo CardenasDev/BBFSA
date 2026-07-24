@@ -704,6 +704,11 @@ export interface EmployeeMedicalExam {
   proximo_vencer?: boolean | number | null;
 }
 
+export interface MedicalExamType {
+  id_tipo_examen_medico: number;
+  nombre: string;
+}
+
 export interface CreateMedicalExamRequest {
   id_tipo_examen_medico?: number | null;
   fecha_examen: string;

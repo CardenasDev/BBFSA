@@ -2,7 +2,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable, map } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { ApiResponse, Area, ContractType, Department, DocumentType, Domain, HealthStatus, LaborDocumentType, Municipality, Permission, Position, Role } from '../models/api.models';
+import { ApiResponse, Area, ContractType, Department, DocumentType, Domain, HealthStatus, LaborDocumentType, Municipality, Permission, Position, Role, SocialSecurityEntity, SocialSecurityType } from '../models/api.models';
 
 @Injectable({ providedIn: 'root' })
 export class RoleService {
@@ -124,6 +124,13 @@ export class CatalogService {
 
     return this.http.get<ApiResponse<LaborDocumentType[]>>(`${environment.apiUrl}/catalogs/labor-document-types`, { params }).pipe(
       map((response) => response.data ?? []),
+    );
+  }
+
+  getSocialSecurityEntities(type: SocialSecurityType): Observable<SocialSecurityEntity[]> {
+    const params = new HttpParams().set('type', type);
+    return this.http.get<ApiResponse<SocialSecurityEntity[]>>(`${environment.apiUrl}/catalogs/social-security-entities`, { params }).pipe(
+      map((response) => (response.data ?? []).filter((entity) => entity.tipo === type)),
     );
   }
 }

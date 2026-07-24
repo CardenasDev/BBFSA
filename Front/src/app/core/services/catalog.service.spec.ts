@@ -53,3 +53,36 @@ describe('CatalogService geographic catalogs', () => {
     http.verify();
   });
 });
+
+describe('CatalogService social security catalogs', () => {
+  it.each(['EPS', 'ARL', 'PENSION', 'CESANTIAS', 'CAJA_COMPENSACION'] as const)(
+    'requests and returns only entities of type %s',
+    (type) => {
+      TestBed.configureTestingModule({
+        providers: [CatalogService, provideHttpClient(), provideHttpClientTesting()],
+      });
+      const service = TestBed.inject(CatalogService);
+      const http = TestBed.inject(HttpTestingController);
+      let result: string[] = [];
+
+      service.getSocialSecurityEntities(type).subscribe((entities) => result = entities.map((entity) => entity.tipo));
+
+      const request = http.expectOne((candidate) =>
+        candidate.url === `${environment.apiUrl}/catalogs/social-security-entities`
+        && candidate.params.get('type') === type,
+      );
+      expect(request.request.method).toBe('GET');
+      request.flush({
+        success: true,
+        message: 'ok',
+        data: [
+          { id_entidad_seguridad_social: 1, tipo: type, nombre: `Entidad ${type}` },
+          { id_entidad_seguridad_social: 2, tipo: 'OTRO', nombre: 'Entidad incorrecta' },
+        ],
+      });
+
+      expect(result).toEqual([type]);
+      http.verify();
+    },
+  );
+});

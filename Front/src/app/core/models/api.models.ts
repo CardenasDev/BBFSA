@@ -675,6 +675,20 @@ export interface SaveSocialSecurityRequest {
   observaciones?: string | null;
 }
 
+export type SocialSecurityType =
+  | 'EPS'
+  | 'ARL'
+  | 'PENSION'
+  | 'CESANTIAS'
+  | 'CAJA_COMPENSACION';
+
+export interface SocialSecurityEntity {
+  id_entidad_seguridad_social: number;
+  tipo: string;
+  nombre: string;
+  codigo?: string | null;
+}
+
 export interface EmployeeMedicalExam {
   id_examen_medico?: number | null;
   id_empleado: number;

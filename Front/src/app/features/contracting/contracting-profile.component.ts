@@ -2,9 +2,10 @@ import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { finalize } from 'rxjs';
-import { ContractingProfile, SaveContractingProfileRequest } from '../../core/models/api.models';
+import { ContractingProfile, Department, Municipality, SaveContractingProfileRequest } from '../../core/models/api.models';
 import { AuthService } from '../../core/services/auth.service';
 import { ContractingService } from '../../core/services/contracting.service';
+import { CatalogService } from '../../core/services/catalog.service';
 import { apiErrorMessage } from '../../shared/api-error';
 
 const CIVIL_STATES = ['SOLTERO', 'CASADO', 'UNION_LIBRE', 'SEPARADO', 'DIVORCIADO', 'VIUDO', 'OTRO'];
@@ -76,11 +77,35 @@ interface ContractingProfileForm extends SaveContractingProfileRequest {
         </label>
         <label>Fecha expedicion documento<input type="date" name="fecha_expedicion_documento" [(ngModel)]="form.fecha_expedicion_documento" [disabled]="!canEdit() || saving()" /></label>
         <label>Fecha nacimiento<input type="date" name="fecha_nacimiento" [(ngModel)]="form.fecha_nacimiento" disabled /></label>
-        <label>Lugar nacimiento<input name="lugar_nacimiento" [(ngModel)]="form.lugar_nacimiento" [disabled]="!canEdit() || saving()" maxlength="150" /></label>
+        <label>Departamento nacimiento
+          <select name="id_departamento_nacimiento" [(ngModel)]="form.id_departamento_nacimiento" (ngModelChange)="onBirthDepartmentChange($event)" [disabled]="!canEdit() || saving() || isLoadingDepartments()">
+            <option [ngValue]="null">Seleccione departamento</option>
+            @for (department of departments(); track department.id_departamento) { <option [ngValue]="department.id_departamento">{{ department.nombre }}</option> }
+          </select>
+          @if (!form.id_departamento_nacimiento && profile()?.departamento_nacimiento) { <small class="muted">Valor registrado anteriormente: {{ profile()?.departamento_nacimiento }}</small> }
+        </label>
+        <label>Lugar/Ciudad nacimiento
+          <select name="id_municipio_nacimiento" [(ngModel)]="form.id_municipio_nacimiento" [disabled]="!canEdit() || saving() || !form.id_departamento_nacimiento || isLoadingBirthMunicipalities()">
+            <option [ngValue]="null">Seleccione municipio</option>
+            @for (municipality of birthMunicipalities(); track municipality.id_municipio) { <option [ngValue]="municipality.id_municipio">{{ municipality.nombre }}</option> }
+          </select>
+          @if (!form.id_municipio_nacimiento && profile()?.lugar_nacimiento) { <small class="muted">Valor registrado anteriormente: {{ profile()?.lugar_nacimiento }}</small> }
+        </label>
         <label>Nacionalidad<input type="text" name="nacionalidad" [(ngModel)]="form.nacionalidad" disabled maxlength="100" /></label>
-        <label>Departamento nacimiento<input name="departamento_nacimiento" [(ngModel)]="form.departamento_nacimiento" [disabled]="!canEdit() || saving()" maxlength="150" /></label>
-        <label>Ciudad residencia<input name="ciudad_residencia" [(ngModel)]="form.ciudad_residencia" [disabled]="!canEdit() || saving()" maxlength="150" /></label>
-        <label>Departamento residencia<input name="departamento_residencia" [(ngModel)]="form.departamento_residencia" [disabled]="!canEdit() || saving()" maxlength="150" /></label>
+        <label>Departamento residencia
+          <select name="id_departamento_residencia" [(ngModel)]="form.id_departamento_residencia" (ngModelChange)="onResidenceDepartmentChange($event)" [disabled]="!canEdit() || saving() || isLoadingDepartments()">
+            <option [ngValue]="null">Seleccione departamento</option>
+            @for (department of departments(); track department.id_departamento) { <option [ngValue]="department.id_departamento">{{ department.nombre }}</option> }
+          </select>
+          @if (!form.id_departamento_residencia && profile()?.departamento_residencia) { <small class="muted">Valor registrado anteriormente: {{ profile()?.departamento_residencia }}</small> }
+        </label>
+        <label>Ciudad residencia
+          <select name="id_municipio_residencia" [(ngModel)]="form.id_municipio_residencia" [disabled]="!canEdit() || saving() || !form.id_departamento_residencia || isLoadingResidenceMunicipalities()">
+            <option [ngValue]="null">Seleccione municipio</option>
+            @for (municipality of residenceMunicipalities(); track municipality.id_municipio) { <option [ngValue]="municipality.id_municipio">{{ municipality.nombre }}</option> }
+          </select>
+          @if (!form.id_municipio_residencia && profile()?.ciudad_residencia) { <small class="muted">Valor registrado anteriormente: {{ profile()?.ciudad_residencia }}</small> }
+        </label>
         <label class="form-wide">Direccion residencia<input name="direccion_residencia" [(ngModel)]="form.direccion_residencia" [disabled]="!canEdit() || saving()" maxlength="250" /></label>
         <label>Telefono alterno<input name="telefono_alterno" [(ngModel)]="form.telefono_alterno" [disabled]="!canEdit() || saving()" maxlength="50" /></label>
         <label>Correo personal<input type="email" name="correo_personal" [(ngModel)]="form.correo_personal" [disabled]="!canEdit() || saving()" maxlength="150" /></label>
@@ -131,23 +156,44 @@ export class ContractingProfileComponent implements OnInit {
   readonly auth = inject(AuthService);
   private readonly route = inject(ActivatedRoute);
   private readonly service = inject(ContractingService);
+  private readonly catalogs = inject(CatalogService);
   readonly profile = signal<ContractingProfile | null>(null);
   readonly loading = signal(false);
   readonly saving = signal(false);
   readonly error = signal('');
   readonly formError = signal('');
   readonly success = signal('');
+  readonly departments = signal<Department[]>([]);
+  readonly birthMunicipalities = signal<Municipality[]>([]);
+  readonly residenceMunicipalities = signal<Municipality[]>([]);
+  readonly isLoadingDepartments = signal(false);
+  readonly isLoadingBirthMunicipalities = signal(false);
+  readonly isLoadingResidenceMunicipalities = signal(false);
   readonly civilStates = CIVIL_STATES;
   readonly educationLevels = EDUCATION_LEVELS;
   readonly genders = GENDERS;
   employeeId = 0;
   form: ContractingProfileForm = this.emptyForm();
+  private birthMunicipalityRequest = 0;
+  private residenceMunicipalityRequest = 0;
 
   ngOnInit(): void {
     this.employeeId = Number(this.route.snapshot.paramMap.get('employeeId'));
     const successMessage = history.state?.successMessage;
     if (typeof successMessage === 'string') this.success.set(successMessage);
+    this.loadDepartments();
     this.load();
+  }
+
+  loadDepartments(): void {
+    this.isLoadingDepartments.set(true);
+    this.catalogs.getDepartments().pipe(finalize(() => this.isLoadingDepartments.set(false))).subscribe({
+      next: (departments) => this.departments.set(departments),
+      error: (error) => {
+        this.departments.set([]);
+        this.formError.set(apiErrorMessage(error, 'No fue posible cargar los departamentos.'));
+      },
+    });
   }
 
   load(): void {
@@ -157,6 +203,8 @@ export class ContractingProfileComponent implements OnInit {
       next: (profile) => {
         this.profile.set(profile);
         this.form = this.formFromProfile(profile);
+        this.loadBirthMunicipalities(this.form.id_departamento_nacimiento ?? null, this.form.id_municipio_nacimiento ?? null);
+        this.loadResidenceMunicipalities(this.form.id_departamento_residencia ?? null, this.form.id_municipio_residencia ?? null);
       },
       error: (error) => this.error.set(apiErrorMessage(error, 'No fue posible cargar la informacion de contratacion.')),
     });
@@ -211,6 +259,10 @@ export class ContractingProfileComponent implements OnInit {
       numero_carpeta: this.blankToNull(this.form.numero_carpeta),
       genero: this.blankToNull(this.form.genero),
       fecha_expedicion_documento: this.blankToNull(this.form.fecha_expedicion_documento),
+      id_departamento_nacimiento: this.nullableNumber(this.form.id_departamento_nacimiento),
+      id_municipio_nacimiento: this.nullableNumber(this.form.id_municipio_nacimiento),
+      id_departamento_residencia: this.nullableNumber(this.form.id_departamento_residencia),
+      id_municipio_residencia: this.nullableNumber(this.form.id_municipio_residencia),
       personas_a_cargo: this.nullableNumber(this.form.personas_a_cargo),
       numero_hijos: this.nullableNumber(this.form.numero_hijos),
       personas_vivienda: contractingNullableInteger(this.form.personas_vivienda),
@@ -224,12 +276,12 @@ export class ContractingProfileComponent implements OnInit {
       numero_carpeta: profile?.numero_carpeta ?? null,
       genero: profile?.genero ?? null,
       fecha_expedicion_documento: profile?.fecha_expedicion_documento ?? null,
-      lugar_nacimiento: profile?.lugar_nacimiento ?? null,
+      id_departamento_nacimiento: profile?.id_departamento_nacimiento ?? null,
+      id_municipio_nacimiento: profile?.id_municipio_nacimiento ?? null,
       fecha_nacimiento: profile?.fecha_nacimiento ?? null,
       nacionalidad: profile?.nacionalidad ?? null,
-      departamento_nacimiento: profile?.departamento_nacimiento ?? null,
-      ciudad_residencia: profile?.ciudad_residencia ?? null,
-      departamento_residencia: profile?.departamento_residencia ?? null,
+      id_departamento_residencia: profile?.id_departamento_residencia ?? null,
+      id_municipio_residencia: profile?.id_municipio_residencia ?? null,
       direccion_residencia: profile?.direccion_residencia ?? null,
       telefono_alterno: profile?.telefono_alterno ?? null,
       correo_personal: profile?.correo_personal ?? null,
@@ -255,10 +307,68 @@ export class ContractingProfileComponent implements OnInit {
     return this.formFromProfile(null);
   }
 
+  private loadBirthMunicipalities(departmentId: number | null, selectedMunicipalityId: number | null): void {
+    const request = ++this.birthMunicipalityRequest;
+    this.birthMunicipalities.set([]);
+    if (!departmentId) {
+      this.isLoadingBirthMunicipalities.set(false);
+      return;
+    }
+    this.isLoadingBirthMunicipalities.set(true);
+    this.catalogs.getMunicipalitiesByDepartment(departmentId).pipe(finalize(() => {
+      if (request === this.birthMunicipalityRequest) this.isLoadingBirthMunicipalities.set(false);
+    })).subscribe({
+      next: (municipalities) => {
+        if (request !== this.birthMunicipalityRequest) return;
+        this.birthMunicipalities.set(municipalities);
+        this.form.id_municipio_nacimiento = selectedMunicipalityId;
+      },
+      error: (error) => {
+        if (request !== this.birthMunicipalityRequest) return;
+        this.birthMunicipalities.set([]);
+        this.formError.set(apiErrorMessage(error, 'No fue posible cargar los municipios de nacimiento.'));
+      },
+    });
+  }
+
+  private loadResidenceMunicipalities(departmentId: number | null, selectedMunicipalityId: number | null): void {
+    const request = ++this.residenceMunicipalityRequest;
+    this.residenceMunicipalities.set([]);
+    if (!departmentId) {
+      this.isLoadingResidenceMunicipalities.set(false);
+      return;
+    }
+    this.isLoadingResidenceMunicipalities.set(true);
+    this.catalogs.getMunicipalitiesByDepartment(departmentId).pipe(finalize(() => {
+      if (request === this.residenceMunicipalityRequest) this.isLoadingResidenceMunicipalities.set(false);
+    })).subscribe({
+      next: (municipalities) => {
+        if (request !== this.residenceMunicipalityRequest) return;
+        this.residenceMunicipalities.set(municipalities);
+        this.form.id_municipio_residencia = selectedMunicipalityId;
+      },
+      error: (error) => {
+        if (request !== this.residenceMunicipalityRequest) return;
+        this.residenceMunicipalities.set([]);
+        this.formError.set(apiErrorMessage(error, 'No fue posible cargar los municipios de residencia.'));
+      },
+    });
+  }
+
   private nullableNumber(value: unknown): number | null {
     if (value === '' || value == null) return null;
     const numberValue = Number(value);
     return Number.isFinite(numberValue) ? numberValue : null;
+  }
+
+  onBirthDepartmentChange(departmentId: number | null): void {
+    this.form.id_municipio_nacimiento = null;
+    this.loadBirthMunicipalities(departmentId, null);
+  }
+
+  onResidenceDepartmentChange(departmentId: number | null): void {
+    this.form.id_municipio_residencia = null;
+    this.loadResidenceMunicipalities(departmentId, null);
   }
 
   private blankToNull(value: string | null | undefined): string | null {

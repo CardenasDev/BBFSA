@@ -2,7 +2,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable, map } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { ApiResponse, Area, ContractType, DocumentType, Domain, HealthStatus, LaborDocumentType, Permission, Position, Role } from '../models/api.models';
+import { ApiResponse, Area, ContractType, Department, DocumentType, Domain, HealthStatus, LaborDocumentType, Municipality, Permission, Position, Role } from '../models/api.models';
 
 @Injectable({ providedIn: 'root' })
 export class RoleService {
@@ -101,6 +101,18 @@ export class CatalogService {
       .set('applies_applicant', '1');
 
     return this.http.get<ApiResponse<LaborDocumentType[]>>(`${environment.apiUrl}/catalogs/labor-document-types`, { params }).pipe(
+      map((response) => response.data ?? []),
+    );
+  }
+
+  getDepartments(): Observable<Department[]> {
+    return this.http.get<ApiResponse<Department[]>>(`${environment.apiUrl}/catalogs/departments`).pipe(
+      map((response) => response.data ?? []),
+    );
+  }
+
+  getMunicipalitiesByDepartment(departmentId: number): Observable<Municipality[]> {
+    return this.http.get<ApiResponse<Municipality[]>>(`${environment.apiUrl}/catalogs/departments/${departmentId}/municipalities`).pipe(
       map((response) => response.data ?? []),
     );
   }

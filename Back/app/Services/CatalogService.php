@@ -47,6 +47,50 @@ class CatalogService
         ], $this->catalogs->contractTypes($onlyActive));
     }
 
+    public function departments(): array
+    {
+        $departments = array_map(static fn (array $row): array => [
+            'id_departamento' => (int) ($row['id_departamento'] ?? 0),
+            'codigo_dane' => (string) ($row['codigo_dane'] ?? ''),
+            'nombre' => (string) ($row['nombre'] ?? ''),
+        ], array_filter(
+            $this->catalogs->departments(),
+            static fn (array $row): bool => ! array_key_exists('activo', $row) || (bool) $row['activo'],
+        ));
+
+        usort($departments, static fn (array $left, array $right): int => strcasecmp($left['nombre'], $right['nombre']));
+
+        return $departments;
+    }
+
+    public function municipalities(int $departmentId): array
+    {
+        $municipalities = array_map(static fn (array $row): array => [
+            'id_municipio' => (int) ($row['id_municipio'] ?? 0),
+            'id_departamento' => (int) ($row['id_departamento'] ?? 0),
+            'codigo_dane' => (string) ($row['codigo_dane'] ?? ''),
+            'nombre' => (string) ($row['nombre'] ?? ''),
+        ], array_filter(
+            $this->catalogs->municipalities($departmentId),
+            static fn (array $row): bool => (int) ($row['id_departamento'] ?? 0) === $departmentId
+                && (! array_key_exists('activo', $row) || (bool) $row['activo']),
+        ));
+
+        usort($municipalities, static fn (array $left, array $right): int => strcasecmp($left['nombre'], $right['nombre']));
+
+        return $municipalities;
+    }
+
+    public function socialSecurityEntities(string $type): array
+    {
+        return $this->catalogs->socialSecurityEntities($type);
+    }
+
+    public function medicalExamTypes(): array
+    {
+        return $this->catalogs->medicalExamTypes();
+    }
+
     public function laborDocumentTypes(?bool $active, ?bool $appliesApplicant, ?bool $appliesContracting, ?bool $appliesRetirement): array
     {
         return array_map(static fn (array $row): array => [

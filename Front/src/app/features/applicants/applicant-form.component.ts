@@ -10,7 +10,9 @@ import {
   Area,
   ContractType,
   CreateApplicantRequest,
+  Department,
   DocumentType,
+  Municipality,
   Position,
 } from '../../core/models/api.models';
 import { ApplicantService } from '../../core/services/applicant.service';
@@ -81,8 +83,28 @@ const EDUCATION_LEVELS: ApplicantEducationLevel[] = ['PRIMARIA', 'BACHILLER', 'T
 
         <div class="form-wide section-title"><h2>Datos personales</h2></div>
         <label>Fecha nacimiento<input type="date" formControlName="fecha_nacimiento" /></label>
-        <label>Lugar nacimiento<input type="text" formControlName="lugar_nacimiento" maxlength="150" /></label>
-        <label>Departamento nacimiento<input type="text" formControlName="departamento_nacimiento" maxlength="150" /></label>
+        <label>Departamento nacimiento
+          <select formControlName="id_departamento_nacimiento" (change)="onBirthDepartmentChange(form.controls.id_departamento_nacimiento.value)">
+            <option [ngValue]="null">{{ isLoadingDepartments() ? 'Cargando...' : 'Seleccione departamento' }}</option>
+            @for (department of departments(); track department.id_departamento) {
+              <option [ngValue]="department.id_departamento">{{ department.nombre }}</option>
+            }
+          </select>
+          @if (!form.controls.id_departamento_nacimiento.value && currentApplicant()?.departamento_nacimiento) {
+            <small class="muted">Valor registrado anteriormente: {{ currentApplicant()?.departamento_nacimiento }}</small>
+          }
+        </label>
+        <label>Lugar/Ciudad nacimiento
+          <select formControlName="id_municipio_nacimiento" [attr.disabled]="!form.controls.id_departamento_nacimiento.value || isLoadingBirthMunicipalities() ? true : null">
+            <option [ngValue]="null">{{ isLoadingBirthMunicipalities() ? 'Cargando...' : 'Seleccione municipio' }}</option>
+            @for (municipality of birthMunicipalities(); track municipality.id_municipio) {
+              <option [ngValue]="municipality.id_municipio">{{ municipality.nombre }}</option>
+            }
+          </select>
+          @if (!form.controls.id_municipio_nacimiento.value && currentApplicant()?.lugar_nacimiento) {
+            <small class="muted">Valor registrado anteriormente: {{ currentApplicant()?.lugar_nacimiento }}</small>
+          }
+        </label>
         <label>Nacionalidad<input type="text" formControlName="nacionalidad" maxlength="100" /></label>
         <label>Estado civil
           <select formControlName="estado_civil">
@@ -107,8 +129,28 @@ const EDUCATION_LEVELS: ApplicantEducationLevel[] = ['PRIMARIA', 'BACHILLER', 'T
 
         <div class="form-wide section-title"><h2>Residencia</h2></div>
         <label class="form-wide">Direccion<input type="text" formControlName="direccion" maxlength="250" /></label>
-        <label>Ciudad residencia<input type="text" formControlName="ciudad_residencia" maxlength="150" /></label>
-        <label>Departamento residencia<input type="text" formControlName="departamento_residencia" maxlength="150" /></label>
+        <label>Departamento residencia
+          <select formControlName="id_departamento_residencia" (change)="onResidenceDepartmentChange(form.controls.id_departamento_residencia.value)">
+            <option [ngValue]="null">{{ isLoadingDepartments() ? 'Cargando...' : 'Seleccione departamento' }}</option>
+            @for (department of departments(); track department.id_departamento) {
+              <option [ngValue]="department.id_departamento">{{ department.nombre }}</option>
+            }
+          </select>
+          @if (!form.controls.id_departamento_residencia.value && currentApplicant()?.departamento_residencia) {
+            <small class="muted">Valor registrado anteriormente: {{ currentApplicant()?.departamento_residencia }}</small>
+          }
+        </label>
+        <label>Ciudad residencia
+          <select formControlName="id_municipio_residencia" [attr.disabled]="!form.controls.id_departamento_residencia.value || isLoadingResidenceMunicipalities() ? true : null">
+            <option [ngValue]="null">{{ isLoadingResidenceMunicipalities() ? 'Cargando...' : 'Seleccione municipio' }}</option>
+            @for (municipality of residenceMunicipalities(); track municipality.id_municipio) {
+              <option [ngValue]="municipality.id_municipio">{{ municipality.nombre }}</option>
+            }
+          </select>
+          @if (!form.controls.id_municipio_residencia.value && currentApplicant()?.ciudad_residencia) {
+            <small class="muted">Valor registrado anteriormente: {{ currentApplicant()?.ciudad_residencia }}</small>
+          }
+        </label>
 
         <div class="form-wide section-title"><h2>Aspiracion laboral</h2></div>
         <label>Area aspirada
@@ -146,6 +188,9 @@ export class ApplicantFormComponent implements OnInit {
   readonly loading = signal(false);
   readonly saving = signal(false);
   readonly loadingCatalogs = signal(false);
+  readonly isLoadingDepartments = signal(false);
+  readonly isLoadingBirthMunicipalities = signal(false);
+  readonly isLoadingResidenceMunicipalities = signal(false);
   readonly error = signal('');
   readonly success = signal('');
   readonly catalogsError = signal('');
@@ -154,10 +199,15 @@ export class ApplicantFormComponent implements OnInit {
   readonly areas = signal<Area[]>([]);
   readonly positions = signal<Position[]>([]);
   readonly contractTypes = signal<ContractType[]>([]);
+  readonly departments = signal<Department[]>([]);
+  readonly birthMunicipalities = signal<Municipality[]>([]);
+  readonly residenceMunicipalities = signal<Municipality[]>([]);
   readonly converted = signal(false);
   readonly civilStates = CIVIL_STATES;
   readonly educationLevels = EDUCATION_LEVELS;
   applicantId = 0;
+  private birthMunicipalityRequest = 0;
+  private residenceMunicipalityRequest = 0;
 
   readonly form = this.fb.group({
     id_tipo_documento: [null as number | null],
@@ -168,11 +218,11 @@ export class ApplicantFormComponent implements OnInit {
     telefono: ['', [Validators.maxLength(50)]],
     direccion: ['', [Validators.maxLength(250)]],
     fecha_nacimiento: [null as string | null],
-    lugar_nacimiento: ['', [Validators.maxLength(150)]],
-    departamento_nacimiento: ['', [Validators.maxLength(150)]],
+    id_departamento_nacimiento: [null as number | null],
+    id_municipio_nacimiento: [null as number | null],
     nacionalidad: ['', [Validators.maxLength(100)]],
-    ciudad_residencia: ['', [Validators.maxLength(150)]],
-    departamento_residencia: ['', [Validators.maxLength(150)]],
+    id_departamento_residencia: [null as number | null],
+    id_municipio_residencia: [null as number | null],
     estado_civil: [null as ApplicantCivilState | null, [Validators.pattern(/^(SOLTERO|CASADO|UNION_LIBRE|SEPARADO|DIVORCIADO|VIUDO|OTRO)$/)]],
     nivel_educativo: [null as ApplicantEducationLevel | null, [Validators.pattern(/^(PRIMARIA|BACHILLER|TECNICO|TECNOLOGO|PROFESIONAL|POSGRADO|NINGUNO|OTRO)$/)]],
     personas_a_cargo: [null as number | null, [Validators.min(0)]],
@@ -186,9 +236,31 @@ export class ApplicantFormComponent implements OnInit {
     this.applicantId = Number(this.route.snapshot.paramMap.get('applicantId'));
     this.editMode.set(this.route.snapshot.routeConfig?.path?.includes('edit') ?? false);
     this.loadCatalogs();
+    this.loadDepartments();
     if (this.editMode()) {
       this.loadApplicant();
     }
+  }
+
+  loadDepartments(): void {
+    this.isLoadingDepartments.set(true);
+    this.catalogs.getDepartments().pipe(finalize(() => this.isLoadingDepartments.set(false))).subscribe({
+      next: (departments) => this.departments.set(departments),
+      error: (error) => {
+        this.departments.set([]);
+        this.catalogsError.set(apiErrorMessage(error, 'No fue posible cargar los departamentos.'));
+      },
+    });
+  }
+
+  onBirthDepartmentChange(departmentId: number | null): void {
+    this.form.controls.id_municipio_nacimiento.setValue(null);
+    this.loadBirthMunicipalities(departmentId, null);
+  }
+
+  onResidenceDepartmentChange(departmentId: number | null): void {
+    this.form.controls.id_municipio_residencia.setValue(null);
+    this.loadResidenceMunicipalities(departmentId, null);
   }
 
   loadCatalogs(): void {
@@ -274,11 +346,11 @@ export class ApplicantFormComponent implements OnInit {
       telefono: applicant.telefono ?? '',
       direccion: applicant.direccion ?? '',
       fecha_nacimiento: applicant.fecha_nacimiento ?? null,
-      lugar_nacimiento: applicant.lugar_nacimiento ?? '',
-      departamento_nacimiento: applicant.departamento_nacimiento ?? '',
+      id_departamento_nacimiento: applicant.id_departamento_nacimiento ?? null,
+      id_municipio_nacimiento: null,
       nacionalidad: applicant.nacionalidad ?? '',
-      ciudad_residencia: applicant.ciudad_residencia ?? '',
-      departamento_residencia: applicant.departamento_residencia ?? '',
+      id_departamento_residencia: applicant.id_departamento_residencia ?? null,
+      id_municipio_residencia: null,
       estado_civil: applicant.estado_civil ?? null,
       nivel_educativo: applicant.nivel_educativo ?? null,
       personas_a_cargo: applicant.personas_a_cargo ?? null,
@@ -287,6 +359,8 @@ export class ApplicantFormComponent implements OnInit {
       id_cargo_aspira: applicant.id_cargo_aspira ?? null,
       observaciones: applicant.observaciones ?? '',
     });
+    this.loadBirthMunicipalities(applicant.id_departamento_nacimiento ?? null, applicant.id_municipio_nacimiento ?? null);
+    this.loadResidenceMunicipalities(applicant.id_departamento_residencia ?? null, applicant.id_municipio_residencia ?? null);
   }
 
   private payload(): CreateApplicantRequest {
@@ -300,11 +374,11 @@ export class ApplicantFormComponent implements OnInit {
       telefono: blankToNull(value.telefono),
       direccion: blankToNull(value.direccion),
       fecha_nacimiento: blankToNull(value.fecha_nacimiento),
-      lugar_nacimiento: blankToNull(value.lugar_nacimiento),
-      departamento_nacimiento: blankToNull(value.departamento_nacimiento),
+      id_departamento_nacimiento: toNullableNumber(value.id_departamento_nacimiento),
+      id_municipio_nacimiento: toNullableNumber(value.id_municipio_nacimiento),
       nacionalidad: blankToNull(value.nacionalidad),
-      ciudad_residencia: blankToNull(value.ciudad_residencia),
-      departamento_residencia: blankToNull(value.departamento_residencia),
+      id_departamento_residencia: toNullableNumber(value.id_departamento_residencia),
+      id_municipio_residencia: toNullableNumber(value.id_municipio_residencia),
       estado_civil: value.estado_civil ?? null,
       nivel_educativo: value.nivel_educativo ?? null,
       personas_a_cargo: this.toNullableNonNegativeNumber(value.personas_a_cargo),
@@ -313,6 +387,54 @@ export class ApplicantFormComponent implements OnInit {
       id_cargo_aspira: toNullableNumber(value.id_cargo_aspira),
       observaciones: blankToNull(value.observaciones),
     };
+  }
+
+  private loadBirthMunicipalities(departmentId: number | null, selectedMunicipalityId: number | null): void {
+    const request = ++this.birthMunicipalityRequest;
+    this.birthMunicipalities.set([]);
+    if (!departmentId) {
+      this.isLoadingBirthMunicipalities.set(false);
+      return;
+    }
+    this.isLoadingBirthMunicipalities.set(true);
+    this.catalogs.getMunicipalitiesByDepartment(departmentId).pipe(finalize(() => {
+      if (request === this.birthMunicipalityRequest) this.isLoadingBirthMunicipalities.set(false);
+    })).subscribe({
+      next: (municipalities) => {
+        if (request !== this.birthMunicipalityRequest) return;
+        this.birthMunicipalities.set(municipalities);
+        this.form.controls.id_municipio_nacimiento.setValue(selectedMunicipalityId);
+      },
+      error: (error) => {
+        if (request !== this.birthMunicipalityRequest) return;
+        this.birthMunicipalities.set([]);
+        this.catalogsError.set(apiErrorMessage(error, 'No fue posible cargar los municipios de nacimiento.'));
+      },
+    });
+  }
+
+  private loadResidenceMunicipalities(departmentId: number | null, selectedMunicipalityId: number | null): void {
+    const request = ++this.residenceMunicipalityRequest;
+    this.residenceMunicipalities.set([]);
+    if (!departmentId) {
+      this.isLoadingResidenceMunicipalities.set(false);
+      return;
+    }
+    this.isLoadingResidenceMunicipalities.set(true);
+    this.catalogs.getMunicipalitiesByDepartment(departmentId).pipe(finalize(() => {
+      if (request === this.residenceMunicipalityRequest) this.isLoadingResidenceMunicipalities.set(false);
+    })).subscribe({
+      next: (municipalities) => {
+        if (request !== this.residenceMunicipalityRequest) return;
+        this.residenceMunicipalities.set(municipalities);
+        this.form.controls.id_municipio_residencia.setValue(selectedMunicipalityId);
+      },
+      error: (error) => {
+        if (request !== this.residenceMunicipalityRequest) return;
+        this.residenceMunicipalities.set([]);
+        this.catalogsError.set(apiErrorMessage(error, 'No fue posible cargar los municipios de residencia.'));
+      },
+    });
   }
 
   private toNullableNonNegativeNumber(value: unknown): number | null {

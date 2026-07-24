@@ -99,10 +99,10 @@ class ContractingRepositoryTest extends TestCase
                 'CARP-001',
                 'FEMENINO',
                 '2016-05-20',
-                'Ibague',
-                'Tolima',
-                'Cajica',
-                'Cundinamarca',
+                73,
+                73001,
+                25,
+                25126,
                 'Calle 1',
                 '3001234567',
                 'ana@example.com',
@@ -126,10 +126,10 @@ class ContractingRepositoryTest extends TestCase
             'numero_carpeta' => 'CARP-001',
             'genero' => 'FEMENINO',
             'fecha_expedicion_documento' => '2016-05-20',
-            'lugar_nacimiento' => 'Ibague',
-            'departamento_nacimiento' => 'Tolima',
-            'ciudad_residencia' => 'Cajica',
-            'departamento_residencia' => 'Cundinamarca',
+            'id_departamento_nacimiento' => 73,
+            'id_municipio_nacimiento' => 73001,
+            'id_departamento_residencia' => 25,
+            'id_municipio_residencia' => 25126,
             'direccion_residencia' => 'Calle 1',
             'telefono_alterno' => '3001234567',
             'correo_personal' => 'ana@example.com',
@@ -151,6 +151,21 @@ class ContractingRepositoryTest extends TestCase
         ]);
 
         $this->assertSame(5, $row['id_empleado']);
+    }
+
+    public function test_save_profile_preserves_false_and_null_for_menores_estudian(): void
+    {
+        foreach ([[false, 0], [null, null]] as [$input, $expected]) {
+            DB::shouldReceive('select')->once()
+                ->withArgs(function (string $sql, array $bindings) use ($expected): bool {
+                    return $sql === 'CALL SP_BBF_CONTRATACION_FICHA_GUARDAR(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)'
+                        && count($bindings) === 24
+                        && $bindings[16] === $expected;
+                })
+                ->andReturn([(object) ['ID_EMPLEADO' => 5]]);
+
+            app(ContractingRepository::class)->saveProfile(5, ['menores_estudian' => $input]);
+        }
     }
 
     public function test_create_contract_calls_stored_procedure_with_real_parameter_order(): void

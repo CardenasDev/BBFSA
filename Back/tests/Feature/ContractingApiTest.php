@@ -69,10 +69,10 @@ class ContractingApiTest extends TestCase
                 null,
                 null,
                 null,
-                'Ibague',
-                null,
-                null,
-                null,
+                73,
+                73001,
+                25,
+                25126,
                 null,
                 null,
                 null,
@@ -94,7 +94,10 @@ class ContractingApiTest extends TestCase
 
         $this->withToken($this->tokenWithPermissions(['CONTRATACION_CREAR']))
             ->postJson('/api/contracting/employees/5/profile', [
-                'lugar_nacimiento' => 'Ibague',
+                'id_departamento_nacimiento' => 73,
+                'id_municipio_nacimiento' => 73001,
+                'id_departamento_residencia' => 25,
+                'id_municipio_residencia' => 25126,
             ])
             ->assertOk()
             ->assertJsonPath('success', true)
@@ -176,7 +179,14 @@ class ContractingApiTest extends TestCase
                 'ESTADO_FICHA' => 'INCOMPLETA',
                 'FECHA_NACIMIENTO' => '1998-04-10',
                 'NACIONALIDAD' => 'Colombiana',
+                'ID_DEPARTAMENTO_NACIMIENTO' => 73,
+                'ID_MUNICIPIO_NACIMIENTO' => 73001,
+                'ID_DEPARTAMENTO_RESIDENCIA' => 25,
+                'ID_MUNICIPIO_RESIDENCIA' => 25126,
+                'DEPARTAMENTO_NACIMIENTO' => 'Tolima',
                 'LUGAR_NACIMIENTO' => 'Ibague',
+                'DEPARTAMENTO_RESIDENCIA' => 'Cundinamarca',
+                'CIUDAD_RESIDENCIA' => 'Cajica',
                 'DIRECCION_RESIDENCIA' => 'Calle 1',
                 'TELEFONO_ALTERNO' => '3001234567',
                 'CORREO_PERSONAL' => 'ana@example.com',
@@ -194,7 +204,14 @@ class ContractingApiTest extends TestCase
             ->assertJsonPath('data.estado_ficha', 'INCOMPLETA')
             ->assertJsonPath('data.fecha_nacimiento', '1998-04-10')
             ->assertJsonPath('data.nacionalidad', 'Colombiana')
+            ->assertJsonPath('data.id_departamento_nacimiento', 73)
+            ->assertJsonPath('data.id_municipio_nacimiento', 73001)
+            ->assertJsonPath('data.id_departamento_residencia', 25)
+            ->assertJsonPath('data.id_municipio_residencia', 25126)
+            ->assertJsonPath('data.departamento_nacimiento', 'Tolima')
             ->assertJsonPath('data.lugar_nacimiento', 'Ibague')
+            ->assertJsonPath('data.departamento_residencia', 'Cundinamarca')
+            ->assertJsonPath('data.ciudad_residencia', 'Cajica')
             ->assertJsonPath('data.direccion_residencia', 'Calle 1')
             ->assertJsonPath('data.telefono_alterno', '3001234567')
             ->assertJsonPath('data.correo_personal', 'ana@example.com')

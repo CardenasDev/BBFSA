@@ -10,6 +10,8 @@ use Illuminate\Http\Request;
 #[Group('Catalogs', 'Catalogos administrativos del sistema.', weight: 6)]
 class CatalogController extends ApiController
 {
+    private const SOCIAL_SECURITY_TYPES = ['EPS', 'ARL', 'PENSION', 'CESANTIAS', 'CAJA_COMPENSACION'];
+
     public function __construct(private readonly CatalogService $catalogs) {}
 
     /**
@@ -61,6 +63,41 @@ class CatalogController extends ApiController
         return $this->success(
             $this->catalogs->contractTypes($request->boolean('solo_activos', true)),
             'Tipos de contrato consultados correctamente',
+        );
+    }
+
+    public function departments(): JsonResponse
+    {
+        return $this->success($this->catalogs->departments(), 'Departamentos consultados correctamente');
+    }
+
+    public function municipalities(int $departmentId): JsonResponse
+    {
+        abort_if($departmentId < 1, 404);
+
+        return $this->success(
+            $this->catalogs->municipalities($departmentId),
+            'Municipios consultados correctamente',
+        );
+    }
+
+    public function socialSecurityEntities(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'type' => ['required', 'string', 'in:'.implode(',', self::SOCIAL_SECURITY_TYPES)],
+        ]);
+
+        return $this->success(
+            $this->catalogs->socialSecurityEntities($validated['type']),
+            'Entidades de seguridad social consultadas correctamente',
+        );
+    }
+
+    public function medicalExamTypes(): JsonResponse
+    {
+        return $this->success(
+            $this->catalogs->medicalExamTypes(),
+            'Tipos de examen medico consultados correctamente',
         );
     }
 

@@ -24,6 +24,26 @@ class CatalogRepository extends StoredProcedureRepository
         return $this->call('SP_BBF_TIPOS_CONTRATO_LISTAR', [(int) $onlyActive]);
     }
 
+    public function departments(): array
+    {
+        return $this->call('SP_BBF_DEPARTAMENTOS_LISTAR');
+    }
+
+    public function municipalities(int $departmentId): array
+    {
+        return $this->call('SP_BBF_MUNICIPIOS_LISTAR_POR_DEPARTAMENTO', [$departmentId]);
+    }
+
+    public function socialSecurityEntities(string $type): array
+    {
+        return $this->call('SP_BBF_ENTIDADES_SEGURIDAD_SOCIAL_LISTAR', [$type]);
+    }
+
+    public function medicalExamTypes(): array
+    {
+        return $this->call('SP_BBF_TIPOS_EXAMEN_MEDICO_LISTAR');
+    }
+
     public function listLaborDocumentTypes(?bool $active, ?bool $appliesApplicant, ?bool $appliesContracting, ?bool $appliesRetirement): array
     {
         return $this->call('SP_BBF_TIPOS_DOCUMENTO_LABORAL_LISTAR', [

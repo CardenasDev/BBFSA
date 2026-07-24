@@ -34,11 +34,29 @@ class ApplicantRepositoryTest extends TestCase
         DB::shouldReceive('select')
             ->once()
             ->with('CALL SP_BBF_ASPIRANTES_OBTENER(?)', [5])
-            ->andReturn([(object) ['ID_ASPIRANTE' => 5]]);
+            ->andReturn([(object) [
+                'ID_ASPIRANTE' => 5,
+                'ID_DEPARTAMENTO_NACIMIENTO' => 73,
+                'ID_MUNICIPIO_NACIMIENTO' => 73001,
+                'ID_DEPARTAMENTO_RESIDENCIA' => 25,
+                'ID_MUNICIPIO_RESIDENCIA' => 25126,
+                'DEPARTAMENTO_NACIMIENTO' => 'Tolima',
+                'LUGAR_NACIMIENTO' => 'Ibague',
+                'DEPARTAMENTO_RESIDENCIA' => 'Cundinamarca',
+                'CIUDAD_RESIDENCIA' => 'Cajica',
+            ]]);
 
         $row = app(ApplicantRepository::class)->getApplicant(5);
 
         $this->assertSame(5, $row['id_aspirante']);
+        $this->assertSame(73, $row['id_departamento_nacimiento']);
+        $this->assertSame(73001, $row['id_municipio_nacimiento']);
+        $this->assertSame(25, $row['id_departamento_residencia']);
+        $this->assertSame(25126, $row['id_municipio_residencia']);
+        $this->assertSame('Tolima', $row['departamento_nacimiento']);
+        $this->assertSame('Ibague', $row['lugar_nacimiento']);
+        $this->assertSame('Cundinamarca', $row['departamento_residencia']);
+        $this->assertSame('Cajica', $row['ciudad_residencia']);
     }
 
     public function test_create_applicant_calls_expected_stored_procedure_with_21_parameters(): void
@@ -54,11 +72,11 @@ class ApplicantRepositoryTest extends TestCase
                 '3001234567',
                 'Calle 1',
                 '2000-01-01',
-                'Bogota',
-                'Cundinamarca',
+                25,
+                11001,
                 'Colombiana',
-                'Cajica',
-                'Cundinamarca',
+                25,
+                25126,
                 'SOLTERO',
                 'PROFESIONAL',
                 1,
@@ -90,11 +108,11 @@ class ApplicantRepositoryTest extends TestCase
                 '3001234567',
                 'Calle 1',
                 '2000-01-01',
-                'Bogota',
-                'Cundinamarca',
+                25,
+                11001,
                 'Colombiana',
-                'Cajica',
-                'Cundinamarca',
+                25,
+                25126,
                 'SOLTERO',
                 'PROFESIONAL',
                 1,
@@ -228,11 +246,11 @@ class ApplicantRepositoryTest extends TestCase
             'telefono' => '3001234567',
             'direccion' => 'Calle 1',
             'fecha_nacimiento' => '2000-01-01',
-            'lugar_nacimiento' => 'Bogota',
-            'departamento_nacimiento' => 'Cundinamarca',
+            'id_departamento_nacimiento' => 25,
+            'id_municipio_nacimiento' => 11001,
             'nacionalidad' => 'Colombiana',
-            'ciudad_residencia' => 'Cajica',
-            'departamento_residencia' => 'Cundinamarca',
+            'id_departamento_residencia' => 25,
+            'id_municipio_residencia' => 25126,
             'estado_civil' => 'SOLTERO',
             'nivel_educativo' => 'PROFESIONAL',
             'personas_a_cargo' => 1,

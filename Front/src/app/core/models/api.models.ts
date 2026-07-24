@@ -71,6 +71,19 @@ export interface ContractType {
   activo: boolean;
 }
 
+export interface Department {
+  id_departamento: number;
+  codigo_dane: string;
+  nombre: string;
+}
+
+export interface Municipality {
+  id_municipio: number;
+  id_departamento: number;
+  codigo_dane: string;
+  nombre: string;
+}
+
 export interface LaborDocumentType {
   id_tipo_documento_laboral: number;
   nombre: string;
@@ -430,9 +443,13 @@ export interface ContractingProfile {
   genero?: string | null;
   fecha_expedicion_documento?: string | null;
   fecha_nacimiento?: string | null;
+  id_departamento_nacimiento?: number | null;
+  id_municipio_nacimiento?: number | null;
   lugar_nacimiento?: string | null;
   nacionalidad?: string | null;
   departamento_nacimiento?: string | null;
+  id_departamento_residencia?: number | null;
+  id_municipio_residencia?: number | null;
   ciudad_residencia?: string | null;
   departamento_residencia?: string | null;
   direccion_residencia?: string | null;
@@ -460,11 +477,11 @@ export interface SaveContractingProfileRequest {
   genero?: string | null;
   fecha_expedicion_documento?: string | null;
   fecha_nacimiento?: string | null;
-  lugar_nacimiento?: string | null;
+  id_departamento_nacimiento?: number | null;
+  id_municipio_nacimiento?: number | null;
   nacionalidad?: string | null;
-  departamento_nacimiento?: string | null;
-  ciudad_residencia?: string | null;
-  departamento_residencia?: string | null;
+  id_departamento_residencia?: number | null;
+  id_municipio_residencia?: number | null;
   direccion_residencia?: string | null;
   telefono_alterno?: string | null;
   correo_personal?: string | null;
@@ -740,9 +757,13 @@ export interface Applicant {
   telefono?: string | null;
   direccion?: string | null;
   fecha_nacimiento?: string | null;
+  id_departamento_nacimiento?: number | null;
+  id_municipio_nacimiento?: number | null;
   lugar_nacimiento?: string | null;
   departamento_nacimiento?: string | null;
   nacionalidad?: string | null;
+  id_departamento_residencia?: number | null;
+  id_municipio_residencia?: number | null;
   ciudad_residencia?: string | null;
   departamento_residencia?: string | null;
   estado_civil?: ApplicantCivilState | null;
@@ -780,11 +801,11 @@ export interface CreateApplicantRequest {
   telefono?: string | null;
   direccion?: string | null;
   fecha_nacimiento?: string | null;
-  lugar_nacimiento?: string | null;
-  departamento_nacimiento?: string | null;
+  id_departamento_nacimiento?: number | null;
+  id_municipio_nacimiento?: number | null;
   nacionalidad?: string | null;
-  ciudad_residencia?: string | null;
-  departamento_residencia?: string | null;
+  id_departamento_residencia?: number | null;
+  id_municipio_residencia?: number | null;
   estado_civil?: ApplicantCivilState | null;
   nivel_educativo?: ApplicantEducationLevel | null;
   personas_a_cargo?: number | null;

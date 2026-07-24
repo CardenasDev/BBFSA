@@ -31,6 +31,10 @@ Route::middleware('auth.jwt')->group(function (): void {
     Route::get('catalogs/areas', [CatalogController::class, 'areas'])->middleware('permission:EMPLEADOS_VER,EMPLEADOS_CREAR');
     Route::get('catalogs/positions', [CatalogController::class, 'positions'])->middleware('permission:EMPLEADOS_VER,EMPLEADOS_CREAR');
     Route::get('catalogs/contract-types', [CatalogController::class, 'contractTypes'])->middleware('permission:EMPLEADOS_VER,EMPLEADOS_CREAR');
+    Route::get('catalogs/departments', [CatalogController::class, 'departments'])->middleware('permission:ASPIRANTES_VER,ASPIRANTES_CREAR,ASPIRANTES_EDITAR,CONTRATACION_VER,CONTRATACION_CREAR,CONTRATACION_EDITAR');
+    Route::get('catalogs/departments/{departmentId}/municipalities', [CatalogController::class, 'municipalities'])->whereNumber('departmentId')->middleware('permission:ASPIRANTES_VER,ASPIRANTES_CREAR,ASPIRANTES_EDITAR,CONTRATACION_VER,CONTRATACION_CREAR,CONTRATACION_EDITAR');
+    Route::get('catalogs/social-security-entities', [CatalogController::class, 'socialSecurityEntities'])->middleware('permission:CONTRATACION_SEGURIDAD_SOCIAL_VER,CONTRATACION_SEGURIDAD_SOCIAL_EDITAR');
+    Route::get('catalogs/medical-exam-types', [CatalogController::class, 'medicalExamTypes'])->middleware('permission:CONTRATACION_EXAMENES_VER,CONTRATACION_EXAMENES_CREAR');
     Route::get('catalogs/labor-document-types', [CatalogController::class, 'laborDocumentTypes'])->middleware('permission:ASPIRANTES_DOCUMENTOS_VER,CONTRATACION_DOCUMENTOS_VER');
     Route::prefix('applicants')->group(function (): void {
         Route::get('/', [ApplicantController::class, 'index'])->middleware('permission:ASPIRANTES_VER');

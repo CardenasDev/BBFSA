@@ -1,5 +1,7 @@
-import { Component, HostListener, inject, signal } from '@angular/core';
-import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { Component, DestroyRef, HostListener, inject, signal } from '@angular/core';
+import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { filter } from 'rxjs';
 import { finalize } from 'rxjs';
 import { AuthService } from '../core/services/auth.service';
 
@@ -7,6 +9,7 @@ interface MenuItem {
   label: string;
   icon: string;
   route: string;
+  menuKey?: string;
   permissions?: string[];
   children?: MenuItem[];
 }
@@ -20,9 +23,22 @@ interface MenuItem {
         <div class="sidebar-brand"><span class="brand-mark small">BBF</span><div><strong>Barro Blanco</strong><small>Sistema Administrativo</small></div></div>
         <nav>
           @for (item of visibleItems(); track item.route) {
-            <a [routerLink]="item.route" routerLinkActive="active" (click)="!item.children?.length && menuOpen.set(false)"><span>{{ item.icon }}</span>{{ item.label }}</a>
-            @if (item.children?.length) {
-              <div class="submenu">
+            @if (item.children?.length && item.menuKey) {
+              <button
+                type="button"
+                class="menu-parent"
+                (click)="toggleMenu(item.menuKey)"
+                [attr.aria-expanded]="isMenuOpen(item.menuKey)"
+              >
+                <span class="menu-icon">{{ item.icon }}</span>
+                <span class="menu-label">{{ item.label }}</span>
+                <span class="menu-chevron" aria-hidden="true">{{ isMenuOpen(item.menuKey) ? '⌄' : '›' }}</span>
+              </button>
+            } @else {
+              <a [routerLink]="item.route" routerLinkActive="active" (click)="menuOpen.set(false)"><span>{{ item.icon }}</span>{{ item.label }}</a>
+            }
+            @if (item.children?.length && item.menuKey && isMenuOpen(item.menuKey)) {
+              <div class="submenu" role="group">
                 @for (child of item.children; track child.route) {
                   <a [routerLink]="child.route" routerLinkActive="active" (click)="menuOpen.set(false)"><span>{{ child.icon }}</span>{{ child.label }}</a>
                 }
@@ -46,7 +62,9 @@ interface MenuItem {
 export class AdminLayoutComponent {
   readonly auth = inject(AuthService);
   private readonly router = inject(Router);
+  private readonly destroyRef = inject(DestroyRef);
   readonly menuOpen = signal(false);
+  readonly openMenu = signal<string | null>(null);
   readonly loggingOut = signal(false);
   private readonly items: MenuItem[] = [
     { label: 'Dashboard', icon: '⌂', route: '/admin/dashboard', permissions: ['DASHBOARD_VER'] },
@@ -56,6 +74,7 @@ export class AdminLayoutComponent {
       label: 'Herramientas',
       icon: 'H',
       route: '/admin/tools',
+      menuKey: 'tools',
       permissions: ['HERRAMIENTAS_LISTAR', 'HERRAMIENTAS_CREAR', 'HERRAMIENTAS_EDITAR', 'HERRAMIENTAS_ENTREGAR', 'HERRAMIENTAS_ELIMINAR'],
       children: [
         { label: 'Catálogo', icon: 'C', route: '/admin/tools', permissions: ['HERRAMIENTAS_LISTAR'] },
@@ -67,6 +86,7 @@ export class AdminLayoutComponent {
       label: 'Dotaciones',
       icon: 'D',
       route: '/admin/dotations/my-sizes',
+      menuKey: 'dotations',
       permissions: ['DOTACIONES_VER', 'HERRAMIENTAS_MIS_ENTREGAS_VER'],
       children: [
         { label: 'Mis tallas', icon: 'M', route: '/admin/dotations/my-sizes', permissions: ['DOTACIONES_MIS_TALLAS_VER'] },
@@ -79,6 +99,7 @@ export class AdminLayoutComponent {
       label: 'Contratacion',
       icon: 'C',
       route: '/admin/contracting',
+      menuKey: 'contracting',
       permissions: ['CONTRATACION_VER'],
       children: [
         { label: 'Ficha de ingreso', icon: 'F', route: '/admin/contracting', permissions: ['CONTRATACION_VER'] },
@@ -92,13 +113,65 @@ export class AdminLayoutComponent {
     { label: 'Mi perfil', icon: 'M', route: '/admin/profile', permissions: ['MI_PERFIL_VER'] },
   ];
 
+  constructor() {
+    this.updateOpenMenuFromUrl(this.router.url);
+    this.router.events
+      .pipe(
+        filter((event): event is NavigationEnd => event instanceof NavigationEnd),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe((event) => this.updateOpenMenuFromUrl(event.urlAfterRedirects));
+  }
+
   visibleItems(): MenuItem[] {
-    return this.items
+    const visibleItems = this.items
       .filter((item) => !item.permissions || this.auth.hasAnyPermission(item.permissions))
       .map((item) => {
-        const children = item.children?.filter((child) => !child.permissions || this.auth.hasAnyPermission(child.permissions));
+        const children = item.children
+          ?.filter((child) => !child.permissions || this.auth.hasAnyPermission(child.permissions))
+          .sort((left, right) => this.compareLabels(left, right));
         return { ...item, route: children?.[0]?.route ?? item.route, children };
-      });
+      })
+      .filter((item) => !item.menuKey || !!item.children?.length);
+
+    return visibleItems.sort((left, right) => {
+      if (left.route === '/admin/dashboard') return -1;
+      if (right.route === '/admin/dashboard') return 1;
+      return this.compareLabels(left, right);
+    });
+  }
+
+  private compareLabels(left: MenuItem, right: MenuItem): number {
+    return left.label.localeCompare(right.label, 'es', { sensitivity: 'base' });
+  }
+
+  toggleMenu(menu: string): void {
+    this.openMenu.update((current) => current === menu ? null : menu);
+  }
+
+  isMenuOpen(menu: string): boolean {
+    return this.openMenu() === menu;
+  }
+
+  private updateOpenMenuFromUrl(url: string): void {
+    const path = url.split(/[?#]/, 1)[0];
+
+    if (path === '/admin/tools' || path.startsWith('/admin/tool-deliveries')) {
+      this.openMenu.set('tools');
+      return;
+    }
+
+    if (path.startsWith('/admin/dotations') || path.startsWith('/admin/my-tool-deliveries')) {
+      this.openMenu.set('dotations');
+      return;
+    }
+
+    if (path.startsWith('/admin/contracting')) {
+      this.openMenu.set('contracting');
+      return;
+    }
+
+    this.openMenu.set(null);
   }
 
   initials(): string {

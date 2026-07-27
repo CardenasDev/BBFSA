@@ -217,6 +217,59 @@ export interface ChangeEmployeeStatusPayload {
   fecha_retiro?: string | null;
 }
 
+export interface Tool {
+  id_herramienta: number;
+  nombre: string;
+  descripcion?: string | null;
+  activo?: boolean | number;
+  created_at?: string | null;
+  updated_at?: string | null;
+}
+
+export interface ToolPayload {
+  nombre: string;
+  descripcion?: string | null;
+}
+
+export interface ToolDeliveryDetail {
+  id_detalle?: number | null;
+  id_herramienta: number;
+  herramienta?: string | null;
+  cantidad: number;
+  observaciones?: string | null;
+}
+
+export interface ToolDelivery {
+  id_entrega: number;
+  id_empleado?: number;
+  empleado?: string | null;
+  nombres?: string | null;
+  apellidos?: string | null;
+  numero_documento?: string | null;
+  fecha_entrega: string;
+  estado?: 'pendiente' | 'confirmada' | string | null;
+  observaciones?: string | null;
+  fecha_confirmacion?: string | null;
+  total_herramientas?: number;
+  herramientas?: ToolDeliveryDetail[];
+}
+
+export interface ToolDeliveryFilters {
+  id_empleado?: number | null;
+  estado?: 'pendiente' | 'confirmada' | null;
+}
+
+export interface CreateToolDeliveryRequest {
+  id_empleado: number;
+  fecha_entrega: string;
+  observaciones?: string | null;
+  herramientas: Array<{
+    id_herramienta: number;
+    cantidad: number;
+    observaciones?: string | null;
+  }>;
+}
+
 export interface DotationType {
   id_tipo_dotacion: number;
   nombre: string;

@@ -42,6 +42,12 @@ class BootstrapAdmin extends Command
         ['DOMINIOS_CREAR', 'Crear dominios autorizados', 'DOMINIOS'],
         ['DOMINIOS_EDITAR', 'Editar dominios autorizados', 'DOMINIOS'],
         ['EMPLEADOS_VER', 'Ver empleados', 'EMPLEADOS'],
+        ['HERRAMIENTAS_LISTAR', 'Listar herramientas y entregas', 'HERRAMIENTAS'],
+        ['HERRAMIENTAS_CREAR', 'Crear herramientas', 'HERRAMIENTAS'],
+        ['HERRAMIENTAS_EDITAR', 'Editar y cambiar estado de herramientas', 'HERRAMIENTAS'],
+        ['HERRAMIENTAS_ENTREGAR', 'Registrar entregas de herramientas', 'HERRAMIENTAS'],
+        ['HERRAMIENTAS_CONFIRMAR', 'Confirmar entregas de herramientas', 'HERRAMIENTAS'],
+        ['HERRAMIENTAS_ELIMINAR', 'Eliminar entregas pendientes de herramientas', 'HERRAMIENTAS'],
     ];
 
     public function handle(): int

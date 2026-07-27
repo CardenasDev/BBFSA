@@ -8,7 +8,9 @@ use App\Http\Controllers\Api\DomainController;
 use App\Http\Controllers\Api\DotationController;
 use App\Http\Controllers\Api\EmployeeController;
 use App\Http\Controllers\Api\HealthController;
+use App\Http\Controllers\Api\MyToolDeliveryController;
 use App\Http\Controllers\Api\RoleController;
+use App\Http\Controllers\Api\ToolController;
 use App\Http\Controllers\Api\UserController;
 use Illuminate\Support\Facades\Route;
 
@@ -78,6 +80,24 @@ Route::middleware('auth.jwt')->group(function (): void {
     Route::post('domains', [DomainController::class, 'store'])->middleware('permission:DOMINIOS_CREAR');
     Route::patch('domains/{id}/estado', [DomainController::class, 'changeState'])->whereNumber('id')->middleware('permission:DOMINIOS_EDITAR');
     Route::get('permissions', [RoleController::class, 'permissions'])->middleware('permission:PERMISOS_LISTAR');
+    Route::prefix('tools')->group(function (): void {
+        Route::get('/', [ToolController::class, 'index'])->middleware('permission:HERRAMIENTAS_LISTAR');
+        Route::post('/', [ToolController::class, 'store'])->middleware('permission:HERRAMIENTAS_CREAR');
+        Route::put('{id}', [ToolController::class, 'update'])->whereNumber('id')->middleware('permission:HERRAMIENTAS_EDITAR');
+        Route::patch('{id}/status', [ToolController::class, 'changeStatus'])->whereNumber('id')->middleware('permission:HERRAMIENTAS_EDITAR');
+    });
+    Route::prefix('tool-deliveries')->group(function (): void {
+        Route::get('/', [ToolController::class, 'deliveries'])->middleware('permission:HERRAMIENTAS_LISTAR');
+        Route::post('/', [ToolController::class, 'storeDelivery'])->middleware('permission:HERRAMIENTAS_ENTREGAR');
+        Route::get('{id}', [ToolController::class, 'showDelivery'])->whereNumber('id')->middleware('permission:HERRAMIENTAS_LISTAR');
+        Route::post('{id}/confirm', [ToolController::class, 'confirmDelivery'])->whereNumber('id')->middleware('permission:HERRAMIENTAS_CONFIRMAR');
+        Route::delete('{id}', [ToolController::class, 'deleteDelivery'])->whereNumber('id')->middleware('permission:HERRAMIENTAS_ELIMINAR');
+    });
+    Route::prefix('my-tool-deliveries')->group(function (): void {
+        Route::get('/', [MyToolDeliveryController::class, 'index'])->middleware('permission:HERRAMIENTAS_MIS_ENTREGAS_VER');
+        Route::get('{id}', [MyToolDeliveryController::class, 'show'])->whereNumber('id')->middleware('permission:HERRAMIENTAS_MIS_ENTREGAS_VER');
+        Route::post('{id}/confirm', [MyToolDeliveryController::class, 'confirm'])->whereNumber('id')->middleware('permission:HERRAMIENTAS_CONFIRMAR');
+    });
     Route::prefix('dotations')->group(function (): void {
         Route::get('types', [DotationController::class, 'types'])->middleware('permission:DOTACIONES_CATALOGOS_VER');
         Route::get('sizes', [DotationController::class, 'sizes'])->middleware('permission:DOTACIONES_CATALOGOS_VER');

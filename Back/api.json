@@ -48,12 +48,20 @@
             "description": "Gestion de tallas y entregas de dotacion."
         },
         {
+            "name": "Herramientas",
+            "description": "Cat\u00e1logo y entregas de herramientas a empleados."
+        },
+        {
             "name": "Contracting",
             "description": "Gestion de contratacion y ficha de ingreso."
         },
         {
             "name": "Applicants",
             "description": "Gestion de aspirantes para contratacion."
+        },
+        {
+            "name": "Mis herramientas",
+            "description": "Entregas de herramientas del empleado autenticado."
         }
     ],
     "security": [
@@ -1750,6 +1758,38 @@
                 }
             }
         },
+        "/employees/export": {
+            "get": {
+                "operationId": "employee.export",
+                "description": "Descarga el reporte consolidado de empleados activos en formato XLSX.",
+                "summary": "Exportar empleados activos",
+                "tags": [
+                    "Employees"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": {
+                                "schema": {
+                                    "type": "string",
+                                    "format": "binary"
+                                }
+                            }
+                        },
+                        "headers": {
+                            "Content-Disposition": {
+                                "required": true,
+                                "schema": {
+                                    "type": "string"
+                                },
+                                "example": "attachment"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/employees/by-document/{document}": {
             "get": {
                 "operationId": "employee.byDocument",
@@ -2307,6 +2347,187 @@
                 }
             }
         },
+        "/catalogs/departments": {
+            "get": {
+                "operationId": "catalog.departments",
+                "tags": [
+                    "Catalogs"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "const": "Departamentos consultados correctamente"
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {}
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "message",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/catalogs/departments/{departmentId}/municipalities": {
+            "get": {
+                "operationId": "catalog.municipalities",
+                "tags": [
+                    "Catalogs"
+                ],
+                "parameters": [
+                    {
+                        "name": "departmentId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "const": "Municipios consultados correctamente"
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {}
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "message",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "$ref": "#/components/responses/ModelNotFoundException"
+                    }
+                }
+            }
+        },
+        "/catalogs/social-security-entities": {
+            "get": {
+                "operationId": "catalog.socialSecurityEntities",
+                "tags": [
+                    "Catalogs"
+                ],
+                "parameters": [
+                    {
+                        "name": "type",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                ""
+                            ]
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "const": "Entidades de seguridad social consultadas correctamente"
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {}
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "message",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/catalogs/medical-exam-types": {
+            "get": {
+                "operationId": "catalog.medicalExamTypes",
+                "tags": [
+                    "Catalogs"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "const": "Tipos de examen medico consultados correctamente"
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {}
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "message",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/catalogs/labor-document-types": {
             "get": {
                 "operationId": "catalog.laborDocumentTypes",
@@ -2429,6 +2650,96 @@
                                         "message": {
                                             "type": "string",
                                             "const": "Tallas de dotaci\u00f3n consultadas correctamente"
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {}
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "message",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/dotations/combinations": {
+            "get": {
+                "operationId": "dotation.combinations",
+                "description": "Retorna las combinaciones activas configuradas para entregas ordinarias.",
+                "summary": "Listar combinaciones de dotacion",
+                "tags": [
+                    "Dotations"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "const": "Combinaciones de dotacion consultadas correctamente"
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {}
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "message",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/dotations/combinations/{combinationId}": {
+            "get": {
+                "operationId": "dotation.combinationDetails",
+                "description": "Retorna las prendas activas que conforman una combinacion activa.",
+                "summary": "Consultar detalle de combinacion de dotacion",
+                "tags": [
+                    "Dotations"
+                ],
+                "parameters": [
+                    {
+                        "name": "combinationId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "const": "Detalle de combinacion de dotacion consultado correctamente"
                                         },
                                         "data": {
                                             "type": "array",
@@ -3052,7 +3363,7 @@
         "/dotations/deliveries": {
             "post": {
                 "operationId": "dotation.createDelivery",
-                "description": "Crea una entrega de dotacion y sus detalles en una transaccion.",
+                "description": "Crea una entrega de dotacion, su evidencia obligatoria y sus detalles en una transaccion.\nAcepta multipart/form-data con origen_evidencia ARCHIVO o URL.",
                 "summary": "Registrar entrega de dotacion",
                 "tags": [
                     "Dotations"
@@ -3060,7 +3371,7 @@
                 "requestBody": {
                     "required": true,
                     "content": {
-                        "application/json": {
+                        "multipart/form-data": {
                             "schema": {
                                 "$ref": "#/components/schemas/CreateDotationDeliveryRequest"
                             }
@@ -3087,10 +3398,90 @@
                                             "properties": {
                                                 "id_dotacion_entrega": {
                                                     "type": "integer"
+                                                },
+                                                "id_empleado": {
+                                                    "type": "integer"
+                                                },
+                                                "fecha_entrega": {
+                                                    "type": "string"
+                                                },
+                                                "tipo_entrega": {
+                                                    "type": "string"
+                                                },
+                                                "id_dotacion_combinacion": {
+                                                    "type": [
+                                                        "integer",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "estado": {
+                                                    "type": "string",
+                                                    "const": "REGISTRADA"
+                                                },
+                                                "evidencia_nombre_archivo": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "evidencia_nombre_original": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "evidencia_url": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "evidencia_ruta": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "evidencia_url_publica": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "evidencia_mime_type": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "evidencia_peso_bytes": {
+                                                    "type": [
+                                                        "integer",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "evidencia_fecha_carga": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
                                                 }
                                             },
                                             "required": [
-                                                "id_dotacion_entrega"
+                                                "id_dotacion_entrega",
+                                                "id_empleado",
+                                                "fecha_entrega",
+                                                "tipo_entrega",
+                                                "id_dotacion_combinacion",
+                                                "estado",
+                                                "evidencia_nombre_archivo",
+                                                "evidencia_nombre_original",
+                                                "evidencia_url",
+                                                "evidencia_ruta",
+                                                "evidencia_url_publica",
+                                                "evidencia_mime_type",
+                                                "evidencia_peso_bytes",
+                                                "evidencia_fecha_carga"
                                             ]
                                         }
                                     },
@@ -3625,6 +4016,378 @@
                 }
             }
         },
+        "/contracting/contract-templates": {
+            "get": {
+                "operationId": "contracting.listContractTemplates",
+                "description": "Permiso requerido: CONTRATACION_VER.",
+                "summary": "Listar plantillas de contrato",
+                "tags": [
+                    "Contracting"
+                ],
+                "parameters": [
+                    {
+                        "name": "id_tipo_contrato",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "integer",
+                                "null"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "tipo_cargo_contrato",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "enum": [
+                                "ADMINISTRATIVO",
+                                "OPERATIVO",
+                                "OTRO"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "solo_activas",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "boolean",
+                                "null"
+                            ]
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "const": "Plantillas de contrato consultadas correctamente"
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {}
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "message",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/contracting/contract-templates/by-type": {
+            "get": {
+                "operationId": "contracting.getContractTemplateByType",
+                "description": "Permiso requerido: CONTRATACION_VER.",
+                "summary": "Obtener plantilla sugerida por tipo de contrato",
+                "tags": [
+                    "Contracting"
+                ],
+                "parameters": [
+                    {
+                        "name": "id_tipo_contrato",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    },
+                    {
+                        "name": "tipo_cargo_contrato",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "enum": [
+                                "ADMINISTRATIVO",
+                                "OPERATIVO",
+                                "OTRO"
+                            ]
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "const": "Plantilla de contrato sugerida consultada correctamente"
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {}
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "message",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/contracting/contract-templates/{templateId}": {
+            "get": {
+                "operationId": "contracting.getContractTemplate",
+                "description": "Permiso requerido: CONTRATACION_VER.",
+                "summary": "Obtener plantilla de contrato",
+                "tags": [
+                    "Contracting"
+                ],
+                "parameters": [
+                    {
+                        "name": "templateId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "const": "Plantilla de contrato consultada correctamente"
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {}
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "message",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/contracting/contracts/{employeeContractId}/generation-data": {
+            "get": {
+                "operationId": "contracting.getContractGenerationData",
+                "description": "Permiso requerido: CONTRATACION_VER.",
+                "summary": "Obtener datos para generacion de contrato",
+                "tags": [
+                    "Contracting"
+                ],
+                "parameters": [
+                    {
+                        "name": "employeeContractId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "const": "Datos de contrato para generacion consultados correctamente"
+                                        },
+                                        "data": {
+                                            "$ref": "#/components/schemas/ContractGenerationDataResource"
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "message",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/contracting/contracts/{employeeContractId}/sign": {
+            "post": {
+                "operationId": "contracting.signContract",
+                "description": "Permiso requerido: CONTRATACION_EDITAR.\n\nAcepta multipart/form-data. Para origen ARCHIVO recibe archivo; para origen URL recibe url.",
+                "summary": "Registrar contrato firmado",
+                "tags": [
+                    "Contracting"
+                ],
+                "parameters": [
+                    {
+                        "name": "employeeContractId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/SignEmployeeContractRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "type": "string"
+                                        },
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "id_empleado_contrato": {
+                                                    "type": "integer"
+                                                },
+                                                "id_empleado": {
+                                                    "type": "integer"
+                                                },
+                                                "numero_contrato": {
+                                                    "type": "string"
+                                                },
+                                                "fecha_firma": {
+                                                    "type": "string"
+                                                },
+                                                "id_empleado_documento": {
+                                                    "type": "integer"
+                                                },
+                                                "nombre_archivo": {
+                                                    "type": "string"
+                                                },
+                                                "nombre_original": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "archivo_url": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "archivo_ruta": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "estado_documento": {
+                                                    "type": "string"
+                                                },
+                                                "observaciones": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "estado_firma": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "required": [
+                                                "id_empleado_contrato",
+                                                "id_empleado",
+                                                "numero_contrato",
+                                                "fecha_firma",
+                                                "id_empleado_documento",
+                                                "nombre_archivo",
+                                                "nombre_original",
+                                                "archivo_url",
+                                                "archivo_ruta",
+                                                "estado_documento",
+                                                "observaciones",
+                                                "estado_firma"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "message",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
         "/contracting/employees/{employeeId}/profile": {
             "get": {
                 "operationId": "contracting.getProfile",
@@ -3669,6 +4432,24 @@
                                                         "null"
                                                     ]
                                                 },
+                                                "numero_carpeta": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "genero": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "fecha_expedicion_documento": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
                                                 "fecha_nacimiento": {
                                                     "type": [
                                                         "string",
@@ -3704,17 +4485,34 @@
                                                         "string",
                                                         "null"
                                                     ]
+                                                },
+                                                "personas_vivienda": {
+                                                    "type": [
+                                                        "integer",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "menores_estudian": {
+                                                    "type": [
+                                                        "integer",
+                                                        "null"
+                                                    ]
                                                 }
                                             },
                                             "required": [
                                                 "id_empleado",
                                                 "estado_ficha",
+                                                "numero_carpeta",
+                                                "genero",
+                                                "fecha_expedicion_documento",
                                                 "fecha_nacimiento",
                                                 "lugar_nacimiento",
                                                 "nacionalidad",
                                                 "direccion_residencia",
                                                 "telefono_alterno",
-                                                "correo_personal"
+                                                "correo_personal",
+                                                "personas_vivienda",
+                                                "menores_estudian"
                                             ]
                                         }
                                     },
@@ -3781,6 +4579,24 @@
                                                         "null"
                                                     ]
                                                 },
+                                                "numero_carpeta": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "genero": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "fecha_expedicion_documento": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
                                                 "fecha_nacimiento": {
                                                     "type": [
                                                         "string",
@@ -3816,17 +4632,34 @@
                                                         "string",
                                                         "null"
                                                     ]
+                                                },
+                                                "personas_vivienda": {
+                                                    "type": [
+                                                        "integer",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "menores_estudian": {
+                                                    "type": [
+                                                        "integer",
+                                                        "null"
+                                                    ]
                                                 }
                                             },
                                             "required": [
                                                 "id_empleado",
                                                 "estado_ficha",
+                                                "numero_carpeta",
+                                                "genero",
+                                                "fecha_expedicion_documento",
                                                 "fecha_nacimiento",
                                                 "lugar_nacimiento",
                                                 "nacionalidad",
                                                 "direccion_residencia",
                                                 "telefono_alterno",
-                                                "correo_personal"
+                                                "correo_personal",
+                                                "personas_vivienda",
+                                                "menores_estudian"
                                             ]
                                         }
                                     },
@@ -4301,14 +5134,15 @@
                 ],
                 "parameters": [
                     {
-                        "name": "dias",
+                        "name": "dias_antes",
                         "in": "query",
                         "schema": {
                             "type": [
                                 "integer",
                                 "null"
                             ],
-                            "minimum": 0
+                            "minimum": 1,
+                            "maximum": 365
                         }
                     }
                 ],
@@ -4343,6 +5177,689 @@
                     },
                     "422": {
                         "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/tools": {
+            "get": {
+                "operationId": "tool.index",
+                "description": "Consulta el cat\u00e1logo. Use `active=0` para incluir herramientas inactivas.",
+                "summary": "Listar herramientas",
+                "tags": [
+                    "Herramientas"
+                ],
+                "parameters": [
+                    {
+                        "name": "active",
+                        "in": "query",
+                        "schema": {
+                            "type": "boolean",
+                            "default": true
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "type": "string"
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "id_herramienta": {
+                                                        "type": "integer"
+                                                    },
+                                                    "nombre": {
+                                                        "type": "string"
+                                                    },
+                                                    "descripcion": {
+                                                        "type": [
+                                                            "string",
+                                                            "null"
+                                                        ]
+                                                    },
+                                                    "activo": {
+                                                        "type": "boolean"
+                                                    }
+                                                },
+                                                "required": [
+                                                    "id_herramienta",
+                                                    "nombre",
+                                                    "descripcion",
+                                                    "activo"
+                                                ]
+                                            }
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "message",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "operationId": "tool.store",
+                "description": "Registra una herramienta en el cat\u00e1logo.",
+                "summary": "Crear herramienta",
+                "tags": [
+                    "Herramientas"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/StoreToolRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "const": "Herramienta creada correctamente"
+                                        },
+                                        "data": {
+                                            "anyOf": [
+                                                {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "nombre": {
+                                                            "type": "string"
+                                                        },
+                                                        "descripcion": {
+                                                            "type": [
+                                                                "string",
+                                                                "null"
+                                                            ]
+                                                        },
+                                                        "activo": {
+                                                            "type": "boolean"
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "nombre",
+                                                        "descripcion",
+                                                        "activo"
+                                                    ]
+                                                },
+                                                {
+                                                    "type": "array",
+                                                    "items": {}
+                                                }
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "message",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/tools/{id}": {
+            "put": {
+                "operationId": "tool.update",
+                "description": "Actualiza nombre y descripci\u00f3n de una herramienta.",
+                "summary": "Actualizar herramienta",
+                "tags": [
+                    "Herramientas"
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/StoreToolRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "const": "Herramienta actualizada correctamente"
+                                        },
+                                        "data": {
+                                            "anyOf": [
+                                                {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "id_herramienta": {
+                                                            "type": "integer"
+                                                        },
+                                                        "nombre": {
+                                                            "type": "string"
+                                                        },
+                                                        "descripcion": {
+                                                            "type": [
+                                                                "string",
+                                                                "null"
+                                                            ]
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "id_herramienta",
+                                                        "nombre",
+                                                        "descripcion"
+                                                    ]
+                                                },
+                                                {
+                                                    "type": "array",
+                                                    "items": {}
+                                                }
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "message",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/tools/{id}/status": {
+            "patch": {
+                "operationId": "tool.changeStatus",
+                "description": "Cambia el estado activo del elemento de cat\u00e1logo sin eliminarlo.",
+                "summary": "Activar o inactivar herramienta",
+                "tags": [
+                    "Herramientas"
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UpdateToolStatusRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "const": "Estado de la herramienta actualizado correctamente"
+                                        },
+                                        "data": {
+                                            "anyOf": [
+                                                {
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "id_herramienta": {
+                                                            "type": "integer"
+                                                        },
+                                                        "activo": {
+                                                            "type": "boolean"
+                                                        }
+                                                    },
+                                                    "required": [
+                                                        "id_herramienta",
+                                                        "activo"
+                                                    ]
+                                                },
+                                                {
+                                                    "type": "array",
+                                                    "items": {}
+                                                }
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "message",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/tool-deliveries": {
+            "get": {
+                "operationId": "tool.deliveries",
+                "description": "Permite filtrar por `id_empleado` y por estado `pendiente` o `confirmada`.",
+                "summary": "Listar entregas de herramientas",
+                "tags": [
+                    "Herramientas"
+                ],
+                "parameters": [
+                    {
+                        "name": "id_empleado",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "integer",
+                                "null"
+                            ],
+                            "minimum": 1
+                        }
+                    },
+                    {
+                        "name": "estado",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "enum": [
+                                "pendiente",
+                                "confirmada"
+                            ]
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "const": "Entregas de herramientas consultadas correctamente"
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {}
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "message",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            },
+            "post": {
+                "operationId": "tool.storeDelivery",
+                "description": "Crea una entrega pendiente con una o varias herramientas. El detalle completo se env\u00eda como JSON al procedimiento almacenado.",
+                "summary": "Registrar entrega de herramientas",
+                "tags": [
+                    "Herramientas"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/StoreToolDeliveryRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "type": "string"
+                                        },
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "id_entrega": {
+                                                    "type": "integer"
+                                                },
+                                                "estado": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "required": [
+                                                "id_entrega",
+                                                "estado"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "message",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/tool-deliveries/{id}": {
+            "get": {
+                "operationId": "tool.showDelivery",
+                "description": "Retorna en una sola respuesta la cabecera y todas las herramientas entregadas.",
+                "summary": "Consultar entrega completa",
+                "tags": [
+                    "Herramientas"
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "type": "string"
+                                        },
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "id_entrega": {
+                                                    "type": "integer"
+                                                },
+                                                "id_empleado": {
+                                                    "type": "integer"
+                                                },
+                                                "numero_documento": {
+                                                    "type": "string"
+                                                },
+                                                "nombres": {
+                                                    "type": "string"
+                                                },
+                                                "apellidos": {
+                                                    "type": "string"
+                                                },
+                                                "empleado": {
+                                                    "type": "string"
+                                                },
+                                                "fecha_entrega": {
+                                                    "type": "string"
+                                                },
+                                                "estado": {
+                                                    "type": "string"
+                                                },
+                                                "observaciones": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "fecha_confirmacion": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "herramientas": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "id_detalle": {
+                                                                "type": "integer"
+                                                            },
+                                                            "id_herramienta": {
+                                                                "type": "integer"
+                                                            },
+                                                            "herramienta": {
+                                                                "type": "string"
+                                                            },
+                                                            "cantidad": {
+                                                                "type": "integer"
+                                                            },
+                                                            "observaciones": {
+                                                                "type": [
+                                                                    "string",
+                                                                    "null"
+                                                                ]
+                                                            }
+                                                        },
+                                                        "required": [
+                                                            "id_detalle",
+                                                            "id_herramienta",
+                                                            "herramienta",
+                                                            "cantidad",
+                                                            "observaciones"
+                                                        ]
+                                                    }
+                                                }
+                                            },
+                                            "required": [
+                                                "id_entrega",
+                                                "id_empleado",
+                                                "numero_documento",
+                                                "nombres",
+                                                "apellidos",
+                                                "empleado",
+                                                "fecha_entrega",
+                                                "estado",
+                                                "observaciones",
+                                                "fecha_confirmacion",
+                                                "herramientas"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "message",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "operationId": "tool.deleteDelivery",
+                "description": "El procedimiento almacenado rechaza la eliminaci\u00f3n de entregas confirmadas.",
+                "summary": "Eliminar entrega pendiente",
+                "tags": [
+                    "Herramientas"
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "const": "Entrega de herramientas eliminada correctamente"
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {}
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "message",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/tool-deliveries/{id}/confirm": {
+            "post": {
+                "operationId": "tool.confirmDelivery",
+                "description": "Confirma una entrega pendiente. No recibe el estado desde el cliente.",
+                "summary": "Confirmar entrega",
+                "tags": [
+                    "Herramientas"
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "const": "Entrega de herramientas confirmada correctamente"
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {}
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "message",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -5029,6 +6546,243 @@
                     }
                 }
             }
+        },
+        "/my-tool-deliveries": {
+            "get": {
+                "operationId": "myToolDelivery.index",
+                "description": "Obtiene \u00fanicamente las entregas del empleado asociado al usuario JWT.",
+                "summary": "Listar mis entregas de herramientas",
+                "tags": [
+                    "Mis herramientas"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "type": "string"
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "id_entrega": {
+                                                        "type": "integer"
+                                                    },
+                                                    "fecha_entrega": {
+                                                        "type": "string"
+                                                    },
+                                                    "estado": {
+                                                        "type": "string"
+                                                    },
+                                                    "observaciones": {
+                                                        "type": [
+                                                            "string",
+                                                            "null"
+                                                        ]
+                                                    },
+                                                    "fecha_confirmacion": {
+                                                        "type": [
+                                                            "string",
+                                                            "null"
+                                                        ]
+                                                    },
+                                                    "total_herramientas": {
+                                                        "type": "integer"
+                                                    }
+                                                },
+                                                "required": [
+                                                    "id_entrega",
+                                                    "fecha_entrega",
+                                                    "estado",
+                                                    "observaciones",
+                                                    "fecha_confirmacion",
+                                                    "total_herramientas"
+                                                ]
+                                            }
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "message",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/my-tool-deliveries/{id}": {
+            "get": {
+                "operationId": "myToolDelivery.show",
+                "description": "Retorna cabecera y detalle solamente si la entrega pertenece al empleado autenticado.",
+                "summary": "Consultar mi entrega de herramientas",
+                "tags": [
+                    "Mis herramientas"
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "type": "string"
+                                        },
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "id_entrega": {
+                                                    "type": "integer"
+                                                },
+                                                "fecha_entrega": {
+                                                    "type": "string"
+                                                },
+                                                "estado": {
+                                                    "type": "string"
+                                                },
+                                                "observaciones": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "fecha_confirmacion": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "herramientas": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "type": "object",
+                                                        "properties": {
+                                                            "id_detalle": {
+                                                                "type": "integer"
+                                                            },
+                                                            "id_herramienta": {
+                                                                "type": "integer"
+                                                            },
+                                                            "herramienta": {
+                                                                "type": "string"
+                                                            },
+                                                            "cantidad": {
+                                                                "type": "integer"
+                                                            },
+                                                            "observaciones": {
+                                                                "type": [
+                                                                    "string",
+                                                                    "null"
+                                                                ]
+                                                            }
+                                                        },
+                                                        "required": [
+                                                            "id_detalle",
+                                                            "id_herramienta",
+                                                            "herramienta",
+                                                            "cantidad",
+                                                            "observaciones"
+                                                        ]
+                                                    }
+                                                }
+                                            },
+                                            "required": [
+                                                "id_entrega",
+                                                "fecha_entrega",
+                                                "estado",
+                                                "observaciones",
+                                                "fecha_confirmacion",
+                                                "herramientas"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "message",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/my-tool-deliveries/{id}/confirm": {
+            "post": {
+                "operationId": "myToolDelivery.confirm",
+                "description": "Confirma una entrega pendiente \u00fanicamente si pertenece al empleado autenticado. No recibe payload.",
+                "summary": "Confirmar recepci\u00f3n de mi entrega",
+                "tags": [
+                    "Mis herramientas"
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "const": "Recepci\u00f3n confirmada correctamente."
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {}
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "message",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
     },
     "components": {
@@ -5161,6 +6915,99 @@
                 },
                 "title": "ConfirmDotationDeliveryRequest"
             },
+            "ContractGenerationDataResource": {
+                "type": "object",
+                "properties": {
+                    "empresa": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                },
+                                "minItems": 0,
+                                "maxItems": 0,
+                                "additionalItems": false
+                            }
+                        ]
+                    },
+                    "empleado": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                },
+                                "minItems": 0,
+                                "maxItems": 0,
+                                "additionalItems": false
+                            }
+                        ]
+                    },
+                    "contrato": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                },
+                                "minItems": 0,
+                                "maxItems": 0,
+                                "additionalItems": false
+                            }
+                        ]
+                    },
+                    "firmas": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                },
+                                "minItems": 0,
+                                "maxItems": 0,
+                                "additionalItems": false
+                            }
+                        ]
+                    },
+                    "parametros": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                },
+                                "minItems": 0,
+                                "maxItems": 0,
+                                "additionalItems": false
+                            }
+                        ]
+                    }
+                },
+                "required": [
+                    "empresa",
+                    "empleado",
+                    "contrato",
+                    "firmas",
+                    "parametros"
+                ],
+                "title": "ContractGenerationDataResource"
+            },
             "ConvertApplicantToEmployeeRequest": {
                 "type": "object",
                 "properties": {
@@ -5236,12 +7083,19 @@
                         ],
                         "format": "date-time"
                     },
-                    "lugar_nacimiento": {
+                    "id_departamento_nacimiento": {
                         "type": [
-                            "string",
+                            "integer",
                             "null"
                         ],
-                        "maxLength": 150
+                        "minimum": 1
+                    },
+                    "id_municipio_nacimiento": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ],
+                        "minimum": 1
                     },
                     "nacionalidad": {
                         "type": [
@@ -5249,6 +7103,65 @@
                             "null"
                         ],
                         "maxLength": 100
+                    },
+                    "id_departamento_residencia": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ],
+                        "minimum": 1
+                    },
+                    "id_municipio_residencia": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ],
+                        "minimum": 1
+                    },
+                    "estado_civil": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "enum": [
+                            "SOLTERO",
+                            "CASADO",
+                            "UNION_LIBRE",
+                            "SEPARADO",
+                            "DIVORCIADO",
+                            "VIUDO",
+                            "OTRO"
+                        ]
+                    },
+                    "nivel_educativo": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "enum": [
+                            "PRIMARIA",
+                            "BACHILLER",
+                            "TECNICO",
+                            "TECNOLOGO",
+                            "PROFESIONAL",
+                            "POSGRADO",
+                            "NINGUNO",
+                            "OTRO"
+                        ]
+                    },
+                    "personas_a_cargo": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ],
+                        "minimum": 0
+                    },
+                    "numero_hijos": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ],
+                        "minimum": 0
                     },
                     "id_area_aspira": {
                         "type": [
@@ -5280,11 +7193,26 @@
                 "type": "object",
                 "properties": {
                     "id_empleado": {
-                        "type": "integer"
+                        "type": "integer",
+                        "minimum": 1
                     },
                     "fecha_entrega": {
                         "type": "string",
                         "format": "date-time"
+                    },
+                    "tipo_entrega": {
+                        "type": "string",
+                        "enum": [
+                            "ORDINARIA",
+                            "EXTRAORDINARIA"
+                        ]
+                    },
+                    "id_dotacion_combinacion": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ],
+                        "minimum": 1
                     },
                     "observaciones": {
                         "type": [
@@ -5292,19 +7220,46 @@
                             "null"
                         ]
                     },
+                    "origen_evidencia": {
+                        "type": "string",
+                        "enum": [
+                            "ARCHIVO",
+                            "URL"
+                        ]
+                    },
+                    "evidencia_nombre_archivo": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 255
+                    },
+                    "evidencia_archivo": {
+                        "type": "string",
+                        "format": "binary",
+                        "contentMediaType": "application/octet-stream",
+                        "maxLength": 5120
+                    },
+                    "evidencia_url": {
+                        "type": "string",
+                        "format": "uri",
+                        "maxLength": 500
+                    },
                     "detalles": {
                         "type": "array",
                         "items": {
                             "type": "object",
                             "properties": {
                                 "id_tipo_dotacion": {
-                                    "type": "integer"
+                                    "type": "integer",
+                                    "minimum": 1
                                 },
                                 "id_talla_dotacion": {
                                     "type": [
                                         "integer",
                                         "null"
-                                    ]
+                                    ],
+                                    "minimum": 1
                                 },
                                 "cantidad": {
                                     "type": "integer",
@@ -5329,6 +7284,8 @@
                 "required": [
                     "id_empleado",
                     "fecha_entrega",
+                    "tipo_entrega",
+                    "origen_evidencia",
                     "detalles"
                 ],
                 "title": "CreateDotationDeliveryRequest"
@@ -5337,6 +7294,9 @@
                 "type": "object",
                 "properties": {
                     "id_tipo_contrato": {
+                        "type": "integer"
+                    },
+                    "id_plantilla_contrato": {
                         "type": [
                             "integer",
                             "null"
@@ -5478,6 +7438,7 @@
                     }
                 },
                 "required": [
+                    "id_tipo_contrato",
                     "fecha_inicio"
                 ],
                 "title": "CreateEmployeeContractRequest"
@@ -5684,33 +7645,54 @@
             "SaveContractingProfileRequest": {
                 "type": "object",
                 "properties": {
-                    "lugar_nacimiento": {
+                    "numero_carpeta": {
                         "type": [
                             "string",
                             "null"
                         ],
-                        "maxLength": 150
+                        "maxLength": 50
                     },
-                    "departamento_nacimiento": {
+                    "genero": {
                         "type": [
                             "string",
                             "null"
                         ],
-                        "maxLength": 150
+                        "maxLength": 20
                     },
-                    "ciudad_residencia": {
+                    "fecha_expedicion_documento": {
                         "type": [
                             "string",
                             "null"
                         ],
-                        "maxLength": 150
+                        "format": "date-time"
                     },
-                    "departamento_residencia": {
+                    "id_departamento_nacimiento": {
                         "type": [
-                            "string",
+                            "integer",
                             "null"
                         ],
-                        "maxLength": 150
+                        "minimum": 1
+                    },
+                    "id_municipio_nacimiento": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ],
+                        "minimum": 1
+                    },
+                    "id_departamento_residencia": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ],
+                        "minimum": 1
+                    },
+                    "id_municipio_residencia": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ],
+                        "minimum": 1
                     },
                     "direccion_residencia": {
                         "type": [
@@ -5778,6 +7760,19 @@
                             "null"
                         ],
                         "minimum": 0
+                    },
+                    "personas_vivienda": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ],
+                        "minimum": 0
+                    },
+                    "menores_estudian": {
+                        "type": [
+                            "boolean",
+                            "null"
+                        ]
                     },
                     "observaciones": {
                         "type": [
@@ -5937,6 +7932,51 @@
                 },
                 "title": "SaveSocialSecurityRequest"
             },
+            "SignEmployeeContractRequest": {
+                "type": "object",
+                "properties": {
+                    "fecha_firma": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "observaciones": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "origen": {
+                        "type": "string",
+                        "enum": [
+                            "ARCHIVO",
+                            "URL"
+                        ]
+                    },
+                    "nombre_archivo": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 255
+                    },
+                    "archivo": {
+                        "type": "string",
+                        "format": "binary",
+                        "contentMediaType": "application/octet-stream",
+                        "maxLength": 5120
+                    },
+                    "url": {
+                        "type": "string",
+                        "format": "uri",
+                        "maxLength": 500
+                    }
+                },
+                "required": [
+                    "fecha_firma",
+                    "origen"
+                ],
+                "title": "SignEmployeeContractRequest"
+            },
             "StoreDomainRequest": {
                 "type": "object",
                 "properties": {
@@ -6071,6 +8111,80 @@
                 ],
                 "title": "StoreRoleRequest"
             },
+            "StoreToolDeliveryRequest": {
+                "type": "object",
+                "properties": {
+                    "id_empleado": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "fecha_entrega": {
+                        "type": "string",
+                        "format": "date"
+                    },
+                    "observaciones": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 1000
+                    },
+                    "herramientas": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "id_herramienta": {
+                                    "type": "integer",
+                                    "minimum": 1
+                                },
+                                "cantidad": {
+                                    "type": "integer",
+                                    "minimum": 1
+                                },
+                                "observaciones": {
+                                    "type": [
+                                        "string",
+                                        "null"
+                                    ],
+                                    "maxLength": 1000
+                                }
+                            },
+                            "required": [
+                                "id_herramienta",
+                                "cantidad"
+                            ]
+                        },
+                        "minItems": 1
+                    }
+                },
+                "required": [
+                    "id_empleado",
+                    "fecha_entrega",
+                    "herramientas"
+                ],
+                "title": "StoreToolDeliveryRequest"
+            },
+            "StoreToolRequest": {
+                "type": "object",
+                "properties": {
+                    "nombre": {
+                        "type": "string",
+                        "maxLength": 150
+                    },
+                    "descripcion": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 1000
+                    }
+                },
+                "required": [
+                    "nombre"
+                ],
+                "title": "StoreToolRequest"
+            },
             "StoreUserRequest": {
                 "type": "object",
                 "properties": {
@@ -6184,12 +8298,19 @@
                         ],
                         "format": "date-time"
                     },
-                    "lugar_nacimiento": {
+                    "id_departamento_nacimiento": {
                         "type": [
-                            "string",
+                            "integer",
                             "null"
                         ],
-                        "maxLength": 150
+                        "minimum": 1
+                    },
+                    "id_municipio_nacimiento": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ],
+                        "minimum": 1
                     },
                     "nacionalidad": {
                         "type": [
@@ -6197,6 +8318,65 @@
                             "null"
                         ],
                         "maxLength": 100
+                    },
+                    "id_departamento_residencia": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ],
+                        "minimum": 1
+                    },
+                    "id_municipio_residencia": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ],
+                        "minimum": 1
+                    },
+                    "estado_civil": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "enum": [
+                            "SOLTERO",
+                            "CASADO",
+                            "UNION_LIBRE",
+                            "SEPARADO",
+                            "DIVORCIADO",
+                            "VIUDO",
+                            "OTRO"
+                        ]
+                    },
+                    "nivel_educativo": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "enum": [
+                            "PRIMARIA",
+                            "BACHILLER",
+                            "TECNICO",
+                            "TECNOLOGO",
+                            "PROFESIONAL",
+                            "POSGRADO",
+                            "NINGUNO",
+                            "OTRO"
+                        ]
+                    },
+                    "personas_a_cargo": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ],
+                        "minimum": 0
+                    },
+                    "numero_hijos": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ],
+                        "minimum": 0
                     },
                     "id_area_aspira": {
                         "type": [
@@ -6348,6 +8528,18 @@
                 ],
                 "title": "UpdateRoleStateRequest"
             },
+            "UpdateToolStatusRequest": {
+                "type": "object",
+                "properties": {
+                    "activo": {
+                        "type": "boolean"
+                    }
+                },
+                "required": [
+                    "activo"
+                ],
+                "title": "UpdateToolStatusRequest"
+            },
             "UpdateUserRequest": {
                 "type": "object",
                 "properties": {
@@ -6470,6 +8662,25 @@
                             "required": [
                                 "message",
                                 "errors"
+                            ]
+                        }
+                    }
+                }
+            },
+            "ModelNotFoundException": {
+                "description": "Not found",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "message": {
+                                    "type": "string",
+                                    "description": "Error overview."
+                                }
+                            },
+                            "required": [
+                                "message"
                             ]
                         }
                     }

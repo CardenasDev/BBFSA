@@ -53,13 +53,25 @@ export class AdminLayoutComponent {
     { label: 'Aspirantes', icon: 'A', route: '/admin/applicants', permissions: ['ASPIRANTES_VER'] },
     { label: 'Empleados', icon: 'E', route: '/admin/employees', permissions: ['EMPLEADOS_VER'] },
     {
+      label: 'Herramientas',
+      icon: 'H',
+      route: '/admin/tools',
+      permissions: ['HERRAMIENTAS_LISTAR', 'HERRAMIENTAS_CREAR', 'HERRAMIENTAS_EDITAR', 'HERRAMIENTAS_ENTREGAR', 'HERRAMIENTAS_ELIMINAR'],
+      children: [
+        { label: 'Catálogo', icon: 'C', route: '/admin/tools', permissions: ['HERRAMIENTAS_LISTAR'] },
+        { label: 'Entregas', icon: 'E', route: '/admin/tool-deliveries', permissions: ['HERRAMIENTAS_LISTAR'] },
+        { label: 'Registrar entrega', icon: '+', route: '/admin/tool-deliveries/create', permissions: ['HERRAMIENTAS_ENTREGAR'] },
+      ],
+    },
+    {
       label: 'Dotaciones',
       icon: 'D',
       route: '/admin/dotations/my-sizes',
-      permissions: ['DOTACIONES_VER'],
+      permissions: ['DOTACIONES_VER', 'HERRAMIENTAS_MIS_ENTREGAS_VER'],
       children: [
         { label: 'Mis tallas', icon: 'M', route: '/admin/dotations/my-sizes', permissions: ['DOTACIONES_MIS_TALLAS_VER'] },
         { label: 'Mis dotaciones', icon: 'D', route: '/admin/dotations/my-deliveries', permissions: ['DOTACIONES_MIS_ENTREGAS_VER'] },
+        { label: 'Mis herramientas', icon: 'H', route: '/admin/my-tool-deliveries', permissions: ['HERRAMIENTAS_MIS_ENTREGAS_VER'] },
         { label: 'Control de dotaciones', icon: 'C', route: '/admin/dotations/employees', permissions: ['DOTACIONES_ADMIN_VER'] },
       ],
     },
@@ -83,7 +95,10 @@ export class AdminLayoutComponent {
   visibleItems(): MenuItem[] {
     return this.items
       .filter((item) => !item.permissions || this.auth.hasAnyPermission(item.permissions))
-      .map((item) => ({ ...item, children: item.children?.filter((child) => !child.permissions || this.auth.hasAnyPermission(child.permissions)) }));
+      .map((item) => {
+        const children = item.children?.filter((child) => !child.permissions || this.auth.hasAnyPermission(child.permissions));
+        return { ...item, route: children?.[0]?.route ?? item.route, children };
+      });
   }
 
   initials(): string {

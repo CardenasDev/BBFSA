@@ -19,7 +19,7 @@ interface DeliveryHistoryGroup {
   evidencia_url_publica?: string | null;
   evidencia_fecha_carga?: string | null;
   fecha_confirmacion?: string | null;
-  estado: string;
+  estado: EmployeeDotationHistory['estado'];
   registrado_por?: string | null;
   id_registrado_por?: number | null;
   confirmado_por?: string | null;
@@ -80,8 +80,8 @@ interface DeliveryHistoryGroup {
           <dl>
             <dt>Tipo de entrega</dt><dd>{{ group.tipo_entrega === 'EXTRAORDINARIA' ? 'Extraordinaria' : 'Ordinaria' }}</dd>
             <dt>Combinacion</dt><dd>{{ combinationLabel(group) }}</dd>
-            <dt>Fecha confirmacion</dt><dd>{{ group.fecha_confirmacion || 'Pendiente' }}</dd>
-            <dt>Confirmado por</dt><dd>{{ group.confirmado_por || (group.id_confirmado_por ? 'ID ' + group.id_confirmado_por : 'Pendiente') }}</dd>
+            <dt>Fecha confirmacion</dt><dd>{{ group.estado === 'POR_COMPRAR' ? 'No aplica' : (group.fecha_confirmacion || 'Pendiente') }}</dd>
+            <dt>Confirmado por</dt><dd>{{ group.estado === 'POR_COMPRAR' ? 'No aplica' : (group.confirmado_por || (group.id_confirmado_por ? 'ID ' + group.id_confirmado_por : 'Pendiente')) }}</dd>
             <dt>Registrado por</dt><dd>{{ group.registrado_por || (group.id_registrado_por ? 'ID ' + group.id_registrado_por : 'Sin dato') }}</dd>
             <dt>Observacion entrega</dt><dd>{{ group.observaciones_entrega || 'Sin observaciones' }}</dd>
             <dt>Observacion confirmacion</dt><dd>{{ group.observacion_confirmacion || 'Sin observacion' }}</dd>
@@ -207,7 +207,7 @@ export class EmployeeDotationHistoryComponent implements OnInit {
   }
 
   totalDeliveries(): number {
-    return this.deliveryGroups().length;
+    return this.deliveryGroups().filter((group) => group.estado === 'ENTREGADA').length;
   }
 
   combinationLabel(delivery: DeliveryHistoryGroup): string {
@@ -221,7 +221,7 @@ export class EmployeeDotationHistoryComponent implements OnInit {
   }
 
   totalItemsDelivered(): number {
-    return this.history().reduce((total, item) => total + Number(item.cantidad || 0), 0);
+    return this.history().filter((item) => item.estado === 'ENTREGADA').reduce((total, item) => total + Number(item.cantidad || 0), 0);
   }
 
   pendingConfirmations(): number {
@@ -229,10 +229,12 @@ export class EmployeeDotationHistoryComponent implements OnInit {
   }
 
   lastDeliveryDate(): string {
-    return this.deliveryGroups().reduce<string | null>((latest, group) => !latest || group.fecha_entrega > latest ? group.fecha_entrega : latest, null) ?? 'Sin entregas';
+    return this.deliveryGroups().filter((group) => group.estado === 'ENTREGADA')
+      .reduce<string | null>((latest, group) => !latest || group.fecha_entrega > latest ? group.fecha_entrega : latest, null) ?? 'Sin entregas';
   }
 
   statusLabel(status: string): string {
+    if (status === 'POR_COMPRAR') return 'Por comprar';
     if (status === 'REGISTRADA') return 'Pendiente de confirmacion';
     if (status === 'ENTREGADA') return 'Confirmada';
     if (status === 'ANULADA') return 'Anulada';

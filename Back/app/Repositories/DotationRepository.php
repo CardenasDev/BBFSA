@@ -54,6 +54,11 @@ class DotationRepository extends StoredProcedureRepository
         return $this->call('SP_BBF_DOTACION_COTIZACION_LISTAR', [$areaId, $positionId, $employeeId]);
     }
 
+    public function purchaseQuotationReport(?int $areaId, ?int $positionId, ?int $employeeId): array
+    {
+        return $this->call('SP_BBF_DOTACION_COTIZACION_POR_COMPRAR_LISTAR', [$areaId, $positionId, $employeeId]);
+    }
+
     public function employeeSizes(int $employeeId): array
     {
         return $this->call('SP_BBF_DOTACION_TALLAS_EMPLEADO_LISTAR', [$employeeId]);
@@ -71,6 +76,7 @@ class DotationRepository extends StoredProcedureRepository
         ?int $combinationId,
         int $registeredBy,
         ?string $observations,
+        string $initialStatus,
         ?string $evidenceFilename,
         ?string $evidenceOriginalName,
         ?string $evidenceUrl,
@@ -78,13 +84,14 @@ class DotationRepository extends StoredProcedureRepository
         ?string $evidenceMimeType,
         ?int $evidenceSizeBytes,
     ): int {
-        $row = $this->first('SP_BBF_DOTACION_ENTREGA_CREAR', [
+        $row = $this->first('SP_BBF_DOTACION_ENTREGA_CREAR_V2', [
             $employeeId,
             $deliveryDate,
             $deliveryType,
             $combinationId,
             $registeredBy,
             $observations,
+            $initialStatus,
             $evidenceFilename,
             $evidenceOriginalName,
             $evidenceUrl,
@@ -94,6 +101,23 @@ class DotationRepository extends StoredProcedureRepository
         ]);
 
         return (int) ($row['id_dotacion_entrega'] ?? 0);
+    }
+
+    public function prepareDelivery(
+        int $deliveryId,
+        string $deliveryDate,
+        int $userId,
+        ?string $evidenceFilename,
+        ?string $evidenceOriginalName,
+        ?string $evidenceUrl,
+        ?string $evidencePath,
+        ?string $evidenceMimeType,
+        ?int $evidenceSizeBytes,
+    ): ?array {
+        return $this->first('SP_BBF_DOTACION_POR_COMPRAR_PREPARAR_ENTREGA', [
+            $deliveryId, $deliveryDate, $userId, $evidenceFilename, $evidenceOriginalName,
+            $evidenceUrl, $evidencePath, $evidenceMimeType, $evidenceSizeBytes,
+        ]);
     }
 
     public function addDeliveryDetail(

@@ -3,14 +3,15 @@ import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { finalize } from 'rxjs';
-import { DotationDelivery } from '../../core/models/api.models';
+import { DotationDelivery, DotationEvidenceOrigin } from '../../core/models/api.models';
 import { AuthService } from '../../core/services/auth.service';
 import { DotationService, resolveDotationEvidenceUrl } from '../../core/services/dotation.service';
 import { apiErrorMessage } from '../../shared/api-error';
+import { CameraFilePickerComponent } from '../../shared/camera-file-picker.component';
 
 @Component({
   standalone: true,
-  imports: [FormsModule, RouterLink],
+  imports: [FormsModule, RouterLink, CameraFilePickerComponent],
   template: `
     <div class="page-heading">
       <div><p class="eyebrow">Dotaciones</p><h1>Entregas</h1><p class="muted">Consulta general de entregas registradas y confirmacion de recibido.</p></div>
@@ -38,9 +39,9 @@ import { apiErrorMessage } from '../../shared/api-error';
                 <td><span class="badge">{{ delivery.tipo_entrega === 'EXTRAORDINARIA' ? 'Extraordinaria' : 'Ordinaria' }}</span><br><span class="muted">{{ combinationLabel(delivery) }}</span></td>
                 <td>{{ delivery.numero_documento }}</td>
                 <td>{{ delivery.nombre_completo }}</td>
-                <td><span class="badge" [class.success]="delivery.estado === 'ENTREGADA'" [class.danger]="delivery.estado === 'ANULADA'">{{ delivery.estado }}</span></td>
-                <td>{{ delivery.fecha_confirmacion || 'Pendiente' }}</td>
-                <td>{{ delivery.confirmado_por || (delivery.id_confirmado_por ? 'ID ' + delivery.id_confirmado_por : 'Pendiente') }}</td>
+                <td><span class="badge" [class.success]="delivery.estado === 'ENTREGADA'" [class.danger]="delivery.estado === 'ANULADA'">{{ statusLabel(delivery.estado) }}</span></td>
+                <td>{{ delivery.estado === 'POR_COMPRAR' ? 'No aplica' : (delivery.fecha_confirmacion || 'Pendiente') }}</td>
+                <td>{{ delivery.estado === 'POR_COMPRAR' ? 'No aplica' : (delivery.confirmado_por || (delivery.id_confirmado_por ? 'ID ' + delivery.id_confirmado_por : 'Pendiente')) }}</td>
                 <td>{{ delivery.registrado_por || ('ID ' + delivery.id_registrado_por) }}</td>
                 <td>{{ delivery.observaciones || 'Sin observaciones' }}</td>
                 <td>
@@ -48,6 +49,9 @@ import { apiErrorMessage } from '../../shared/api-error';
                     <a class="btn small ghost" [routerLink]="['/admin/dotations/deliveries', delivery.id_dotacion_entrega]">Ver detalle</a>
                     @if (evidenceUrl(delivery); as url) {
                       <a class="btn small secondary" [href]="url" target="_blank" rel="noopener noreferrer">Ver evidencia</a>
+                    }
+                    @if (canPrepareDelivery(delivery)) {
+                      <button class="btn small primary" type="button" (click)="openPrepareDelivery(delivery)" [disabled]="preparing()">Preparar entrega</button>
                     }
                     @if (canDeleteDelivery(delivery)) {
                       <button class="btn small danger-outline" type="button" (click)="openDeleteDelivery(delivery)" [disabled]="deleting()">Eliminar</button>
@@ -90,6 +94,34 @@ import { apiErrorMessage } from '../../shared/api-error';
         </div>
       </aside>
     }
+
+    @if (selectedPrepareDelivery(); as delivery) {
+      <button class="drawer-backdrop" type="button" aria-label="Cerrar preparación" (click)="closePrepareDelivery()"></button>
+      <aside class="role-drawer" aria-label="Preparar entrega" aria-modal="true">
+        <header class="drawer-header">
+          <div><p class="eyebrow">Compra completada</p><h2>Preparar entrega #{{ delivery.id_dotacion_entrega }}</h2></div>
+          <button class="icon-btn close-btn" type="button" (click)="closePrepareDelivery()" aria-label="Cerrar">x</button>
+        </header>
+        <p class="muted">Registra la fecha real y la evidencia. La misma solicitud pasará a lista para entregar.</p>
+        @if (prepareError()) { <div class="alert error" role="alert">{{ prepareError() }}</div> }
+        <label>Fecha de entrega *<input type="date" name="prepare_fecha" [(ngModel)]="prepareDate" [disabled]="preparing()" /></label>
+        <label>Origen de evidencia *
+          <select name="prepare_origin" [(ngModel)]="prepareOrigin" (ngModelChange)="clearPrepareEvidence()" [disabled]="preparing()">
+            <option value="ARCHIVO">Archivo</option><option value="URL">URL externa</option>
+          </select>
+        </label>
+        @if (prepareOrigin === 'ARCHIVO') {
+          <app-camera-file-picker accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx" galleryLabel="Seleccionar evidencia" (filesSelected)="setPrepareFiles($event)" />
+          @if (prepareFile) { <p><strong>{{ prepareFile.name }}</strong></p> }
+        } @else {
+          <label>URL de evidencia *<input type="url" name="prepare_url" [(ngModel)]="prepareUrl" maxlength="500" placeholder="https://..." /></label>
+        }
+        <div class="form-actions">
+          <button class="btn secondary" type="button" (click)="closePrepareDelivery()" [disabled]="preparing()">Cancelar</button>
+          <button class="btn primary" type="button" (click)="confirmPrepareDelivery()" [disabled]="preparing()">{{ preparing() ? 'Preparando...' : 'Preparar entrega' }}</button>
+        </div>
+      </aside>
+    }
   `,
 })
 export class DotationDeliveriesComponent implements OnInit {
@@ -98,14 +130,21 @@ export class DotationDeliveriesComponent implements OnInit {
   readonly deliveries = signal<DotationDelivery[]>([]);
   readonly loading = signal(false);
   readonly deleting = signal(false);
+  readonly preparing = signal(false);
   readonly error = signal('');
   readonly deleteError = signal('');
   readonly success = signal('');
   readonly selectedDeleteDelivery = signal<DotationDelivery | null>(null);
+  readonly selectedPrepareDelivery = signal<DotationDelivery | null>(null);
+  readonly prepareError = signal('');
   idEmpleado: number | null = null;
   fechaInicio = '';
   fechaFin = '';
   deleteReason = '';
+  prepareDate = new Date().toISOString().slice(0, 10);
+  prepareOrigin: DotationEvidenceOrigin = 'ARCHIVO';
+  prepareFile: File | null = null;
+  prepareUrl = '';
 
   ngOnInit(): void {
     this.load();
@@ -128,6 +167,77 @@ export class DotationDeliveriesComponent implements OnInit {
     return this.auth.hasPermission('DOTACIONES_ENTREGAS_ELIMINAR')
       && delivery.estado === 'REGISTRADA'
       && !delivery.fecha_confirmacion;
+  }
+
+  canPrepareDelivery(delivery: DotationDelivery): boolean {
+    return this.auth.hasPermission('DOTACIONES_ENTREGAS_CREAR') && delivery.estado === 'POR_COMPRAR';
+  }
+
+  statusLabel(status: string): string {
+    if (status === 'POR_COMPRAR') return 'Por comprar';
+    if (status === 'REGISTRADA') return 'Lista para entregar';
+    if (status === 'ENTREGADA') return 'Entregada';
+    if (status === 'ANULADA') return 'Anulada';
+    return status;
+  }
+
+  openPrepareDelivery(delivery: DotationDelivery): void {
+    this.selectedPrepareDelivery.set(delivery);
+    this.prepareDate = new Date().toISOString().slice(0, 10);
+    this.prepareOrigin = 'ARCHIVO';
+    this.prepareFile = null;
+    this.prepareUrl = '';
+    this.prepareError.set('');
+  }
+
+  closePrepareDelivery(): void {
+    if (this.preparing()) return;
+    this.selectedPrepareDelivery.set(null);
+    this.prepareFile = null;
+    this.prepareUrl = '';
+    this.prepareError.set('');
+  }
+
+  clearPrepareEvidence(): void {
+    this.prepareFile = null;
+    this.prepareUrl = '';
+    this.prepareError.set('');
+  }
+
+  setPrepareFiles(files: File[]): void {
+    this.prepareFile = files[0] ?? null;
+    this.prepareError.set('');
+  }
+
+  confirmPrepareDelivery(): void {
+    const delivery = this.selectedPrepareDelivery();
+    if (!delivery || !this.prepareDate) {
+      this.prepareError.set('Selecciona la fecha de entrega.');
+      return;
+    }
+    if (this.prepareOrigin === 'ARCHIVO' && !this.prepareFile) {
+      this.prepareError.set('Selecciona el archivo de evidencia.');
+      return;
+    }
+    if (this.prepareOrigin === 'URL' && !/^https?:\/\/\S+$/i.test(this.prepareUrl.trim())) {
+      this.prepareError.set('Ingresa una URL de evidencia válida.');
+      return;
+    }
+    this.preparing.set(true);
+    this.prepareError.set('');
+    this.service.prepareDelivery(delivery.id_dotacion_entrega, {
+      fecha_entrega: this.prepareDate,
+      origen_evidencia: this.prepareOrigin,
+      evidencia_archivo: this.prepareOrigin === 'ARCHIVO' ? this.prepareFile : null,
+      evidencia_url: this.prepareOrigin === 'URL' ? this.prepareUrl.trim() : null,
+    }).pipe(finalize(() => this.preparing.set(false))).subscribe({
+      next: () => {
+        this.success.set('La solicitud quedó lista para entregar.');
+        this.closePrepareDelivery();
+        this.load();
+      },
+      error: (error) => this.prepareError.set(apiErrorMessage(error, 'No fue posible preparar la entrega.')),
+    });
   }
 
   combinationLabel(delivery: DotationDelivery): string {

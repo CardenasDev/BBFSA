@@ -3,9 +3,11 @@
 namespace Tests\Feature;
 
 use App\Services\JwtService;
+use App\Services\DotationService;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
+use Mockery\MockInterface;
 use Tests\TestCase;
 
 class DotationApiTest extends TestCase
@@ -28,12 +30,14 @@ class DotationApiTest extends TestCase
             'GET|HEAD api/dotations/my-deliveries',
             'GET|HEAD api/dotations/employees',
             'GET|HEAD api/dotations/quotation/export',
+            'GET|HEAD api/dotations/purchase-quotation/export',
             'GET|HEAD api/dotations/employees/{employeeId}/history',
             'GET|HEAD api/dotations/employees/{employeeId}/sizes',
             'POST api/dotations/deliveries',
             'GET|HEAD api/dotations/deliveries',
             'DELETE api/dotations/deliveries/{deliveryId}',
             'POST api/dotations/deliveries/{deliveryId}/confirm',
+            'POST api/dotations/deliveries/{deliveryId}/prepare',
             'GET|HEAD api/dotations/deliveries/{deliveryId}/details',
         ], $routes);
     }
@@ -180,6 +184,48 @@ class DotationApiTest extends TestCase
             ])
             ->assertUnprocessable()
             ->assertJsonValidationErrors(['origen_evidencia']);
+    }
+
+    public function test_purchase_request_without_evidence_keys_is_accepted(): void
+    {
+        $this->mock(DotationService::class, function (MockInterface $mock): void {
+            $mock->shouldReceive('createDelivery')->once()
+                ->withArgs(fn (array $data): bool => $data['estado_inicial'] === 'POR_COMPRAR'
+                    && ! array_key_exists('origen_evidencia', $data)
+                    && ! array_key_exists('evidencia_nombre_archivo', $data)
+                    && ! array_key_exists('evidencia_archivo', $data)
+                    && ! array_key_exists('evidencia_url', $data))
+                ->andReturn(['id_dotacion_entrega' => 31, 'estado' => 'POR_COMPRAR']);
+        });
+
+        $this->withToken($this->tokenWithPermissions(['DOTACIONES_ENTREGAS_CREAR']))
+            ->postJson('/api/dotations/deliveries', [
+                'id_empleado' => 5,
+                'fecha_entrega' => '2026-08-10',
+                'tipo_entrega' => 'EXTRAORDINARIA',
+                'estado_inicial' => 'POR_COMPRAR',
+                'detalles' => [['id_tipo_dotacion' => 3, 'cantidad' => 1]],
+            ])
+            ->assertCreated()
+            ->assertJsonPath('data.estado', 'POR_COMPRAR');
+    }
+
+    public function test_purchase_request_with_real_evidence_is_rejected_in_spanish(): void
+    {
+        $this->withToken($this->tokenWithPermissions(['DOTACIONES_ENTREGAS_CREAR']))
+            ->post('/api/dotations/deliveries', [
+                'id_empleado' => 5,
+                'fecha_entrega' => '2026-08-10',
+                'tipo_entrega' => 'EXTRAORDINARIA',
+                'estado_inicial' => 'POR_COMPRAR',
+                'origen_evidencia' => 'ARCHIVO',
+                'evidencia_nombre_archivo' => 'Evidencia entrega',
+                'evidencia_archivo' => UploadedFile::fake()->create('evidencia.pdf', 10, 'application/pdf'),
+                'detalles' => [['id_tipo_dotacion' => 3, 'cantidad' => 1]],
+            ], ['Accept' => 'application/json'])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['origen_evidencia', 'evidencia_nombre_archivo', 'evidencia_archivo'])
+            ->assertJsonPath('errors.evidencia_nombre_archivo.0', 'Una solicitud por comprar no debe incluir nombre de evidencia.');
     }
 
     public function test_file_evidence_requires_file_and_prohibits_url(): void

@@ -108,6 +108,7 @@ class AuthApiTest extends TestCase
             '/dotations/combinations/{combinationId}',
             '/dotations/deliveries/{deliveryId}',
             '/dotations/deliveries/{deliveryId}/confirm',
+            '/dotations/deliveries/{deliveryId}/prepare',
             '/dotations/deliveries/{deliveryId}/details',
             '/dotations/employees',
             '/dotations/employees/{employeeId}/history',
@@ -115,6 +116,7 @@ class AuthApiTest extends TestCase
             '/dotations/my-deliveries',
             '/dotations/my-sizes',
             '/dotations/quotation/export',
+            '/dotations/purchase-quotation/export',
             '/dotations/sizes',
             '/dotations/types',
             '/tools',
@@ -166,6 +168,8 @@ class AuthApiTest extends TestCase
         $this->assertArrayHasKey('delete', $document['paths']['/dotations/deliveries/{deliveryId}']);
         $this->assertArrayHasKey('get', $document['paths']['/dotations/my-deliveries']);
         $this->assertArrayHasKey('post', $document['paths']['/dotations/deliveries/{deliveryId}/confirm']);
+        $this->assertArrayHasKey('post', $document['paths']['/dotations/deliveries/{deliveryId}/prepare']);
+        $this->assertArrayHasKey('get', $document['paths']['/dotations/purchase-quotation/export']);
         $this->assertArrayHasKey('get', $document['paths']['/dotations/employees/{employeeId}/history']);
         $this->assertArrayHasKey('get', $document['paths']['/contracting/employees']);
         $this->assertArrayHasKey('post', $document['paths']['/contracting/employees/{employeeId}/profile']);

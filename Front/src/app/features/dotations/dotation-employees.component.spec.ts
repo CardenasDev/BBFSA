@@ -14,6 +14,7 @@ describe('DotationEmployeesComponent quotation export', () => {
   let downloadedFilename: string | undefined;
 
   const exportQuotation = vi.fn();
+  const exportPurchaseQuotation = vi.fn(() => of(new HttpResponse({ body: new Blob(['xlsx']) })));
   const createObjectURL = vi.fn(() => 'blob:quotation-export');
   const revokeObjectURL = vi.fn();
   const click = vi.fn(function (this: HTMLAnchorElement) {
@@ -38,6 +39,7 @@ describe('DotationEmployeesComponent quotation export', () => {
           provide: DotationService,
           useValue: {
             exportQuotation,
+            exportPurchaseQuotation,
             getEmployees: () => of([]),
             getDeliveries: () => of([]),
           },
@@ -90,10 +92,10 @@ describe('DotationEmployeesComponent quotation export', () => {
 
     expect(exportQuotation).toHaveBeenCalledOnce();
     expect(exportQuotation).toHaveBeenCalledWith({ id_area: 5, id_cargo: 9 });
-    expect(fixture.componentInstance.exporting()).toBe(true);
+    expect(fixture.componentInstance.exportingSizes()).toBe(true);
     expect(button.disabled).toBe(true);
-    expect(button.textContent).toContain('Generando archivo...');
-    expect(fixture.componentInstance.exportStatus()).toBe('Generando archivo de cotización...');
+    expect(button.textContent).toContain('Generando tallas...');
+    expect(fixture.componentInstance.exportStatus()).toBe('Generando archivo de tallas...');
 
     const blob = new Blob(['xlsx']);
     exportResponse.next(new HttpResponse({
@@ -105,11 +107,11 @@ describe('DotationEmployeesComponent quotation export', () => {
     exportResponse.complete();
     fixture.detectChanges();
 
-    expect(fixture.componentInstance.exporting()).toBe(false);
+    expect(fixture.componentInstance.exportingSizes()).toBe(false);
     expect(downloadedFilename).toBe('cotizacion-dotacion-20260729.xlsx');
     expect(createObjectURL).toHaveBeenCalledWith(blob);
     expect(revokeObjectURL).toHaveBeenCalledWith('blob:quotation-export');
-    expect(fixture.componentInstance.exportStatus()).toBe('El archivo de cotización fue generado correctamente.');
+    expect(fixture.componentInstance.exportStatus()).toBe('El archivo de tallas fue generado correctamente.');
   });
 
   it('uses the fallback filename when Content-Disposition is absent', () => {
@@ -117,7 +119,7 @@ describe('DotationEmployeesComponent quotation export', () => {
     exportResponse.next(new HttpResponse({ body: new Blob(['xlsx']) }));
     exportResponse.complete();
 
-    expect(downloadedFilename).toBe('cotizacion-dotacion.xlsx');
+    expect(downloadedFilename).toBe('tallas-dotacion.xlsx');
   });
 
   it('restores loading and shows the controlled 404 blob message without downloading', async () => {
@@ -131,7 +133,7 @@ describe('DotationEmployeesComponent quotation export', () => {
     await fixture.whenStable();
     fixture.detectChanges();
 
-    expect(fixture.componentInstance.exporting()).toBe(false);
+    expect(fixture.componentInstance.exportingSizes()).toBe(false);
     expect(fixture.componentInstance.exportError()).toBe(
       'No se encontró información de dotación para los filtros seleccionados.',
     );
@@ -147,7 +149,7 @@ describe('DotationEmployeesComponent quotation export', () => {
     await fixture.whenStable();
     fixture.detectChanges();
 
-    expect(fixture.componentInstance.exporting()).toBe(false);
+    expect(fixture.componentInstance.exportingSizes()).toBe(false);
     expect(fixture.componentInstance.exportError()).toBe(
       'No fue posible generar el archivo de cotización. Intenta nuevamente.',
     );
@@ -156,7 +158,7 @@ describe('DotationEmployeesComponent quotation export', () => {
 
   function exportButton(): HTMLButtonElement | undefined {
     return Array.from((fixture.nativeElement as HTMLElement).querySelectorAll<HTMLButtonElement>('button'))
-      .find((button) => button.textContent?.includes('Exportar cotización')
-        || button.textContent?.includes('Generando archivo'));
+      .find((button) => button.textContent?.includes('Exportar tallas')
+        || button.textContent?.includes('Generando tallas'));
   }
 });

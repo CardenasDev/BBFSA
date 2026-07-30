@@ -132,13 +132,14 @@ class DotationRepositoryTest extends TestCase
     {
         DB::shouldReceive('select')
             ->once()
-            ->with('CALL SP_BBF_DOTACION_ENTREGA_CREAR(?,?,?,?,?,?,?,?,?,?,?,?)', [
+            ->with('CALL SP_BBF_DOTACION_ENTREGA_CREAR_V2(?,?,?,?,?,?,?,?,?,?,?,?,?)', [
                 5,
                 '2026-06-23',
                 'ORDINARIA',
                 1,
                 99,
                 'Entrega inicial',
+                'REGISTRADA',
                 'Evidencia entrega',
                 null,
                 'https://example.com/evidencia.jpg',
@@ -167,6 +168,7 @@ class DotationRepositoryTest extends TestCase
             1,
             99,
             'Entrega inicial',
+            'REGISTRADA',
             'Evidencia entrega',
             null,
             'https://example.com/evidencia.jpg',
@@ -218,5 +220,22 @@ class DotationRepositoryTest extends TestCase
         $rows = app(DotationRepository::class)->quotationReport(5, 9, 12);
 
         $this->assertSame(12, $rows[0]['id_empleado']);
+    }
+
+    public function test_purchase_quotation_and_prepare_call_new_procedures_in_exact_order(): void
+    {
+        DB::shouldReceive('select')->once()
+            ->with('CALL SP_BBF_DOTACION_COTIZACION_POR_COMPRAR_LISTAR(?,?,?)', [5, 9, 12])
+            ->andReturn([(object) ['ID_DOTACION_ENTREGA' => 31]]);
+        DB::shouldReceive('select')->once()
+            ->with('CALL SP_BBF_DOTACION_POR_COMPRAR_PREPARAR_ENTREGA(?,?,?,?,?,?,?,?,?)', [
+                31, '2026-08-12', 99, null, null, 'https://example.com/evidence.jpg', null, null, null,
+            ])->andReturn([(object) ['ID_DOTACION_ENTREGA' => 31, 'ESTADO' => 'REGISTRADA']]);
+
+        $repository = app(DotationRepository::class);
+        $this->assertSame(31, $repository->purchaseQuotationReport(5, 9, 12)[0]['id_dotacion_entrega']);
+        $this->assertSame('REGISTRADA', $repository->prepareDelivery(
+            31, '2026-08-12', 99, null, null, 'https://example.com/evidence.jpg', null, null, null,
+        )['estado']);
     }
 }

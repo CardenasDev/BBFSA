@@ -27,10 +27,13 @@ interface EmployeeDeliverySummary {
           class="btn secondary"
           type="button"
           aria-label="Exportar cotización de dotaciones"
-          (click)="exportQuotation()"
-          [disabled]="exporting()"
+          (click)="exportSizes()"
+          [disabled]="exportingSizes()"
         >
-          {{ exporting() ? 'Generando archivo...' : 'Exportar cotización' }}
+          {{ exportingSizes() ? 'Generando tallas...' : 'Exportar tallas' }}
+        </button>
+        <button class="btn primary" type="button" (click)="exportPurchaseQuotation()" [disabled]="exportingPurchase()">
+          {{ exportingPurchase() ? 'Generando cotización...' : 'Exportar cotización' }}
         </button>
       }
     </div>
@@ -97,7 +100,8 @@ export class DotationEmployeesComponent implements OnInit {
   readonly positions = signal<Position[]>([]);
   readonly loading = signal(false);
   readonly loadingCatalogs = signal(false);
-  readonly exporting = signal(false);
+  readonly exportingSizes = signal(false);
+  readonly exportingPurchase = signal(false);
   readonly error = signal('');
   readonly catalogsError = signal('');
   readonly exportStatus = signal('');
@@ -144,20 +148,34 @@ export class DotationEmployeesComponent implements OnInit {
     });
   }
 
-  exportQuotation(): void {
-    if (this.exporting()) {
+  exportSizes(): void {
+    if (this.exportingSizes()) {
       return;
     }
 
-    this.exporting.set(true);
+    this.exportingSizes.set(true);
     this.exportError.set('');
-    this.exportStatus.set('Generando archivo de cotización...');
+    this.exportStatus.set('Generando archivo de tallas...');
 
     this.service.exportQuotation({
       id_area: this.idArea,
       id_cargo: this.idCargo,
-    }).pipe(finalize(() => this.exporting.set(false))).subscribe({
+    }).pipe(finalize(() => this.exportingSizes.set(false))).subscribe({
       next: (response) => this.handleQuotationResponse(response),
+      error: (error) => void this.handleQuotationError(error),
+    });
+  }
+
+  exportPurchaseQuotation(): void {
+    if (this.exportingPurchase()) return;
+    this.exportingPurchase.set(true);
+    this.exportError.set('');
+    this.exportStatus.set('Generando cotización de compras pendientes...');
+    this.service.exportPurchaseQuotation({
+      id_area: this.idArea,
+      id_cargo: this.idCargo,
+    }).pipe(finalize(() => this.exportingPurchase.set(false))).subscribe({
+      next: (response) => this.handleQuotationResponse(response, 'cotizacion-dotacion-por-comprar.xlsx'),
       error: (error) => void this.handleQuotationError(error),
     });
   }
@@ -182,6 +200,10 @@ export class DotationEmployeesComponent implements OnInit {
     });
     deliveries.forEach((delivery) => {
       const summary = summaries[delivery.id_empleado] ?? { total: 0, pending: 0, lastDate: null };
+      if (delivery.estado === 'POR_COMPRAR' || delivery.estado === 'ANULADA') {
+        summaries[delivery.id_empleado] = summary;
+        return;
+      }
       summary.total += 1;
       if (!delivery.fecha_confirmacion && delivery.estado === 'REGISTRADA') {
         summary.pending += 1;
@@ -194,7 +216,7 @@ export class DotationEmployeesComponent implements OnInit {
     return summaries;
   }
 
-  private handleQuotationResponse(response: HttpResponse<Blob>): void {
+  private handleQuotationResponse(response: HttpResponse<Blob>, fallbackFilename = 'tallas-dotacion.xlsx'): void {
     if (!response.body) {
       this.exportStatus.set('');
       this.exportError.set('No fue posible generar el archivo de cotización. Intenta nuevamente.');
@@ -203,9 +225,11 @@ export class DotationEmployeesComponent implements OnInit {
 
     downloadBlob(
       response.body,
-      downloadFilename(response.headers.get('Content-Disposition'), 'cotizacion-dotacion.xlsx'),
+      downloadFilename(response.headers.get('Content-Disposition'), fallbackFilename),
     );
-    this.exportStatus.set('El archivo de cotización fue generado correctamente.');
+    this.exportStatus.set(fallbackFilename.startsWith('tallas-')
+      ? 'El archivo de tallas fue generado correctamente.'
+      : 'El archivo de cotización fue generado correctamente.');
   }
 
   private async handleQuotationError(error: unknown): Promise<void> {

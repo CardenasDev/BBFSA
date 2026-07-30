@@ -23,6 +23,7 @@ import {
   EmployeeDotationSize,
   MyDotationDelivery,
   MyDotationSize,
+  PrepareDotationDeliveryRequest,
   SaveMyDotationSizeRequest,
 } from '../models/api.models';
 
@@ -114,21 +115,24 @@ export class DotationService {
     formData.append('id_empleado', String(payload.id_empleado));
     formData.append('fecha_entrega', payload.fecha_entrega);
     formData.append('tipo_entrega', payload.tipo_entrega);
+    formData.append('estado_inicial', payload.estado_inicial);
     if (payload.id_dotacion_combinacion != null) {
       formData.append('id_dotacion_combinacion', String(payload.id_dotacion_combinacion));
     }
     if (payload.observaciones) {
       formData.append('observaciones', payload.observaciones);
     }
-    formData.append('origen_evidencia', payload.origen_evidencia);
-    if (payload.evidencia_nombre_archivo) {
-      formData.append('evidencia_nombre_archivo', payload.evidencia_nombre_archivo);
-    }
-    if (payload.origen_evidencia === 'ARCHIVO' && payload.evidencia_archivo) {
-      formData.append('evidencia_archivo', payload.evidencia_archivo);
-    }
-    if (payload.origen_evidencia === 'URL' && payload.evidencia_url) {
-      formData.append('evidencia_url', payload.evidencia_url);
+    if (payload.estado_inicial === 'REGISTRADA') {
+      if (payload.origen_evidencia) formData.append('origen_evidencia', payload.origen_evidencia);
+      if (payload.evidencia_nombre_archivo) {
+        formData.append('evidencia_nombre_archivo', payload.evidencia_nombre_archivo);
+      }
+      if (payload.origen_evidencia === 'ARCHIVO' && payload.evidencia_archivo) {
+        formData.append('evidencia_archivo', payload.evidencia_archivo);
+      }
+      if (payload.origen_evidencia === 'URL' && payload.evidencia_url) {
+        formData.append('evidencia_url', payload.evidencia_url);
+      }
     }
     payload.detalles.forEach((detail, index) => {
       formData.append(`detalles[${index}][id_tipo_dotacion]`, String(detail.id_tipo_dotacion));
@@ -152,6 +156,23 @@ export class DotationService {
       observe: 'response',
       responseType: 'blob',
     });
+  }
+
+  exportPurchaseQuotation(filters: DotationQuotationFilters = {}): Observable<HttpResponse<Blob>> {
+    return this.http.get(`${this.url}/purchase-quotation/export`, {
+      params: this.params(filters), observe: 'response', responseType: 'blob',
+    });
+  }
+
+  prepareDelivery(deliveryId: number, payload: PrepareDotationDeliveryRequest): Observable<DotationDelivery> {
+    const formData = new FormData();
+    formData.append('fecha_entrega', payload.fecha_entrega);
+    formData.append('origen_evidencia', payload.origen_evidencia);
+    if (payload.evidencia_nombre_archivo) formData.append('evidencia_nombre_archivo', payload.evidencia_nombre_archivo);
+    if (payload.origen_evidencia === 'ARCHIVO' && payload.evidencia_archivo) formData.append('evidencia_archivo', payload.evidencia_archivo);
+    if (payload.origen_evidencia === 'URL' && payload.evidencia_url) formData.append('evidencia_url', payload.evidencia_url);
+    return this.http.post<ApiResponse<DotationDelivery>>(`${this.url}/deliveries/${deliveryId}/prepare`, formData)
+      .pipe(map((response) => response.data));
   }
 
   getDeliveryDetails(deliveryId: number): Observable<DotationDeliveryDetail[]> {

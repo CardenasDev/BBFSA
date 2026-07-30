@@ -8,6 +8,7 @@ use App\Http\Requests\DeleteDotationDeliveryRequest;
 use App\Http\Requests\ExportDotationQuotationRequest;
 use App\Http\Requests\ListDotationDeliveriesRequest;
 use App\Http\Requests\ListDotationEmployeesRequest;
+use App\Http\Requests\PrepareDotationDeliveryRequest;
 use App\Http\Requests\SaveMyDotationSizeRequest;
 use App\Services\DotationService;
 use Dedoc\Scramble\Attributes\Group;
@@ -148,6 +149,19 @@ class DotationController extends ApiController
         ])->deleteFileAfterSend(true);
     }
 
+    public function exportPurchaseQuotation(ExportDotationQuotationRequest $request): BinaryFileResponse
+    {
+        $export = $this->dotations->exportPurchaseQuotation(
+            $request->validated('id_area'),
+            $request->validated('id_cargo'),
+            $request->validated('id_empleado'),
+        );
+
+        return response()->download($export['path'], $export['filename'], [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        ])->deleteFileAfterSend(true);
+    }
+
     /**
      * Consultar tallas de empleado
      *
@@ -207,6 +221,14 @@ class DotationController extends ApiController
                 $request->validated('fecha_fin'),
             ),
             'Entregas de dotación consultadas correctamente',
+        );
+    }
+
+    public function prepareDelivery(PrepareDotationDeliveryRequest $request, int $deliveryId): JsonResponse
+    {
+        return $this->success(
+            $this->dotations->prepareDelivery($deliveryId, $request->validated(), $this->actorId($request), $this->context($request)),
+            'Entrega preparada correctamente',
         );
     }
 

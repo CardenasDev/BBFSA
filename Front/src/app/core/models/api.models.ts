@@ -302,6 +302,7 @@ export interface DotationSize {
 
 export type DotationDeliveryType = 'ORDINARIA' | 'EXTRAORDINARIA';
 export type DotationEvidenceOrigin = 'ARCHIVO' | 'URL';
+export type DotationDeliveryStatus = 'POR_COMPRAR' | 'REGISTRADA' | 'ENTREGADA' | 'ANULADA';
 
 export interface DotationEvidence {
   evidencia_nombre_archivo?: string | null;
@@ -400,7 +401,7 @@ export interface EmployeeDotationHistory extends DotationEvidence {
   codigo_combinacion?: string | null;
   nombre_combinacion?: string | null;
   fecha_confirmacion?: string | null;
-  estado: string;
+    estado: DotationDeliveryStatus;
   observaciones_entrega?: string | null;
   observacion_confirmacion?: string | null;
   firma_url?: string | null;
@@ -430,7 +431,7 @@ export interface DotationDelivery extends DotationEvidence {
   codigo_combinacion?: string | null;
   nombre_combinacion?: string | null;
   fecha_confirmacion?: string | null;
-  estado: string;
+    estado: DotationDeliveryStatus;
   observaciones?: string | null;
   observacion_confirmacion?: string | null;
   firma_url?: string | null;
@@ -514,9 +515,10 @@ export interface DotationDeliveryDetail extends DotationEvidence {
 export interface CreateDotationDeliveryRequest {
   id_empleado: number;
   fecha_entrega: string;
-  tipo_entrega: DotationDeliveryType;
+    tipo_entrega: DotationDeliveryType;
+    estado_inicial: 'POR_COMPRAR' | 'REGISTRADA';
   id_dotacion_combinacion: number | null;
-  origen_evidencia: DotationEvidenceOrigin;
+    origen_evidencia?: DotationEvidenceOrigin | null;
   evidencia_archivo?: File | null;
   evidencia_url?: string | null;
   evidencia_nombre_archivo?: string | null;
@@ -527,6 +529,14 @@ export interface CreateDotationDeliveryRequest {
     cantidad: number;
     observaciones?: string | null;
   }[];
+}
+
+export interface PrepareDotationDeliveryRequest {
+  fecha_entrega: string;
+  origen_evidencia: DotationEvidenceOrigin;
+  evidencia_archivo?: File | null;
+  evidencia_url?: string | null;
+  evidencia_nombre_archivo?: string | null;
 }
 
 export interface CreatedDotationDelivery extends DotationEvidence {

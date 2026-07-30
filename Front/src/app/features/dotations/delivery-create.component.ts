@@ -31,7 +31,7 @@ interface DeliveryDetailDraft {
   imports: [FormsModule, RouterLink, CameraFilePickerComponent],
   template: `
     <div class="page-heading">
-      <div><p class="eyebrow">Dotaciones</p><h1>Nueva entrega</h1><p class="muted">Registra una entrega ordinaria o extraordinaria.</p></div>
+      <div><p class="eyebrow">Dotaciones</p><h1>{{ estadoInicial === 'POR_COMPRAR' ? 'Nueva solicitud de compra' : 'Nueva entrega' }}</h1><p class="muted">Registra prendas por comprar o listas para entregar.</p></div>
       <a class="btn ghost" routerLink="/admin/dotations/deliveries">Volver</a>
     </div>
 
@@ -60,6 +60,13 @@ interface DeliveryDetailDraft {
           </select>
         </label>
 
+        <label>Estado inicial *
+          <select name="estado_inicial" [ngModel]="estadoInicial" (ngModelChange)="changeInitialStatus($event)" required>
+            <option value="POR_COMPRAR">Por comprar</option>
+            <option value="REGISTRADA">Lista para entregar</option>
+          </select>
+        </label>
+
         @if (tipoEntrega === 'ORDINARIA') {
           <label>Combinacion de dotacion *
             <select name="id_dotacion_combinacion" [ngModel]="idCombinacion" (ngModelChange)="changeCombination($event)" required [disabled]="combinationLoading()">
@@ -71,9 +78,10 @@ interface DeliveryDetailDraft {
           </label>
         }
 
-        <label>Fecha entrega *<input type="date" name="fecha_entrega" [(ngModel)]="fechaEntrega" required /></label>
+        <label>{{ estadoInicial === 'POR_COMPRAR' ? 'Fecha requerida' : 'Fecha de entrega' }} *<input type="date" name="fecha_entrega" [(ngModel)]="fechaEntrega" required /></label>
         <label class="form-wide">Observaciones<textarea rows="3" name="observaciones" [(ngModel)]="observaciones"></textarea></label>
 
+        @if (estadoInicial === 'REGISTRADA') {
         <div class="form-wide drawer-section">
           <div class="section-title">
             <div><h2>Evidencia de entrega *</h2><p class="muted">Adjunta una fotografia o documento que evidencie la entrega de la dotacion al empleado.</p></div>
@@ -104,6 +112,7 @@ interface DeliveryDetailDraft {
             @if (evidenceError()) { <div class="form-wide alert error">{{ evidenceError() }}</div> }
           </div>
         </div>
+        }
 
         <div class="form-wide section-title">
           <div><h2>Prendas</h2><p class="muted">{{ tipoEntrega === 'ORDINARIA' ? 'Definidas por la combinacion seleccionada.' : 'Agrega las prendas de esta entrega extraordinaria.' }}</p></div>
@@ -164,7 +173,7 @@ interface DeliveryDetailDraft {
 
         <div class="form-actions form-wide">
           <a class="btn ghost" routerLink="/admin/dotations/deliveries">Cancelar</a>
-          <button class="btn primary" type="submit" [disabled]="saving() || loading() || employeeSizesLoading() || combinationLoading()">{{ saving() ? 'Guardando...' : 'Registrar entrega' }}</button>
+          <button class="btn primary" type="submit" [disabled]="saving() || loading() || employeeSizesLoading() || combinationLoading()">{{ saving() ? 'Guardando...' : (estadoInicial === 'POR_COMPRAR' ? 'Registrar solicitud' : 'Registrar entrega') }}</button>
         </div>
       </form>
     </section>
@@ -191,10 +200,11 @@ export class DotationDeliveryCreateComponent implements OnInit {
   employeeSearch = '';
   idEmpleado: number | null = null;
   tipoEntrega: DotationDeliveryType = 'ORDINARIA';
+  estadoInicial: 'POR_COMPRAR' | 'REGISTRADA' = 'REGISTRADA';
   idCombinacion: number | null = null;
   fechaEntrega = new Date().toISOString().slice(0, 10);
   observaciones = '';
-  origenEvidencia: DotationEvidenceOrigin = 'ARCHIVO';
+  origenEvidencia: DotationEvidenceOrigin | null = 'ARCHIVO';
   evidenciaArchivo: File | null = null;
   evidenciaUrl = '';
 
@@ -242,6 +252,18 @@ export class DotationDeliveryCreateComponent implements OnInit {
     this.idCombinacion = null;
     this.details.set(type === 'EXTRAORDINARIA' ? [this.newDetail()] : []);
     this.error.set('');
+  }
+
+  changeInitialStatus(status: 'POR_COMPRAR' | 'REGISTRADA'): void {
+    this.estadoInicial = status;
+    this.evidenceError.set('');
+    if (status === 'POR_COMPRAR') {
+      this.origenEvidencia = null;
+      this.evidenciaArchivo = null;
+      this.evidenciaUrl = '';
+    } else if (!this.origenEvidencia) {
+      this.origenEvidencia = 'ARCHIVO';
+    }
   }
 
   changeCombination(combinationId: number | null): void {
@@ -355,10 +377,11 @@ export class DotationDeliveryCreateComponent implements OnInit {
       tipo_entrega: this.tipoEntrega,
       id_dotacion_combinacion: this.tipoEntrega === 'ORDINARIA' ? this.idCombinacion : null,
       observaciones: this.blankToNull(this.observaciones),
-      origen_evidencia: this.origenEvidencia,
-      evidencia_archivo: this.origenEvidencia === 'ARCHIVO' ? this.evidenciaArchivo : null,
-      evidencia_url: this.origenEvidencia === 'URL' ? this.evidenciaUrl.trim() : null,
-      evidencia_nombre_archivo: 'Evidencia entrega',
+      estado_inicial: this.estadoInicial,
+      origen_evidencia: this.estadoInicial === 'REGISTRADA' ? this.origenEvidencia : undefined,
+      evidencia_archivo: this.estadoInicial === 'REGISTRADA' && this.origenEvidencia === 'ARCHIVO' ? this.evidenciaArchivo : null,
+      evidencia_url: this.estadoInicial === 'REGISTRADA' && this.origenEvidencia === 'URL' ? this.evidenciaUrl.trim() : null,
+      ...(this.estadoInicial === 'REGISTRADA' ? { evidencia_nombre_archivo: 'Evidencia entrega' } : {}),
       detalles: this.details().map((detail) => ({
         id_tipo_dotacion: detail.id_tipo_dotacion!,
         id_talla_dotacion: detail.requiere_talla ? detail.id_talla_dotacion : null,
@@ -372,7 +395,7 @@ export class DotationDeliveryCreateComponent implements OnInit {
       next: (result) => {
         this.evidenciaArchivo = null;
         this.evidenciaUrl = '';
-        this.success.set('Entrega de dotacion registrada correctamente.');
+        this.success.set(this.estadoInicial === 'POR_COMPRAR' ? 'Solicitud de compra registrada correctamente.' : 'Entrega de dotacion registrada correctamente.');
         void this.router.navigate(['/admin/dotations/deliveries', result.id_dotacion_entrega]);
       },
       error: (error) => this.error.set(apiErrorMessage(error, 'No fue posible registrar la entrega de dotacion.')),
@@ -402,13 +425,13 @@ export class DotationDeliveryCreateComponent implements OnInit {
   private validate(): string {
     if (!this.idEmpleado) return 'Selecciona un empleado.';
     if (!this.tipoEntrega) return 'Selecciona el tipo de entrega.';
-    if (!this.fechaEntrega) return 'Selecciona la fecha de entrega.';
-    if (!this.origenEvidencia) return 'Selecciona el origen de la evidencia.';
-    if (this.origenEvidencia === 'ARCHIVO') {
+    if (!this.fechaEntrega) return this.estadoInicial === 'POR_COMPRAR' ? 'Selecciona la fecha requerida.' : 'Selecciona la fecha de entrega.';
+    if (this.estadoInicial === 'REGISTRADA' && !this.origenEvidencia) return 'Selecciona el origen de la evidencia.';
+    if (this.estadoInicial === 'REGISTRADA' && this.origenEvidencia === 'ARCHIVO') {
       if (!this.evidenciaArchivo) return 'Selecciona el archivo de evidencia.';
       const evidenceValidation = this.validateEvidenceFile(this.evidenciaArchivo);
       if (evidenceValidation) return evidenceValidation;
-    } else if (!this.isValidHttpUrl(this.evidenciaUrl)) {
+    } else if (this.estadoInicial === 'REGISTRADA' && !this.isValidHttpUrl(this.evidenciaUrl)) {
       return this.evidenciaUrl.trim() ? 'La URL de evidencia no es valida.' : 'Ingresa la URL de evidencia.';
     }
     if (this.tipoEntrega === 'ORDINARIA' && !this.idCombinacion) return 'Selecciona una combinacion de dotacion.';

@@ -53,4 +53,41 @@ describe('DotationDeliveryCreateComponent camera integration', () => {
     expect(component.evidenciaArchivo).toBeNull();
     expect(component.evidenceError()).toContain('5 MB');
   });
+
+  it('allows POR_COMPRAR without evidence and sends the requested status', () => {
+    const component = TestBed.createComponent(DotationDeliveryCreateComponent).componentInstance;
+    component.idEmpleado = 10;
+    component.estadoInicial = 'POR_COMPRAR';
+    component.tipoEntrega = 'EXTRAORDINARIA';
+    component.details.set([{
+      clientId: 1, id_tipo_dotacion: 4, tipo_dotacion: 'Camisa', requiere_talla: false,
+      id_talla_dotacion: null, talla: null, cantidad: 1, observaciones: '',
+    }]);
+    createDelivery.mockReturnValue(throwError(() => new Error('backend')));
+
+    component.submit();
+
+    const payload = createDelivery.mock.calls[0][0];
+    expect(payload.estado_inicial).toBe('POR_COMPRAR');
+    expect(payload.origen_evidencia).toBeUndefined();
+    expect(payload.evidencia_nombre_archivo).toBeUndefined();
+    expect(payload.evidencia_archivo).toBeNull();
+    expect(payload.evidencia_url).toBeNull();
+  });
+
+  it('clears file, URL, origin and metadata when switching to POR_COMPRAR', () => {
+    const component = TestBed.createComponent(DotationDeliveryCreateComponent).componentInstance;
+    component.estadoInicial = 'REGISTRADA';
+    component.origenEvidencia = 'ARCHIVO';
+    component.evidenciaArchivo = new File(['camera'], 'evidencia.jpg', { type: 'image/jpeg' });
+    component.evidenciaUrl = 'https://example.com/residual.jpg';
+
+    component.changeInitialStatus('POR_COMPRAR');
+
+    expect(component.origenEvidencia).toBeNull();
+    expect(component.evidenciaArchivo).toBeNull();
+    expect(component.evidenciaUrl).toBe('');
+    component.changeInitialStatus('REGISTRADA');
+    expect(component.origenEvidencia).toBe('ARCHIVO');
+  });
 });

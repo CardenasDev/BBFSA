@@ -115,9 +115,11 @@ Route::middleware('auth.jwt')->group(function (): void {
         Route::get('my-deliveries', [DotationController::class, 'myDeliveries'])->middleware('permission:DOTACIONES_MIS_ENTREGAS_VER');
         Route::get('employees', [DotationController::class, 'employees'])->middleware('permission:DOTACIONES_ADMIN_VER');
         Route::get('quotation/export', [DotationController::class, 'exportQuotation'])->middleware('permission:DOTACIONES_ADMIN_VER');
+        Route::get('purchase-quotation/export', [DotationController::class, 'exportPurchaseQuotation'])->middleware('permission:DOTACIONES_ADMIN_VER');
         Route::get('employees/{employeeId}/history', [DotationController::class, 'employeeHistory'])->whereNumber('employeeId')->middleware('permission:DOTACIONES_EMPLEADO_VER');
         Route::get('employees/{employeeId}/sizes', [DotationController::class, 'employeeSizes'])->whereNumber('employeeId')->middleware('permission:DOTACIONES_EMPLEADO_VER');
         Route::post('deliveries', [DotationController::class, 'createDelivery'])->middleware('permission:DOTACIONES_ENTREGAS_CREAR');
+        Route::post('deliveries/{deliveryId}/prepare', [DotationController::class, 'prepareDelivery'])->whereNumber('deliveryId')->middleware('permission:DOTACIONES_ENTREGAS_CREAR');
         Route::get('deliveries', [DotationController::class, 'deliveries'])->middleware('permission:DOTACIONES_ENTREGAS_VER');
         Route::delete('deliveries/{deliveryId}', [DotationController::class, 'deleteDelivery'])->whereNumber('deliveryId')->middleware('permission:DOTACIONES_ENTREGAS_ELIMINAR');
         Route::post('deliveries/{deliveryId}/confirm', [DotationController::class, 'confirmDeliveryReceived'])->whereNumber('deliveryId')->middleware('permission:DOTACIONES_MIS_ENTREGAS_CONFIRMAR');

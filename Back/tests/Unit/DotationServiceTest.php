@@ -19,7 +19,7 @@ class DotationServiceTest extends TestCase
         $this->expectCatalogs($repository);
         $repository->shouldReceive('combinationDetails')->once()->with(1)->andReturn($this->combination());
         $repository->shouldReceive('createDelivery')->once()->with(
-            5, '2026-07-24', 'ORDINARIA', 1, 99, null,
+            5, '2026-07-24', 'ORDINARIA', 1, 99, null, 'REGISTRADA',
             'Evidencia entrega', null, 'https://example.com/evidencia.jpg', null, null, null,
         )->andReturn(20);
         $repository->shouldReceive('addDeliveryDetail')->times(3);
@@ -89,7 +89,7 @@ class DotationServiceTest extends TestCase
         [$service, $repository, $audit] = $this->service();
         $this->expectCatalogs($repository);
         $repository->shouldReceive('createDelivery')->once()->with(
-            5, '2026-07-24', 'EXTRAORDINARIA', null, 99, null,
+            5, '2026-07-24', 'EXTRAORDINARIA', null, 99, null, 'REGISTRADA',
             'Evidencia entrega', null, 'https://example.com/evidencia.jpg', null, null, null,
         )->andReturn(21);
         $repository->shouldReceive('addDeliveryDetail')->once()->with(21, 3, 25, 1, null);
@@ -108,6 +108,47 @@ class DotationServiceTest extends TestCase
         $this->assertSame(21, $result['id_dotacion_entrega']);
         $this->assertSame('EXTRAORDINARIA', $result['tipo_entrega']);
         $this->assertSame('https://example.com/evidencia.jpg', $result['evidencia_url_publica']);
+    }
+
+    public function test_creates_purchase_request_without_evidence_and_returns_requested_status(): void
+    {
+        [$service, $repository, $audit] = $this->service();
+        $this->expectCatalogs($repository);
+        $repository->shouldReceive('createDelivery')->once()->with(
+            5, '2026-08-10', 'EXTRAORDINARIA', null, 99, 'Compra requerida', 'POR_COMPRAR',
+            null, null, null, null, null, null,
+        )->andReturn(31);
+        $repository->shouldReceive('addDeliveryDetail')->once();
+        $audit->shouldReceive('record')->once();
+
+        $result = $service->createDelivery([
+            'id_empleado' => 5,
+            'fecha_entrega' => '2026-08-10',
+            'tipo_entrega' => 'EXTRAORDINARIA',
+            'estado_inicial' => 'POR_COMPRAR',
+            'observaciones' => 'Compra requerida',
+            'detalles' => [$this->details()[2]],
+        ], 99, []);
+
+        $this->assertSame('POR_COMPRAR', $result['estado']);
+        $this->assertNull($result['evidencia_url_publica']);
+    }
+
+    public function test_prepares_purchase_request_with_url_evidence(): void
+    {
+        [$service, $repository, $audit] = $this->service();
+        $repository->shouldReceive('prepareDelivery')->once()->with(
+            31, '2026-08-12', 99, 'Evidencia entrega', null, 'https://example.com/lista.jpg', null, null, null,
+        )->andReturn(['id_dotacion_entrega' => 31, 'estado' => 'REGISTRADA']);
+        $audit->shouldReceive('record')->once();
+
+        $result = $service->prepareDelivery(31, [
+            'fecha_entrega' => '2026-08-12',
+            'origen_evidencia' => 'URL',
+            'evidencia_url' => 'https://example.com/lista.jpg',
+        ], 99, []);
+
+        $this->assertSame('REGISTRADA', $result['estado']);
     }
 
     public function test_deletes_new_evidence_file_when_header_creation_fails(): void

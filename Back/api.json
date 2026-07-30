@@ -3184,6 +3184,74 @@
                 }
             }
         },
+        "/dotations/purchase-quotation/export": {
+            "get": {
+                "operationId": "dotation.exportPurchaseQuotation",
+                "tags": [
+                    "Dotations"
+                ],
+                "parameters": [
+                    {
+                        "name": "id_area",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "integer",
+                                "null"
+                            ],
+                            "minimum": 1
+                        }
+                    },
+                    {
+                        "name": "id_cargo",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "integer",
+                                "null"
+                            ],
+                            "minimum": 1
+                        }
+                    },
+                    {
+                        "name": "id_empleado",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "integer",
+                                "null"
+                            ],
+                            "minimum": 1
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": {
+                                "schema": {
+                                    "type": "string",
+                                    "format": "binary"
+                                }
+                            }
+                        },
+                        "headers": {
+                            "Content-Disposition": {
+                                "required": true,
+                                "schema": {
+                                    "type": "string"
+                                },
+                                "example": "attachment"
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
         "/dotations/employees/{employeeId}/history": {
             "get": {
                 "operationId": "dotation.employeeHistory",
@@ -3489,8 +3557,7 @@
                                                     ]
                                                 },
                                                 "estado": {
-                                                    "type": "string",
-                                                    "const": "REGISTRADA"
+                                                    "type": "string"
                                                 },
                                                 "evidencia_nombre_archivo": {
                                                     "type": [
@@ -3731,6 +3798,245 @@
                                                     "updated_at"
                                                 ]
                                             }
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "message",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/dotations/deliveries/{deliveryId}/prepare": {
+            "post": {
+                "operationId": "dotation.prepareDelivery",
+                "tags": [
+                    "Dotations"
+                ],
+                "parameters": [
+                    {
+                        "name": "deliveryId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/PrepareDotationDeliveryRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "const": "Entrega preparada correctamente"
+                                        },
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "id_dotacion_entrega": {
+                                                    "type": "integer"
+                                                },
+                                                "id_empleado": {
+                                                    "type": "integer"
+                                                },
+                                                "numero_documento": {
+                                                    "type": "string"
+                                                },
+                                                "nombre_completo": {
+                                                    "type": "string"
+                                                },
+                                                "fecha_entrega": {
+                                                    "type": "string"
+                                                },
+                                                "tipo_entrega": {
+                                                    "type": "string"
+                                                },
+                                                "id_dotacion_combinacion": {
+                                                    "type": [
+                                                        "integer",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "codigo_combinacion": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "nombre_combinacion": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "fecha_confirmacion": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "estado": {
+                                                    "type": "string"
+                                                },
+                                                "observaciones": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "observacion_confirmacion": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "firma_url": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "id_registrado_por": {
+                                                    "type": [
+                                                        "integer",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "registrado_por": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "id_confirmado_por": {
+                                                    "type": [
+                                                        "integer",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "confirmado_por": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "created_at": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "updated_at": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "evidencia_nombre_archivo": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "evidencia_nombre_original": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "evidencia_url": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "evidencia_ruta": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "evidencia_url_publica": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "evidencia_mime_type": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "evidencia_peso_bytes": {
+                                                    "type": [
+                                                        "integer",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "evidencia_fecha_carga": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "id_dotacion_entrega",
+                                                "id_empleado",
+                                                "numero_documento",
+                                                "nombre_completo",
+                                                "fecha_entrega",
+                                                "tipo_entrega",
+                                                "id_dotacion_combinacion",
+                                                "codigo_combinacion",
+                                                "nombre_combinacion",
+                                                "fecha_confirmacion",
+                                                "estado",
+                                                "observaciones",
+                                                "observacion_confirmacion",
+                                                "firma_url",
+                                                "id_registrado_por",
+                                                "registrado_por",
+                                                "id_confirmado_por",
+                                                "confirmado_por",
+                                                "created_at",
+                                                "updated_at",
+                                                "evidencia_nombre_archivo",
+                                                "evidencia_nombre_original",
+                                                "evidencia_url",
+                                                "evidencia_ruta",
+                                                "evidencia_url_publica",
+                                                "evidencia_mime_type",
+                                                "evidencia_peso_bytes",
+                                                "evidencia_fecha_carga"
+                                            ]
                                         }
                                     },
                                     "required": [
@@ -5648,17 +5954,10 @@
             },
             "post": {
                 "operationId": "tool.storeDelivery",
-                "description": "Crea una entrega pendiente con una o varias herramientas. Recibe multipart/form-data; `herramientas` es una parte de texto con JSON y `evidencias[]` contiene una o varias fotograf\u00edas obligatorias (JPG, JPEG, PNG o WEBP; m\u00e1ximo configurable, 5 MB por defecto).",
+                "description": "Crea una entrega pendiente con una o varias herramientas. El detalle completo se env\u00eda como JSON al procedimiento almacenado.",
                 "summary": "Registrar entrega de herramientas",
                 "tags": [
                     "Herramientas"
-                ],
-                "x-codeSamples": [
-                    {
-                        "lang": "Shell",
-                        "label": "cURL multipart",
-                        "source": "curl -X POST \"$API_URL/api/tool-deliveries\" -H \"Authorization: Bearer $TOKEN\" -H \"Accept: application/json\" -F \"id_empleado=18\" -F \"fecha_entrega=2026-07-27\" -F \"observaciones=Entrega inicial\" -F 'herramientas=[{\"id_herramienta\":13,\"cantidad\":2,\"observaciones\":\"Dos pares\"}]' -F \"evidencias[]=@frente.jpg;type=image/jpeg\" -F \"evidencias[]=@lateral.png;type=image/png\""
-                    }
                 ],
                 "requestBody": {
                     "required": true,
@@ -5666,11 +5965,6 @@
                         "multipart/form-data": {
                             "schema": {
                                 "$ref": "#/components/schemas/StoreToolDeliveryRequest"
-                            },
-                            "encoding": {
-                                "herramientas": {
-                                    "contentType": "application/json"
-                                }
                             }
                         }
                     }
@@ -5723,7 +6017,7 @@
         "/tool-deliveries/{id}": {
             "get": {
                 "operationId": "tool.showDelivery",
-                "description": "Retorna en una sola respuesta la cabecera, todas las herramientas y `evidencias`. Las entregas hist\u00f3ricas sin fotograf\u00edas retornan `evidencias: []`.",
+                "description": "Retorna en una sola respuesta la cabecera y todas las herramientas entregadas.",
                 "summary": "Consultar entrega completa",
                 "tags": [
                     "Herramientas"
@@ -5823,13 +6117,6 @@
                                                             "observaciones"
                                                         ]
                                                     }
-                                                },
-                                                "evidencias": {
-                                                    "type": "array",
-                                                    "description": "Vac\u00edo para entregas hist\u00f3ricas sin evidencia.",
-                                                    "items": {
-                                                        "$ref": "#/components/schemas/ToolDeliveryEvidence"
-                                                    }
                                                 }
                                             },
                                             "required": [
@@ -5843,8 +6130,7 @@
                                                 "estado",
                                                 "observaciones",
                                                 "fecha_confirmacion",
-                                                "herramientas",
-                                                "evidencias"
+                                                "herramientas"
                                             ]
                                         }
                                     },
@@ -7149,7 +7435,7 @@
         "/my-tool-deliveries/{id}": {
             "get": {
                 "operationId": "myToolDelivery.show",
-                "description": "Retorna cabecera, detalle y `evidencias` solamente si la entrega pertenece al empleado autenticado. Las entregas hist\u00f3ricas sin fotograf\u00edas retornan `evidencias: []`.",
+                "description": "Retorna cabecera y detalle solamente si la entrega pertenece al empleado autenticado.",
                 "summary": "Consultar mi entrega de herramientas",
                 "tags": [
                     "Mis herramientas"
@@ -7234,13 +7520,6 @@
                                                             "observaciones"
                                                         ]
                                                     }
-                                                },
-                                                "evidencias": {
-                                                    "type": "array",
-                                                    "description": "Vac\u00edo para entregas hist\u00f3ricas sin evidencia.",
-                                                    "items": {
-                                                        "$ref": "#/components/schemas/ToolDeliveryEvidence"
-                                                    }
                                                 }
                                             },
                                             "required": [
@@ -7249,8 +7528,7 @@
                                                 "estado",
                                                 "observaciones",
                                                 "fecha_confirmacion",
-                                                "herramientas",
-                                                "evidencias"
+                                                "herramientas"
                                             ]
                                         }
                                     },
@@ -7320,7 +7598,6 @@
             "get": {
                 "operationId": "bulkLoadEmployee.template",
                 "summary": "Descargar plantilla oficial de carga masiva de empleados",
-                "description": "Genera un XLSX compatible con el export entregado: hoja PERSONAL EMPRESA ACTIVOS y 51 columnas en el mismo orden, reemplazando únicamente APELLIDO Y NOMBRE COMPLETO por NOMBRES y APELLIDOS.",
                 "tags": [
                     "BulkLoadEmployee"
                 ],
@@ -7352,7 +7629,6 @@
             "post": {
                 "operationId": "bulkLoadEmployee.validateFile",
                 "summary": "Validar un XLSX de empleados sin realizar escrituras",
-                "description": "Valida el contrato compatible de 51 columnas. Las columnas históricas se aceptan con advertencias y no crean documentos, contratos ni otros históricos.",
                 "tags": [
                     "BulkLoadEmployee"
                 ],
@@ -7388,22 +7664,21 @@
                                                     "type": "integer"
                                                 },
                                                 "valid": {
-                                                    "type": "integer"
+                                                    "type": [
+                                                        "object",
+                                                        "null"
+                                                    ]
                                                 },
                                                 "invalid": {
                                                     "type": "integer"
                                                 },
                                                 "warnings": {
                                                     "type": "array",
-                                                    "items": {
-                                                        "$ref": "#/components/schemas/BulkLoadRowIssue"
-                                                    }
+                                                    "items": {}
                                                 },
                                                 "errors": {
                                                     "type": "array",
-                                                    "items": {
-                                                        "$ref": "#/components/schemas/BulkLoadRowIssue"
-                                                    }
+                                                    "items": {}
                                                 }
                                             },
                                             "required": [
@@ -7434,7 +7709,6 @@
             "post": {
                 "operationId": "bulkLoadEmployee.import",
                 "summary": "Revalidar e importar at\u00f3micamente un XLSX de empleados",
-                "description": "Revalida el archivo completo e importa de forma atómica únicamente empleado, ficha de ingreso, asociaciones de seguridad social y tallas actuales.",
                 "tags": [
                     "BulkLoadEmployee"
                 ],
@@ -7545,25 +7819,6 @@
                     "file"
                 ],
                 "title": "BulkLoadEmployeeFileRequest"
-            },
-            "BulkLoadRowIssue": {
-                "type": "object",
-                "properties": {
-                    "row": {
-                        "type": "integer"
-                    },
-                    "field": {
-                        "type": "string"
-                    },
-                    "message": {
-                        "type": "string"
-                    }
-                },
-                "required": [
-                    "row",
-                    "field",
-                    "message"
-                ]
             },
             "CancelReturnRequest": {
                 "type": "object",
@@ -7964,6 +8219,13 @@
                             "EXTRAORDINARIA"
                         ]
                     },
+                    "estado_inicial": {
+                        "type": "string",
+                        "enum": [
+                            "POR_COMPRAR",
+                            "REGISTRADA"
+                        ]
+                    },
                     "id_dotacion_combinacion": {
                         "type": [
                             "integer",
@@ -7978,7 +8240,10 @@
                         ]
                     },
                     "origen_evidencia": {
-                        "type": "string",
+                        "type": [
+                            "string",
+                            "null"
+                        ],
                         "enum": [
                             "ARCHIVO",
                             "URL"
@@ -8042,7 +8307,7 @@
                     "id_empleado",
                     "fecha_entrega",
                     "tipo_entrega",
-                    "origen_evidencia",
+                    "estado_inicial",
                     "detalles"
                 ],
                 "title": "CreateDotationDeliveryRequest"
@@ -8268,6 +8533,45 @@
                     "password"
                 ],
                 "title": "LoginRequest"
+            },
+            "PrepareDotationDeliveryRequest": {
+                "type": "object",
+                "properties": {
+                    "fecha_entrega": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "origen_evidencia": {
+                        "type": "string",
+                        "enum": [
+                            "ARCHIVO",
+                            "URL"
+                        ]
+                    },
+                    "evidencia_nombre_archivo": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 255
+                    },
+                    "evidencia_archivo": {
+                        "type": "string",
+                        "format": "binary",
+                        "contentMediaType": "application/octet-stream",
+                        "maxLength": 5120
+                    },
+                    "evidencia_url": {
+                        "type": "string",
+                        "format": "uri",
+                        "maxLength": 500
+                    }
+                },
+                "required": [
+                    "fecha_entrega",
+                    "origen_evidencia"
+                ],
+                "title": "PrepareDotationDeliveryRequest"
             },
             "RefreshTokenRequest": {
                 "type": "object",
@@ -8963,45 +9267,6 @@
                 ],
                 "title": "StoreRoleRequest"
             },
-            "ToolDeliveryEvidence": {
-                "type": "object",
-                "properties": {
-                    "id_evidencia": {
-                        "type": "integer"
-                    },
-                    "id_entrega": {
-                        "type": "integer"
-                    },
-                    "nombre_archivo": {
-                        "type": "string"
-                    },
-                    "nombre_original": {
-                        "type": "string"
-                    },
-                    "archivo_ruta": {
-                        "type": "string",
-                        "example": "uploads/tool-deliveries/202607/550e8400-e29b-41d4-a716-446655440000.jpg"
-                    },
-                    "mime_type": {
-                        "type": "string",
-                        "enum": [
-                            "image/jpeg",
-                            "image/png",
-                            "image/webp"
-                        ]
-                    },
-                    "peso_bytes": {
-                        "type": "integer"
-                    }
-                },
-                "required": [
-                    "nombre_archivo",
-                    "nombre_original",
-                    "archivo_ruta",
-                    "mime_type",
-                    "peso_bytes"
-                ]
-            },
             "StoreToolDeliveryRequest": {
                 "type": "object",
                 "properties": {
@@ -9020,27 +9285,50 @@
                         ],
                         "maxLength": 1000
                     },
-                    "herramientas": {
-                        "type": "string",
-                        "contentMediaType": "application/json",
-                        "example": "[{\"id_herramienta\":13,\"cantidad\":2,\"observaciones\":\"Dos pares\"}]",
-                        "description": "JSON serializado con un arreglo no vac\u00edo de herramientas."
-                    },
                     "evidencias": {
                         "type": "array",
-                        "minItems": 1,
                         "items": {
                             "type": "string",
-                            "format": "binary"
+                            "format": "binary",
+                            "contentMediaType": "application/octet-stream",
+                            "maxLength": 5120
                         },
-                        "description": "Una o varias fotograf\u00edas JPG, JPEG, PNG o WEBP. 5 MB m\u00e1ximo por archivo por defecto."
+                        "minItems": 1
+                    },
+                    "herramientas": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "id_herramienta": {
+                                    "type": "integer",
+                                    "minimum": 1
+                                },
+                                "cantidad": {
+                                    "type": "integer",
+                                    "minimum": 1
+                                },
+                                "observaciones": {
+                                    "type": [
+                                        "string",
+                                        "null"
+                                    ],
+                                    "maxLength": 1000
+                                }
+                            },
+                            "required": [
+                                "id_herramienta",
+                                "cantidad"
+                            ]
+                        },
+                        "minItems": 1
                     }
                 },
                 "required": [
                     "id_empleado",
                     "fecha_entrega",
-                    "herramientas",
-                    "evidencias"
+                    "evidencias",
+                    "herramientas"
                 ],
                 "title": "StoreToolDeliveryRequest"
             },

@@ -25,7 +25,7 @@ use UnexpectedValueException;
 
 class DotationService
 {
-    public const QUOTATION_REPORT_SHEET = 'Cotización dotación';
+    public const QUOTATION_REPORT_SHEET = 'Tallas dotación';
 
     public const QUOTATION_REPORT_COLUMNS = [
         'Documento' => 'numero_documento',
@@ -118,7 +118,7 @@ class DotationService
             throw new ApiException('No se encontró información de dotación para los filtros seleccionados.', 404);
         }
 
-        $path = tempnam(sys_get_temp_dir(), 'bbf_cotizacion_dotacion_');
+        $path = tempnam(sys_get_temp_dir(), 'bbf_tallas_dotacion_');
         if ($path === false) {
             throw new RuntimeException('No fue posible crear el archivo temporal del reporte.');
         }
@@ -132,8 +132,28 @@ class DotationService
 
         return [
             'path' => $path,
-            'filename' => 'cotizacion-dotacion-'.now()->format('Ymd-His').'.xlsx',
+            'filename' => 'tallas-dotacion-'.now()->format('Ymd-His').'.xlsx',
         ];
+    }
+
+    public function exportPurchaseQuotation(?int $areaId, ?int $positionId, ?int $employeeId): array
+    {
+        $rows = $this->dotations->purchaseQuotationReport($areaId, $positionId, $employeeId);
+        if ($rows === []) {
+            throw new ApiException('No hay solicitudes por comprar para los filtros seleccionados.', 404);
+        }
+        $path = tempnam(sys_get_temp_dir(), 'bbf_cotizacion_compra_');
+        if ($path === false) {
+            throw new RuntimeException('No fue posible crear el archivo temporal de cotización.');
+        }
+        try {
+            $this->writePurchaseQuotationWorkbook($path, $rows);
+        } catch (Throwable $exception) {
+            @unlink($path);
+            throw $exception;
+        }
+
+        return ['path' => $path, 'filename' => 'cotizacion-dotacion-'.now()->format('Ymd-His').'.xlsx'];
     }
 
     public function employeeSizes(int $employeeId): array
@@ -149,6 +169,7 @@ class DotationService
     public function createDelivery(array $data, int $registeredBy, array $context): array
     {
         $deliveryType = strtoupper(trim((string) $data['tipo_entrega']));
+        $initialStatus = strtoupper(trim((string) ($data['estado_inicial'] ?? 'REGISTRADA')));
         $combinationId = $this->nullableInt($data, 'id_dotacion_combinacion');
         $details = $this->validateDelivery(
             (int) $data['id_empleado'],
@@ -156,10 +177,10 @@ class DotationService
             $combinationId,
             $data['detalles'],
         );
-        $evidence = $this->buildEvidencePayload($data);
+        $evidence = $initialStatus === 'POR_COMPRAR' ? $this->emptyEvidencePayload() : $this->buildEvidencePayload($data);
 
         try {
-            $deliveryId = DB::transaction(function () use ($data, $registeredBy, $deliveryType, $combinationId, $details, $evidence): int {
+            $deliveryId = DB::transaction(function () use ($data, $registeredBy, $deliveryType, $initialStatus, $combinationId, $details, $evidence): int {
                 $deliveryId = $this->dotations->createDelivery(
                     (int) $data['id_empleado'],
                     (string) $data['fecha_entrega'],
@@ -167,6 +188,7 @@ class DotationService
                     $combinationId,
                     $registeredBy,
                     $data['observaciones'] ?? null,
+                    $initialStatus,
                     $evidence['evidencia_nombre_archivo'],
                     $evidence['evidencia_nombre_original'],
                     $evidence['evidencia_url'],
@@ -202,15 +224,49 @@ class DotationService
             'fecha_entrega' => (string) $data['fecha_entrega'],
             'tipo_entrega' => $deliveryType,
             'id_dotacion_combinacion' => $combinationId,
-            'estado' => 'REGISTRADA',
+            'estado' => $initialStatus,
             ...$this->mapEvidence($evidence),
         ];
         $auditRequest = $data;
         unset($auditRequest['evidencia_archivo']);
-        $auditRequest['origen_evidencia'] = $data['origen_evidencia'];
+        $auditRequest['origen_evidencia'] = $data['origen_evidencia'] ?? null;
         $this->audit->record($registeredBy, 'DOTACIONES', 'DOTACIONES_ENTREGA_CREAR', 'DOTACION_ENTREGA', $deliveryId, null, ['request' => $auditRequest, 'result' => $result], $context);
 
         return $result;
+    }
+
+    public function prepareDelivery(int $deliveryId, array $data, int $userId, array $context): array
+    {
+        $evidence = $this->buildEvidencePayload($data);
+        try {
+            $prepared = $this->dotations->prepareDelivery(
+                $deliveryId, (string) $data['fecha_entrega'], $userId,
+                $evidence['evidencia_nombre_archivo'], $evidence['evidencia_nombre_original'],
+                $evidence['evidencia_url'], $evidence['evidencia_ruta'],
+                $evidence['evidencia_mime_type'], $evidence['evidencia_peso_bytes'],
+            );
+            if (! $prepared) {
+                throw new ApiException('No fue posible preparar la entrega.', 422);
+            }
+        } catch (Throwable $exception) {
+            $this->deleteEvidenceFile($evidence['evidencia_ruta']);
+            throw $exception;
+        }
+        $result = $this->mapDelivery($prepared);
+        $this->audit->record($userId, 'DOTACIONES', 'DOTACIONES_ENTREGA_PREPARAR', 'DOTACION_ENTREGA', $deliveryId, null, [
+            'fecha_entrega' => $data['fecha_entrega'], 'estado' => 'REGISTRADA',
+        ], $context);
+
+        return $result;
+    }
+
+    private function emptyEvidencePayload(): array
+    {
+        return [
+            'evidencia_nombre_archivo' => null, 'evidencia_nombre_original' => null,
+            'evidencia_url' => null, 'evidencia_ruta' => null, 'evidencia_mime_type' => null,
+            'evidencia_peso_bytes' => null, 'evidencia_fecha_carga' => null,
+        ];
     }
 
     private function buildEvidencePayload(array $data): array
@@ -467,6 +523,83 @@ class DotationService
                 }
 
                 $writer->addRow(new Row($cells));
+            }
+        } finally {
+            $writer->close();
+        }
+    }
+
+    private function writePurchaseQuotationWorkbook(string $path, array $rows): void
+    {
+        $header = (new Style)->setFontBold()->setShouldWrapText();
+        $date = (new Style)->setFormat('dd/mm/yyyy');
+        $wrappedText = (new Style)->setShouldWrapText();
+        $writer = new Writer;
+        $writer->openToFile($path);
+        try {
+            $summary = [];
+            foreach ($rows as $row) {
+                if (strtoupper((string) ($row['estado'] ?? '')) !== 'POR_COMPRAR') {
+                    continue;
+                }
+                $key = (string) ($row['tipo_dotacion'] ?? '').'|'.(string) ($row['talla'] ?? '');
+                $summary[$key] ??= [
+                    'prenda' => (string) ($row['tipo_dotacion'] ?? ''),
+                    'talla' => (string) ($row['talla'] ?? 'Sin talla'),
+                    'cantidad' => 0,
+                ];
+                $summary[$key]['cantidad'] += (int) ($row['cantidad'] ?? 0);
+            }
+            if ($summary === []) {
+                throw new ApiException('No hay solicitudes por comprar para exportar.', 404);
+            }
+
+            $sheet = $writer->getCurrentSheet();
+            $sheet->setName('Resumen de compra');
+            $sheet->setSheetView((new SheetView)->setFreezeRow(2));
+            $sheet->setColumnWidth(28, 1);
+            $sheet->setColumnWidth(18, 2, 3);
+            $sheet->setAutoFilter(new AutoFilter(0, 1, 2, count($summary) + 1));
+            $writer->addRow(Row::fromValues(['Prenda', 'Talla', 'Cantidad total'], $header));
+            foreach ($summary as $item) {
+                $writer->addRow(new Row([
+                    new StringCell($item['prenda'], null),
+                    new StringCell($item['talla'], null),
+                    new NumericCell($item['cantidad'], null),
+                ]));
+            }
+
+            $detail = $writer->addNewSheetAndMakeItCurrent();
+            $detail->setName('Detalle por empleado');
+            $detail->setSheetView((new SheetView)->setFreezeRow(2));
+            $headings = ['Documento', 'Empleado', 'Prenda', 'Talla', 'Cantidad', 'ID solicitud', 'Fecha solicitud', 'Fecha requerida', 'Área', 'Cargo', 'Tipo de entrega', 'Combinación', 'Observaciones', 'Observaciones detalle', 'Estado'];
+            $detail->setAutoFilter(new AutoFilter(0, 1, count($headings) - 1, count($rows) + 1));
+            $detail->setColumnWidthForRange(18, 1, count($headings));
+            $detail->setColumnWidth(22, 1);
+            $detail->setColumnWidth(32, 2);
+            $detail->setColumnWidth(24, 3, 9, 10, 12);
+            $detail->setColumnWidth(38, 13, 14);
+            $writer->addRow(Row::fromValues($headings, $header));
+            foreach ($rows as $row) {
+                if (strtoupper((string) ($row['estado'] ?? '')) !== 'POR_COMPRAR') {
+                    continue;
+                }
+                $writer->addRow(new Row([
+                    new StringCell((string) $row['numero_documento'], null),
+                    new StringCell((string) $row['nombre_completo'], null),
+                    new StringCell((string) $row['tipo_dotacion'], null),
+                    Cell::fromValue($row['talla'] ?? 'Sin talla'),
+                    new NumericCell((int) $row['cantidad'], null),
+                    new NumericCell((int) $row['id_dotacion_entrega'], null),
+                    new DateTimeCell($this->quotationDate($row['fecha_solicitud']), $date),
+                    new DateTimeCell($this->quotationDate($row['fecha_requerida']), $date),
+                    Cell::fromValue($row['area'] ?? null), Cell::fromValue($row['cargo'] ?? null),
+                    new StringCell((string) $row['tipo_entrega'], null),
+                    Cell::fromValue($row['nombre_combinacion'] ?? $row['codigo_combinacion'] ?? null),
+                    Cell::fromValue($row['observaciones_solicitud'] ?? null, $wrappedText),
+                    Cell::fromValue($row['observaciones_detalle'] ?? null, $wrappedText),
+                    new StringCell('POR_COMPRAR', null),
+                ]));
             }
         } finally {
             $writer->close();

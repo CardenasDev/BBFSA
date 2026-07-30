@@ -239,6 +239,17 @@ export interface ToolDeliveryDetail {
   observaciones?: string | null;
 }
 
+export interface ToolDeliveryEvidence {
+  id_evidencia?: number | null;
+  nombre_archivo?: string | null;
+  nombre_original?: string | null;
+  archivo_url?: string | null;
+  archivo_ruta?: string | null;
+  mime_type?: string | null;
+  peso_bytes?: number | null;
+  created_at?: string | null;
+}
+
 export interface ToolDelivery {
   id_entrega: number;
   id_empleado?: number;
@@ -252,6 +263,7 @@ export interface ToolDelivery {
   fecha_confirmacion?: string | null;
   total_herramientas?: number;
   herramientas?: ToolDeliveryDetail[];
+  evidencias?: ToolDeliveryEvidence[];
 }
 
 export interface ToolDeliveryFilters {
@@ -268,6 +280,7 @@ export interface CreateToolDeliveryRequest {
     cantidad: number;
     observaciones?: string | null;
   }>;
+  evidencias: File[];
 }
 
 export interface DotationType {

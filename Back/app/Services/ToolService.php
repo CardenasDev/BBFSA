@@ -4,7 +4,12 @@ namespace App\Services;
 
 use App\Exceptions\ApiException;
 use App\Repositories\ToolRepository;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use JsonException;
+use Throwable;
 
 class ToolService
 {
@@ -52,20 +57,42 @@ class ToolService
 
     public function createDelivery(array $data): array
     {
+        $storedPaths = [];
         try {
             $details = json_encode($data['herramientas'], JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
+            $evidence = [];
+            foreach ($data['evidencias'] as $file) {
+                $metadata = $this->validateAndStoreEvidence($file);
+                $storedPaths[] = $metadata['archivo_ruta'];
+                $evidence[] = $metadata;
+            }
+            $evidenceJson = json_encode($evidence, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
         } catch (JsonException) {
+            $this->deleteStoredEvidence($storedPaths);
             throw new ApiException('El detalle de herramientas no tiene un formato válido.', 422);
+        } catch (Throwable $exception) {
+            $this->deleteStoredEvidence($storedPaths);
+            throw $exception;
         }
 
-        $deliveryId = $this->tools->createDelivery(
-            (int) $data['id_empleado'],
-            $data['fecha_entrega'],
-            $data['observaciones'] ?? null,
-            $details,
-        );
-        if ($deliveryId < 1) {
-            throw new ApiException('No fue posible registrar la entrega de herramientas.', 422);
+        try {
+            $deliveryId = $this->tools->createDelivery(
+                (int) $data['id_empleado'],
+                $data['fecha_entrega'],
+                $data['observaciones'] ?? null,
+                $details,
+                $evidenceJson,
+            );
+            if ($deliveryId < 1) {
+                throw new ApiException('No fue posible registrar la entrega de herramientas.', 422);
+            }
+        } catch (Throwable $exception) {
+            $this->deleteStoredEvidence($storedPaths);
+            Log::error('Falló el registro de una entrega de herramientas; se compensaron sus evidencias.', [
+                'id_empleado' => $data['id_empleado'],
+                'exception' => $exception->getMessage(),
+            ]);
+            throw $exception;
         }
 
         return ['id_entrega' => $deliveryId, 'estado' => 'pendiente'];
@@ -88,6 +115,10 @@ class ToolService
             'herramientas' => array_map(
                 fn (array $row): array => $this->mapDeliveryDetail($row),
                 $this->tools->deliveryDetails($deliveryId),
+            ),
+            'evidencias' => array_map(
+                fn (array $row): array => $this->mapDeliveryEvidence($row),
+                $this->tools->deliveryEvidence($deliveryId),
             ),
         ];
     }
@@ -129,6 +160,10 @@ class ToolService
             'herramientas' => array_map(
                 fn (array $row): array => $this->mapDeliveryDetail($row),
                 $this->tools->getMyDeliveryDetails($deliveryId, $employeeId),
+            ),
+            'evidencias' => array_map(
+                fn (array $row): array => $this->mapDeliveryEvidence($row),
+                $this->tools->deliveryEvidence($deliveryId),
             ),
         ];
     }
@@ -202,5 +237,55 @@ class ToolService
         }
 
         return $row;
+    }
+
+    private function mapDeliveryEvidence(array $row): array
+    {
+        foreach (['id_evidencia', 'id_entrega', 'peso_bytes'] as $key) {
+            if (isset($row[$key])) {
+                $row[$key] = (int) $row[$key];
+            }
+        }
+
+        return $row;
+    }
+
+    private function validateAndStoreEvidence(mixed $candidate): array
+    {
+        if (! $candidate instanceof UploadedFile || ! $candidate->isValid()) {
+            throw new ApiException('Una de las fotografías de evidencia no es válida.', 422);
+        }
+
+        $mime = strtolower((string) $candidate->getMimeType());
+        $extension = strtolower($candidate->getClientOriginalExtension());
+        if (! str_starts_with($mime, 'image/')
+            || ! in_array($extension, config('tool_deliveries.allowed_extensions', []), true)
+            || ! in_array($mime, config('tool_deliveries.allowed_mime_types', []), true)
+            || ! in_array($mime, config("tool_deliveries.extension_mime_types.{$extension}", []), true)) {
+            throw new ApiException('El contenido real de una fotografía no coincide con su extensión o no está permitido.', 422);
+        }
+
+        $directory = 'uploads/tool-deliveries/'.now()->format('Ym');
+        File::ensureDirectoryExists(public_path($directory), 0755, true);
+        $filename = Str::uuid()->toString().'.'.$extension;
+        $metadata = [
+            'nombre_archivo' => $filename,
+            'nombre_original' => $candidate->getClientOriginalName(),
+            'archivo_ruta' => "{$directory}/{$filename}",
+            'mime_type' => $mime,
+            'peso_bytes' => (int) $candidate->getSize(),
+        ];
+        $candidate->move(public_path($directory), $filename);
+
+        return $metadata;
+    }
+
+    private function deleteStoredEvidence(array $relativePaths): void
+    {
+        foreach ($relativePaths as $relativePath) {
+            if (is_string($relativePath) && str_starts_with($relativePath, 'uploads/tool-deliveries/')) {
+                File::delete(public_path($relativePath));
+            }
+        }
     }
 }

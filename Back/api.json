@@ -5648,17 +5648,29 @@
             },
             "post": {
                 "operationId": "tool.storeDelivery",
-                "description": "Crea una entrega pendiente con una o varias herramientas. El detalle completo se env\u00eda como JSON al procedimiento almacenado.",
+                "description": "Crea una entrega pendiente con una o varias herramientas. Recibe multipart/form-data; `herramientas` es una parte de texto con JSON y `evidencias[]` contiene una o varias fotograf\u00edas obligatorias (JPG, JPEG, PNG o WEBP; m\u00e1ximo configurable, 5 MB por defecto).",
                 "summary": "Registrar entrega de herramientas",
                 "tags": [
                     "Herramientas"
                 ],
+                "x-codeSamples": [
+                    {
+                        "lang": "Shell",
+                        "label": "cURL multipart",
+                        "source": "curl -X POST \"$API_URL/api/tool-deliveries\" -H \"Authorization: Bearer $TOKEN\" -H \"Accept: application/json\" -F \"id_empleado=18\" -F \"fecha_entrega=2026-07-27\" -F \"observaciones=Entrega inicial\" -F 'herramientas=[{\"id_herramienta\":13,\"cantidad\":2,\"observaciones\":\"Dos pares\"}]' -F \"evidencias[]=@frente.jpg;type=image/jpeg\" -F \"evidencias[]=@lateral.png;type=image/png\""
+                    }
+                ],
                 "requestBody": {
                     "required": true,
                     "content": {
-                        "application/json": {
+                        "multipart/form-data": {
                             "schema": {
                                 "$ref": "#/components/schemas/StoreToolDeliveryRequest"
+                            },
+                            "encoding": {
+                                "herramientas": {
+                                    "contentType": "application/json"
+                                }
                             }
                         }
                     }
@@ -5711,7 +5723,7 @@
         "/tool-deliveries/{id}": {
             "get": {
                 "operationId": "tool.showDelivery",
-                "description": "Retorna en una sola respuesta la cabecera y todas las herramientas entregadas.",
+                "description": "Retorna en una sola respuesta la cabecera, todas las herramientas y `evidencias`. Las entregas hist\u00f3ricas sin fotograf\u00edas retornan `evidencias: []`.",
                 "summary": "Consultar entrega completa",
                 "tags": [
                     "Herramientas"
@@ -5811,6 +5823,13 @@
                                                             "observaciones"
                                                         ]
                                                     }
+                                                },
+                                                "evidencias": {
+                                                    "type": "array",
+                                                    "description": "Vac\u00edo para entregas hist\u00f3ricas sin evidencia.",
+                                                    "items": {
+                                                        "$ref": "#/components/schemas/ToolDeliveryEvidence"
+                                                    }
                                                 }
                                             },
                                             "required": [
@@ -5824,7 +5843,8 @@
                                                 "estado",
                                                 "observaciones",
                                                 "fecha_confirmacion",
-                                                "herramientas"
+                                                "herramientas",
+                                                "evidencias"
                                             ]
                                         }
                                     },
@@ -7129,7 +7149,7 @@
         "/my-tool-deliveries/{id}": {
             "get": {
                 "operationId": "myToolDelivery.show",
-                "description": "Retorna cabecera y detalle solamente si la entrega pertenece al empleado autenticado.",
+                "description": "Retorna cabecera, detalle y `evidencias` solamente si la entrega pertenece al empleado autenticado. Las entregas hist\u00f3ricas sin fotograf\u00edas retornan `evidencias: []`.",
                 "summary": "Consultar mi entrega de herramientas",
                 "tags": [
                     "Mis herramientas"
@@ -7214,6 +7234,13 @@
                                                             "observaciones"
                                                         ]
                                                     }
+                                                },
+                                                "evidencias": {
+                                                    "type": "array",
+                                                    "description": "Vac\u00edo para entregas hist\u00f3ricas sin evidencia.",
+                                                    "items": {
+                                                        "$ref": "#/components/schemas/ToolDeliveryEvidence"
+                                                    }
                                                 }
                                             },
                                             "required": [
@@ -7222,7 +7249,8 @@
                                                 "estado",
                                                 "observaciones",
                                                 "fecha_confirmacion",
-                                                "herramientas"
+                                                "herramientas",
+                                                "evidencias"
                                             ]
                                         }
                                     },
@@ -8723,6 +8751,45 @@
                 ],
                 "title": "StoreRoleRequest"
             },
+            "ToolDeliveryEvidence": {
+                "type": "object",
+                "properties": {
+                    "id_evidencia": {
+                        "type": "integer"
+                    },
+                    "id_entrega": {
+                        "type": "integer"
+                    },
+                    "nombre_archivo": {
+                        "type": "string"
+                    },
+                    "nombre_original": {
+                        "type": "string"
+                    },
+                    "archivo_ruta": {
+                        "type": "string",
+                        "example": "uploads/tool-deliveries/202607/550e8400-e29b-41d4-a716-446655440000.jpg"
+                    },
+                    "mime_type": {
+                        "type": "string",
+                        "enum": [
+                            "image/jpeg",
+                            "image/png",
+                            "image/webp"
+                        ]
+                    },
+                    "peso_bytes": {
+                        "type": "integer"
+                    }
+                },
+                "required": [
+                    "nombre_archivo",
+                    "nombre_original",
+                    "archivo_ruta",
+                    "mime_type",
+                    "peso_bytes"
+                ]
+            },
             "StoreToolDeliveryRequest": {
                 "type": "object",
                 "properties": {
@@ -8742,38 +8809,26 @@
                         "maxLength": 1000
                     },
                     "herramientas": {
+                        "type": "string",
+                        "contentMediaType": "application/json",
+                        "example": "[{\"id_herramienta\":13,\"cantidad\":2,\"observaciones\":\"Dos pares\"}]",
+                        "description": "JSON serializado con un arreglo no vac\u00edo de herramientas."
+                    },
+                    "evidencias": {
                         "type": "array",
+                        "minItems": 1,
                         "items": {
-                            "type": "object",
-                            "properties": {
-                                "id_herramienta": {
-                                    "type": "integer",
-                                    "minimum": 1
-                                },
-                                "cantidad": {
-                                    "type": "integer",
-                                    "minimum": 1
-                                },
-                                "observaciones": {
-                                    "type": [
-                                        "string",
-                                        "null"
-                                    ],
-                                    "maxLength": 1000
-                                }
-                            },
-                            "required": [
-                                "id_herramienta",
-                                "cantidad"
-                            ]
+                            "type": "string",
+                            "format": "binary"
                         },
-                        "minItems": 1
+                        "description": "Una o varias fotograf\u00edas JPG, JPEG, PNG o WEBP. 5 MB m\u00e1ximo por archivo por defecto."
                     }
                 },
                 "required": [
                     "id_empleado",
                     "fecha_entrega",
-                    "herramientas"
+                    "herramientas",
+                    "evidencias"
                 ],
                 "title": "StoreToolDeliveryRequest"
             },

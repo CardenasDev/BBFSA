@@ -44,7 +44,10 @@ export class ToolService {
   }
 
   createToolDelivery(payload: CreateToolDeliveryRequest): Observable<{ id_entrega: number; estado: string }> {
-    return this.http.post<ApiResponse<{ id_entrega: number; estado: string }>>(this.deliveriesUrl, payload).pipe(map((response) => response.data));
+    return this.http.post<ApiResponse<{ id_entrega: number; estado: string }>>(
+      this.deliveriesUrl,
+      buildToolDeliveryFormData(payload),
+    ).pipe(map((response) => response.data));
   }
 
   getToolDelivery(id: number): Observable<ToolDelivery> {
@@ -76,4 +79,14 @@ export class ToolService {
       map((response) => response.data),
     );
   }
+}
+
+export function buildToolDeliveryFormData(payload: CreateToolDeliveryRequest): FormData {
+  const formData = new FormData();
+  formData.append('id_empleado', String(payload.id_empleado));
+  formData.append('fecha_entrega', payload.fecha_entrega);
+  formData.append('observaciones', payload.observaciones ?? '');
+  formData.append('herramientas', JSON.stringify(payload.herramientas));
+  payload.evidencias.forEach((file) => formData.append('evidencias[]', file));
+  return formData;
 }

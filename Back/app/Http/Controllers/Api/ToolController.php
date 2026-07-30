@@ -73,8 +73,11 @@ class ToolController extends ApiController
      */
     public function storeDelivery(StoreToolDeliveryRequest $request): JsonResponse
     {
+        $data = $request->validated();
+        $data['evidencias'] = $request->file('evidencias', []);
+
         return $this->success(
-            $this->tools->createDelivery($request->validated()),
+            $this->tools->createDelivery($data),
             'Entrega de herramientas registrada correctamente',
             201,
         );

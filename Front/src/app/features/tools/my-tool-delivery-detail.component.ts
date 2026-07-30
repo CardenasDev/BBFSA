@@ -1,8 +1,9 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { finalize } from 'rxjs';
-import { ToolDelivery } from '../../core/models/api.models';
+import { ToolDelivery, ToolDeliveryEvidence } from '../../core/models/api.models';
 import { AuthService } from '../../core/services/auth.service';
+import { resolveReturnEvidenceUrl } from '../../core/services/return.service';
 import { ToolService } from '../../core/services/tool.service';
 import { apiErrorMessage } from '../../shared/api-error';
 
@@ -38,9 +39,20 @@ import { apiErrorMessage } from '../../shared/api-error';
             } @empty { <tr><td colspan="3" class="empty">No se encontraron herramientas en esta entrega.</td></tr> }
           </tbody>
         </table></div>
+        <div class="section-title"><div><h2>Evidencias</h2><p class="muted">Registro fotográfico de la entrega.</p></div></div>
+        <div class="evidence-grid">
+          @for (evidence of item.evidencias ?? []; track evidence.id_evidencia ?? evidence.nombre_archivo) {
+            <article class="evidence-card">
+              @if (evidenceUrl(evidence); as url) { <a [href]="url" target="_blank" rel="noopener noreferrer"><img [src]="url" [alt]="'Evidencia ' + evidenceName(evidence)" /></a> }
+              <div><strong>{{ evidenceName(evidence) }}</strong><small>{{ fileSize(evidence.peso_bytes) }}</small></div>
+              @if (evidenceUrl(evidence); as url) { <a class="btn small ghost" [href]="url" target="_blank" rel="noopener noreferrer">Ver foto</a> }
+            </article>
+          } @empty { <p class="empty">Sin evidencia fotográfica registrada</p> }
+        </div>
       } @else if (loading()) { <div class="empty tall">Cargando entrega...</div> }
     </section>
   `,
+  styles: [`.evidence-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:.75rem}.evidence-card{display:grid;grid-template-columns:72px minmax(0,1fr) auto;align-items:center;gap:.75rem;border:1px solid var(--line);border-radius:12px;padding:.75rem}.evidence-card img{width:72px;height:72px;object-fit:cover;border-radius:8px}.evidence-card small{display:block;color:var(--muted);margin-top:.2rem}`],
 })
 export class MyToolDeliveryDetailComponent implements OnInit {
   readonly auth = inject(AuthService);
@@ -76,4 +88,7 @@ export class MyToolDeliveryDetailComponent implements OnInit {
   isConfirmed(delivery: ToolDelivery): boolean {
     return (delivery.estado ?? '').toLowerCase() === 'confirmada' || !!delivery.fecha_confirmacion;
   }
+  evidenceUrl(evidence: ToolDeliveryEvidence): string | null { return resolveReturnEvidenceUrl(evidence); }
+  evidenceName(evidence: ToolDeliveryEvidence): string { return evidence.nombre_original || evidence.nombre_archivo || 'Fotografía de entrega'; }
+  fileSize(bytes?: number | null): string { if (!bytes) return 'Tamaño no informado'; return bytes < 1048576 ? `${Math.max(1, Math.round(bytes / 1024))} KB` : `${(bytes / 1048576).toFixed(1)} MB`; }
 }

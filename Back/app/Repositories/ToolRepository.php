@@ -24,13 +24,19 @@ class ToolRepository extends StoredProcedureRepository
         return $this->first('SP_BBF_HERRAMIENTAS_CAMBIAR_ESTADO', [$toolId, (int) $active]) ?? [];
     }
 
-    public function createDelivery(int $employeeId, string $deliveryDate, ?string $observations, string $details): int
-    {
+    public function createDelivery(
+        int $employeeId,
+        string $deliveryDate,
+        ?string $observations,
+        string $details,
+        string $evidence,
+    ): int {
         $row = $this->first('SP_BBF_HERRAMIENTAS_ENTREGA_CREAR', [
             $employeeId,
             $deliveryDate,
             $observations,
             $details,
+            $evidence,
         ]);
 
         return (int) ($row['id_entrega'] ?? 0);
@@ -49,6 +55,11 @@ class ToolRepository extends StoredProcedureRepository
     public function deliveryDetails(int $deliveryId): array
     {
         return $this->call('SP_BBF_HERRAMIENTAS_ENTREGA_DETALLE_LISTAR', [$deliveryId]);
+    }
+
+    public function deliveryEvidence(int $deliveryId): array
+    {
+        return $this->call('SP_BBF_HERRAMIENTAS_ENTREGA_EVIDENCIAS_LISTAR', [$deliveryId]);
     }
 
     public function confirmDelivery(int $deliveryId): array

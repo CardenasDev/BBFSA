@@ -2,9 +2,12 @@
 
 namespace Tests\Feature;
 
-use App\Services\JwtService;
 use App\Services\AuditService;
+use App\Services\JwtService;
+use Illuminate\Database\QueryException;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\File;
 use Mockery;
 use Tests\TestCase;
 
@@ -33,8 +36,9 @@ class ToolApiTest extends TestCase
         DB::shouldReceive('select')->once()
             ->withArgs(function (string $sql, array $parameters): bool {
                 $detail = json_decode($parameters[3], true);
+                $evidence = json_decode($parameters[4], true);
 
-                return $sql === 'CALL SP_BBF_HERRAMIENTAS_ENTREGA_CREAR(?,?,?,?)'
+                return $sql === 'CALL SP_BBF_HERRAMIENTAS_ENTREGA_CREAR(?,?,?,?,?)'
                     && $parameters[0] === 18
                     && $parameters[1] === '2026-07-27'
                     && $parameters[2] === 'Entrega inicial'
@@ -42,24 +46,112 @@ class ToolApiTest extends TestCase
                         'id_herramienta' => 13,
                         'cantidad' => 2,
                         'observaciones' => 'Dos pares',
-                    ]];
+                    ]]
+                    && count($evidence) === 2
+                    && $evidence[0]['nombre_original'] === 'frente.png'
+                    && $evidence[0]['mime_type'] === 'image/png'
+                    && str_starts_with($evidence[0]['archivo_ruta'], 'uploads/tool-deliveries/')
+                    && ! array_key_exists('archivo_url', $evidence[0]);
             })
             ->andReturn([(object) ['ID_ENTREGA' => 15]]);
 
         $this->withToken($this->token(['HERRAMIENTAS_ENTREGAR']))
-            ->postJson('/api/tool-deliveries', [
+            ->post('/api/tool-deliveries', [
                 'id_empleado' => 18,
                 'fecha_entrega' => '2026-07-27',
                 'observaciones' => 'Entrega inicial',
-                'herramientas' => [[
+                'herramientas' => json_encode([[
                     'id_herramienta' => 13,
                     'cantidad' => 2,
                     'observaciones' => 'Dos pares',
-                ]],
+                ]]),
+                'evidencias' => [$this->png('frente.png'), $this->png('lateral.png')],
             ])
             ->assertCreated()
             ->assertJsonPath('data.id_entrega', 15)
             ->assertJsonPath('data.estado', 'pendiente');
+
+        File::deleteDirectory(public_path('uploads/tool-deliveries'));
+    }
+
+    public function test_create_delivery_requires_a_photo(): void
+    {
+        DB::shouldReceive('select')->never();
+
+        $this->withToken($this->token(['HERRAMIENTAS_ENTREGAR']))
+            ->post('/api/tool-deliveries', [
+                'id_empleado' => 18,
+                'fecha_entrega' => '2026-07-27',
+                'herramientas' => json_encode([['id_herramienta' => 1, 'cantidad' => 1]]),
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['evidencias']);
+    }
+
+    public function test_create_delivery_rejects_fake_mime_and_disallowed_extension(): void
+    {
+        DB::shouldReceive('select')->never();
+        $payload = [
+            'id_empleado' => 18,
+            'fecha_entrega' => '2026-07-27',
+            'herramientas' => json_encode([['id_herramienta' => 1, 'cantidad' => 1]]),
+        ];
+
+        $this->withToken($this->token(['HERRAMIENTAS_ENTREGAR']))
+            ->post('/api/tool-deliveries', [
+                ...$payload,
+                'evidencias' => [UploadedFile::fake()->create('foto.jpg', 10, 'application/pdf')],
+            ])
+            ->assertUnprocessable()
+            ->assertJsonPath('success', false);
+
+        $this->withToken($this->token(['HERRAMIENTAS_ENTREGAR']))
+            ->post('/api/tool-deliveries', [
+                ...$payload,
+                'evidencias' => [UploadedFile::fake()->createWithContent('foto.gif', base64_decode(
+                    'R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==',
+                ))],
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['evidencias.0']);
+    }
+
+    public function test_create_delivery_cleans_files_when_procedure_fails(): void
+    {
+        DB::shouldReceive('select')->once()->andThrow(new \RuntimeException('database failed'));
+
+        $this->withToken($this->token(['HERRAMIENTAS_ENTREGAR']))
+            ->post('/api/tool-deliveries', [
+                'id_empleado' => 18,
+                'fecha_entrega' => '2026-07-27',
+                'herramientas' => json_encode([['id_herramienta' => 1, 'cantidad' => 1]]),
+                'evidencias' => [$this->png('evidencia.png')],
+            ])
+            ->assertStatus(500);
+
+        $directory = public_path('uploads/tool-deliveries/'.now()->format('Ym'));
+        $this->assertFalse(File::isDirectory($directory) && count(File::files($directory)) > 0);
+        File::deleteDirectory(public_path('uploads/tool-deliveries'));
+    }
+
+    public function test_create_delivery_enforces_configured_photo_size(): void
+    {
+        config(['tool_deliveries.evidence_max_kilobytes' => 1]);
+        DB::shouldReceive('select')->never();
+        $oversizedPng = UploadedFile::fake()->createWithContent(
+            'grande.png',
+            base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=').str_repeat('0', 2048),
+        );
+
+        $this->withToken($this->token(['HERRAMIENTAS_ENTREGAR']))
+            ->post('/api/tool-deliveries', [
+                'id_empleado' => 18,
+                'fecha_entrega' => '2026-07-27',
+                'herramientas' => json_encode([['id_herramienta' => 1, 'cantidad' => 1]]),
+                'evidencias' => [$oversizedPng],
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['evidencias.0']);
     }
 
     public function test_create_delivery_validates_nested_details_before_database_call(): void
@@ -71,6 +163,7 @@ class ToolApiTest extends TestCase
                 'id_empleado' => 18,
                 'fecha_entrega' => '27/07/2026',
                 'herramientas' => [['id_herramienta' => 1, 'cantidad' => 0]],
+                'evidencias' => [$this->png('evidencia.png')],
             ])
             ->assertUnprocessable()
             ->assertJsonValidationErrors(['fecha_entrega', 'herramientas.0.cantidad']);
@@ -96,13 +189,26 @@ class ToolApiTest extends TestCase
                 'CANTIDAD' => 1,
                 'OBSERVACIONES' => null,
             ]]);
+        DB::shouldReceive('select')->once()
+            ->with('CALL SP_BBF_HERRAMIENTAS_ENTREGA_EVIDENCIAS_LISTAR(?)', [15])
+            ->andReturn([(object) [
+                'ID_EVIDENCIA' => 8,
+                'ID_ENTREGA' => 15,
+                'NOMBRE_ARCHIVO' => 'uuid.png',
+                'NOMBRE_ORIGINAL' => 'entrega.png',
+                'ARCHIVO_RUTA' => 'uploads/tool-deliveries/202607/uuid.png',
+                'MIME_TYPE' => 'image/png',
+                'PESO_BYTES' => 68,
+            ]]);
 
         $this->withToken($this->token(['HERRAMIENTAS_LISTAR']))
             ->getJson('/api/tool-deliveries/15')
             ->assertOk()
             ->assertJsonPath('data.empleado', 'José Lagos')
             ->assertJsonPath('data.herramientas.0.id_herramienta', 3)
-            ->assertJsonPath('data.herramientas.0.cantidad', 1);
+            ->assertJsonPath('data.herramientas.0.cantidad', 1)
+            ->assertJsonPath('data.evidencias.0.id_evidencia', 8)
+            ->assertJsonPath('data.evidencias.0.peso_bytes', 68);
     }
 
     public function test_delivery_filters_and_actions_use_expected_procedures(): void
@@ -137,6 +243,25 @@ class ToolApiTest extends TestCase
             ->postJson('/api/tool-deliveries/15/confirm')
             ->assertForbidden()
             ->assertJsonPath('success', false);
+    }
+
+    public function test_confirmation_without_photo_returns_controlled_business_error(): void
+    {
+        $databaseError = new \PDOException('La entrega debe tener al menos una evidencia fotográfica.', 45000);
+        $databaseError->errorInfo = ['45000', 1644, 'La entrega debe tener al menos una evidencia fotográfica.'];
+        DB::shouldReceive('select')->once()
+            ->with('CALL SP_BBF_HERRAMIENTAS_ENTREGA_CONFIRMAR(?)', [15])
+            ->andThrow(new QueryException(
+                'mysql',
+                'CALL SP_BBF_HERRAMIENTAS_ENTREGA_CONFIRMAR(?)',
+                [15],
+                $databaseError,
+            ));
+
+        $this->withToken($this->token(['HERRAMIENTAS_CONFIRMAR']))
+            ->postJson('/api/tool-deliveries/15/confirm')
+            ->assertUnprocessable()
+            ->assertJsonPath('message', 'La entrega debe tener al menos una evidencia fotográfica.');
     }
 
     public function test_employee_lists_only_deliveries_from_employee_resolved_by_jwt_user(): void
@@ -185,11 +310,15 @@ class ToolApiTest extends TestCase
                 'HERRAMIENTA' => 'Casco',
                 'CANTIDAD' => 1,
             ]]);
+        DB::shouldReceive('select')->once()
+            ->with('CALL SP_BBF_HERRAMIENTAS_ENTREGA_EVIDENCIAS_LISTAR(?)', [15])
+            ->andReturn([]);
 
         $this->withToken($this->token(['HERRAMIENTAS_MIS_ENTREGAS_VER']))
             ->getJson('/api/my-tool-deliveries/15')
             ->assertOk()
-            ->assertJsonPath('data.herramientas.0.herramienta', 'Casco');
+            ->assertJsonPath('data.herramientas.0.herramienta', 'Casco')
+            ->assertJsonPath('data.evidencias', []);
     }
 
     public function test_employee_can_confirm_own_delivery(): void
@@ -216,7 +345,7 @@ class ToolApiTest extends TestCase
         $databaseError->errorInfo = ['45000', 1644, 'La entrega de herramientas no existe.'];
         DB::shouldReceive('select')->once()
             ->with('CALL SP_BBF_HERRAMIENTAS_MI_ENTREGA_CONFIRMAR(?,?,?)', [77, 18, 99])
-            ->andThrow(new \Illuminate\Database\QueryException(
+            ->andThrow(new QueryException(
                 'mysql',
                 'CALL SP_BBF_HERRAMIENTAS_MI_ENTREGA_CONFIRMAR(?,?,?)',
                 [77, 18, 99],
@@ -247,5 +376,12 @@ class ToolApiTest extends TestCase
             'roles' => [],
             'permisos' => $permissions,
         ])['token'];
+    }
+
+    private function png(string $name): UploadedFile
+    {
+        return UploadedFile::fake()->createWithContent($name, base64_decode(
+            'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=',
+        ));
     }
 }

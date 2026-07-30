@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\DotationController;
 use App\Http\Controllers\Api\EmployeeController;
 use App\Http\Controllers\Api\HealthController;
 use App\Http\Controllers\Api\MyToolDeliveryController;
+use App\Http\Controllers\Api\ReturnController;
 use App\Http\Controllers\Api\RoleController;
 use App\Http\Controllers\Api\ToolController;
 use App\Http\Controllers\Api\UserController;
@@ -107,6 +108,7 @@ Route::middleware('auth.jwt')->group(function (): void {
         Route::post('my-sizes', [DotationController::class, 'saveMySize'])->middleware('permission:DOTACIONES_MIS_TALLAS_EDITAR');
         Route::get('my-deliveries', [DotationController::class, 'myDeliveries'])->middleware('permission:DOTACIONES_MIS_ENTREGAS_VER');
         Route::get('employees', [DotationController::class, 'employees'])->middleware('permission:DOTACIONES_ADMIN_VER');
+        Route::get('quotation/export', [DotationController::class, 'exportQuotation'])->middleware('permission:DOTACIONES_ADMIN_VER');
         Route::get('employees/{employeeId}/history', [DotationController::class, 'employeeHistory'])->whereNumber('employeeId')->middleware('permission:DOTACIONES_EMPLEADO_VER');
         Route::get('employees/{employeeId}/sizes', [DotationController::class, 'employeeSizes'])->whereNumber('employeeId')->middleware('permission:DOTACIONES_EMPLEADO_VER');
         Route::post('deliveries', [DotationController::class, 'createDelivery'])->middleware('permission:DOTACIONES_ENTREGAS_CREAR');
@@ -114,6 +116,14 @@ Route::middleware('auth.jwt')->group(function (): void {
         Route::delete('deliveries/{deliveryId}', [DotationController::class, 'deleteDelivery'])->whereNumber('deliveryId')->middleware('permission:DOTACIONES_ENTREGAS_ELIMINAR');
         Route::post('deliveries/{deliveryId}/confirm', [DotationController::class, 'confirmDeliveryReceived'])->whereNumber('deliveryId')->middleware('permission:DOTACIONES_MIS_ENTREGAS_CONFIRMAR');
         Route::get('deliveries/{deliveryId}/details', [DotationController::class, 'deliveryDetails'])->whereNumber('deliveryId')->middleware('permission:DOTACIONES_ENTREGAS_VER');
+    });
+    Route::prefix('returns')->group(function (): void {
+        Route::get('available', [ReturnController::class, 'available'])->middleware('permission:DEVOLUCIONES_CREAR');
+        Route::get('/', [ReturnController::class, 'index'])->middleware('permission:DEVOLUCIONES_VER');
+        Route::post('/', [ReturnController::class, 'store'])->middleware('permission:DEVOLUCIONES_CREAR');
+        Route::get('{id}', [ReturnController::class, 'show'])->whereNumber('id')->middleware('permission:DEVOLUCIONES_VER');
+        Route::post('{id}/confirm', [ReturnController::class, 'confirm'])->whereNumber('id')->middleware('permission:DEVOLUCIONES_CONFIRMAR');
+        Route::post('{id}/cancel', [ReturnController::class, 'cancel'])->whereNumber('id')->middleware('permission:DEVOLUCIONES_ANULAR');
     });
     Route::prefix('contracting')->group(function (): void {
         Route::get('employees', [ContractingController::class, 'indexEmployees'])->middleware('permission:CONTRATACION_VER');

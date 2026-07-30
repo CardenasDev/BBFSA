@@ -61,10 +61,19 @@ class AuthApiTest extends TestCase
             '/auth/change-password',
             '/catalogs/areas',
             '/catalogs/contract-types',
+            '/catalogs/departments',
+            '/catalogs/departments/{departmentId}/municipalities',
             '/catalogs/document-types',
             '/catalogs/labor-document-types',
+            '/catalogs/medical-exam-types',
             '/catalogs/positions',
+            '/catalogs/social-security-entities',
             '/contracting/alerts',
+            '/contracting/contract-templates',
+            '/contracting/contract-templates/by-type',
+            '/contracting/contract-templates/{templateId}',
+            '/contracting/contracts/{employeeContractId}/generation-data',
+            '/contracting/contracts/{employeeContractId}/sign',
             '/contracting/employees',
             '/contracting/employees/{employeeId}/contracts',
             '/contracting/employees/{employeeId}/documents',
@@ -73,6 +82,7 @@ class AuthApiTest extends TestCase
             '/contracting/employees/{employeeId}/social-security',
             '/employees',
             '/employees/by-document/{document}',
+            '/employees/export',
             '/employees/{id}',
             '/employees/{id}/estado',
             '/employees/{id}/photo',
@@ -91,6 +101,8 @@ class AuthApiTest extends TestCase
             '/domains',
             '/domains/{id}/estado',
             '/dotations/deliveries',
+            '/dotations/combinations',
+            '/dotations/combinations/{combinationId}',
             '/dotations/deliveries/{deliveryId}',
             '/dotations/deliveries/{deliveryId}/confirm',
             '/dotations/deliveries/{deliveryId}/details',
@@ -99,8 +111,23 @@ class AuthApiTest extends TestCase
             '/dotations/employees/{employeeId}/sizes',
             '/dotations/my-deliveries',
             '/dotations/my-sizes',
+            '/dotations/quotation/export',
             '/dotations/sizes',
             '/dotations/types',
+            '/tools',
+            '/tools/{id}',
+            '/tools/{id}/status',
+            '/tool-deliveries',
+            '/tool-deliveries/{id}',
+            '/tool-deliveries/{id}/confirm',
+            '/my-tool-deliveries',
+            '/my-tool-deliveries/{id}',
+            '/my-tool-deliveries/{id}/confirm',
+            '/returns',
+            '/returns/available',
+            '/returns/{id}',
+            '/returns/{id}/confirm',
+            '/returns/{id}/cancel',
             '/permissions',
         ];
 
@@ -127,6 +154,11 @@ class AuthApiTest extends TestCase
         $this->assertArrayHasKey('get', $document['paths']['/users/{id}/roles']);
         $this->assertArrayHasKey('post', $document['paths']['/users/{id}/roles']);
         $this->assertArrayHasKey('get', $document['paths']['/dotations/types']);
+        $this->assertArrayHasKey('post', $document['paths']['/returns']);
+        $this->assertSame(
+            'multipart/form-data',
+            array_key_first($document['paths']['/returns']['post']['requestBody']['content']),
+        );
         $this->assertArrayHasKey('post', $document['paths']['/dotations/deliveries']);
         $this->assertArrayHasKey('delete', $document['paths']['/dotations/deliveries/{deliveryId}']);
         $this->assertArrayHasKey('get', $document['paths']['/dotations/my-deliveries']);

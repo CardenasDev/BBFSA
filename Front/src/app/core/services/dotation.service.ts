@@ -1,4 +1,4 @@
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpParams, HttpResponse } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable, map } from 'rxjs';
 import { environment } from '../../../environments/environment';
@@ -15,6 +15,7 @@ import {
   DotationDeliveryDetail,
   DotationDeliveryFilters,
   DotationEmployeeFilters,
+  DotationQuotationFilters,
   DotationEmployeeSummary,
   DotationSize,
   DotationType,
@@ -145,6 +146,14 @@ export class DotationService {
     );
   }
 
+  exportQuotation(filters: DotationQuotationFilters = {}): Observable<HttpResponse<Blob>> {
+    return this.http.get(`${this.url}/quotation/export`, {
+      params: this.params(filters),
+      observe: 'response',
+      responseType: 'blob',
+    });
+  }
+
   getDeliveryDetails(deliveryId: number): Observable<DotationDeliveryDetail[]> {
     return this.http.get<ApiResponse<DotationDeliveryDetail[]>>(`${this.url}/deliveries/${deliveryId}/details`).pipe(
       map((response) => response.data ?? []),
@@ -170,7 +179,7 @@ export class DotationService {
   private params(filters: object): HttpParams {
     let params = new HttpParams();
     Object.entries(filters as Record<string, unknown>).forEach(([key, value]) => {
-      if (value !== '' && value != null) {
+      if (value !== '' && value != null && value !== 0) {
         params = params.set(key, String(value));
       }
     });

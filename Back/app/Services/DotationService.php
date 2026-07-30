@@ -4,14 +4,45 @@ namespace App\Services;
 
 use App\Exceptions\ApiException;
 use App\Repositories\DotationRepository;
+use DateTimeImmutable;
+use DateTimeInterface;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
+use OpenSpout\Common\Entity\Cell;
+use OpenSpout\Common\Entity\Cell\DateTimeCell;
+use OpenSpout\Common\Entity\Cell\NumericCell;
+use OpenSpout\Common\Entity\Cell\StringCell;
+use OpenSpout\Common\Entity\Row;
+use OpenSpout\Common\Entity\Style\Style;
+use OpenSpout\Writer\AutoFilter;
+use OpenSpout\Writer\XLSX\Entity\SheetView;
+use OpenSpout\Writer\XLSX\Writer;
+use RuntimeException;
 use Throwable;
+use UnexpectedValueException;
 
 class DotationService
 {
+    public const QUOTATION_REPORT_SHEET = 'Cotización dotación';
+
+    public const QUOTATION_REPORT_COLUMNS = [
+        'Documento' => 'numero_documento',
+        'Empleado' => 'nombre_completo',
+        'Área' => 'area',
+        'Cargo' => 'cargo',
+        'Prenda' => 'tipo_dotacion',
+        'Talla actual' => 'talla_actual',
+        'Fecha última entrega' => 'fecha_ultima_entrega',
+        'Talla última entrega' => 'talla_ultima_entrega',
+        'Cantidad última entrega' => 'cantidad_ultima_entrega',
+        'Tipo de entrega' => 'tipo_ultima_entrega',
+        'Estado de información' => 'estado_informacion',
+        'Observaciones de talla' => 'observaciones_talla',
+        'Observaciones de última entrega' => 'observaciones_ultima_entrega',
+    ];
+
     public function __construct(
         private readonly DotationRepository $dotations,
         private readonly AuditService $audit,
@@ -77,6 +108,34 @@ class DotationService
         );
     }
 
+    /**
+     * @return array{path: string, filename: string}
+     */
+    public function exportQuotation(?int $areaId, ?int $positionId, ?int $employeeId): array
+    {
+        $rows = $this->dotations->quotationReport($areaId, $positionId, $employeeId);
+        if ($rows === []) {
+            throw new ApiException('No se encontró información de dotación para los filtros seleccionados.', 404);
+        }
+
+        $path = tempnam(sys_get_temp_dir(), 'bbf_cotizacion_dotacion_');
+        if ($path === false) {
+            throw new RuntimeException('No fue posible crear el archivo temporal del reporte.');
+        }
+
+        try {
+            $this->writeQuotationWorkbook($path, $rows);
+        } catch (Throwable $exception) {
+            @unlink($path);
+            throw $exception;
+        }
+
+        return [
+            'path' => $path,
+            'filename' => 'cotizacion-dotacion-'.now()->format('Ymd-His').'.xlsx',
+        ];
+    }
+
     public function employeeSizes(int $employeeId): array
     {
         return array_map(fn (array $row): array => $this->mapEmployeeSize($row), $this->dotations->employeeSizes($employeeId));
@@ -101,36 +160,36 @@ class DotationService
 
         try {
             $deliveryId = DB::transaction(function () use ($data, $registeredBy, $deliveryType, $combinationId, $details, $evidence): int {
-            $deliveryId = $this->dotations->createDelivery(
-                (int) $data['id_empleado'],
-                (string) $data['fecha_entrega'],
-                $deliveryType,
-                $combinationId,
-                $registeredBy,
-                $data['observaciones'] ?? null,
-                $evidence['evidencia_nombre_archivo'],
-                $evidence['evidencia_nombre_original'],
-                $evidence['evidencia_url'],
-                $evidence['evidencia_ruta'],
-                $evidence['evidencia_mime_type'],
-                $evidence['evidencia_peso_bytes'],
-            );
-
-            if ($deliveryId < 1) {
-                throw new ApiException('No fue posible registrar la entrega de dotación.', 500);
-            }
-
-            foreach ($details as $detail) {
-                $this->dotations->addDeliveryDetail(
-                    $deliveryId,
-                    (int) $detail['id_tipo_dotacion'],
-                    $this->nullableInt($detail, 'id_talla_dotacion'),
-                    (int) $detail['cantidad'],
-                    $detail['observaciones'] ?? null,
+                $deliveryId = $this->dotations->createDelivery(
+                    (int) $data['id_empleado'],
+                    (string) $data['fecha_entrega'],
+                    $deliveryType,
+                    $combinationId,
+                    $registeredBy,
+                    $data['observaciones'] ?? null,
+                    $evidence['evidencia_nombre_archivo'],
+                    $evidence['evidencia_nombre_original'],
+                    $evidence['evidencia_url'],
+                    $evidence['evidencia_ruta'],
+                    $evidence['evidencia_mime_type'],
+                    $evidence['evidencia_peso_bytes'],
                 );
-            }
 
-            return $deliveryId;
+                if ($deliveryId < 1) {
+                    throw new ApiException('No fue posible registrar la entrega de dotación.', 500);
+                }
+
+                foreach ($details as $detail) {
+                    $this->dotations->addDeliveryDetail(
+                        $deliveryId,
+                        (int) $detail['id_tipo_dotacion'],
+                        $this->nullableInt($detail, 'id_talla_dotacion'),
+                        (int) $detail['cantidad'],
+                        $detail['observaciones'] ?? null,
+                    );
+                }
+
+                return $deliveryId;
             });
         } catch (Throwable $exception) {
             $this->deleteEvidenceFile($evidence['evidencia_ruta']);
@@ -373,6 +432,106 @@ class DotationService
         ], $context);
 
         return $mapped;
+    }
+
+    private function writeQuotationWorkbook(string $path, array $reportRows): void
+    {
+        $headerStyle = (new Style)->setFontBold()->setShouldWrapText();
+        $dateStyle = (new Style)->setFormat('dd/mm/yyyy');
+        $observationStyle = (new Style)->setShouldWrapText();
+        $writer = new Writer;
+        $writer->openToFile($path);
+
+        try {
+            $sheet = $writer->getCurrentSheet();
+            $sheet->setName(self::QUOTATION_REPORT_SHEET);
+            $sheet->setSheetView((new SheetView)->setFreezeRow(2));
+            $sheet->setAutoFilter(new AutoFilter(0, 1, count(self::QUOTATION_REPORT_COLUMNS) - 1, count($reportRows) + 1));
+            $sheet->setColumnWidthForRange(18, 1, count(self::QUOTATION_REPORT_COLUMNS));
+
+            foreach ([2, 3, 4, 5, 11] as $column) {
+                $sheet->setColumnWidth(24, $column);
+            }
+            foreach ([12, 13] as $column) {
+                $sheet->setColumnWidth(38, $column);
+            }
+
+            $writer->addRow(Row::fromValues(array_keys(self::QUOTATION_REPORT_COLUMNS), $headerStyle));
+
+            foreach ($reportRows as $index => $reportRow) {
+                $this->assertQuotationAliases($reportRow, $index);
+                $cells = [];
+
+                foreach (self::QUOTATION_REPORT_COLUMNS as $alias) {
+                    $cells[] = $this->quotationCell($alias, $reportRow[$alias], $dateStyle, $observationStyle);
+                }
+
+                $writer->addRow(new Row($cells));
+            }
+        } finally {
+            $writer->close();
+        }
+    }
+
+    private function assertQuotationAliases(array $row, int $index): void
+    {
+        $missing = array_diff(array_values(self::QUOTATION_REPORT_COLUMNS), array_keys($row));
+        if ($missing !== []) {
+            throw new UnexpectedValueException(sprintf(
+                'La fila %d del reporte de cotización no contiene los alias esperados: %s.',
+                $index + 1,
+                implode(', ', $missing),
+            ));
+        }
+    }
+
+    private function quotationCell(string $alias, mixed $value, Style $dateStyle, Style $observationStyle): Cell
+    {
+        if ($alias === 'numero_documento') {
+            return new StringCell((string) ($value ?? ''), null);
+        }
+
+        if ($alias === 'talla_actual') {
+            return Cell::fromValue($value === null || $value === '' ? 'Sin talla registrada' : $value);
+        }
+
+        if ($alias === 'fecha_ultima_entrega') {
+            return $value === null || $value === ''
+                ? Cell::fromValue('Sin entrega previa')
+                : new DateTimeCell($this->quotationDate($value), $dateStyle);
+        }
+
+        if ($alias === 'cantidad_ultima_entrega') {
+            if ($value === null || $value === '') {
+                return Cell::fromValue(null);
+            }
+            if (! is_numeric($value) || (float) $value !== (float) (int) $value) {
+                throw new UnexpectedValueException("La cantidad de última entrega no es un entero válido: {$value}.");
+            }
+
+            return new NumericCell((int) $value, null);
+        }
+
+        if (in_array($alias, ['observaciones_talla', 'observaciones_ultima_entrega'], true)) {
+            return Cell::fromValue($value, $observationStyle);
+        }
+
+        return Cell::fromValue($value);
+    }
+
+    private function quotationDate(mixed $value): DateTimeInterface
+    {
+        if ($value instanceof DateTimeInterface) {
+            return $value;
+        }
+
+        $date = DateTimeImmutable::createFromFormat('!Y-m-d', substr((string) $value, 0, 10));
+        $errors = DateTimeImmutable::getLastErrors();
+        if ($date === false || ($errors !== false && ($errors['warning_count'] > 0 || $errors['error_count'] > 0))) {
+            throw new UnexpectedValueException("La fecha de última entrega no es válida: {$value}.");
+        }
+
+        return $date;
     }
 
     private function mapType(array $row): array

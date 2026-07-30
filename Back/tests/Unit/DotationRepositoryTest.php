@@ -207,4 +207,16 @@ class DotationRepositoryTest extends TestCase
         $repository->deliveries(5, '2026-06-01', '2026-06-23');
         $repository->deliveryDetails(7);
     }
+
+    public function test_quotation_report_calls_stored_procedure_with_optional_filters(): void
+    {
+        DB::shouldReceive('select')
+            ->once()
+            ->with('CALL SP_BBF_DOTACION_COTIZACION_LISTAR(?,?,?)', [5, 9, 12])
+            ->andReturn([(object) ['ID_EMPLEADO' => 12]]);
+
+        $rows = app(DotationRepository::class)->quotationReport(5, 9, 12);
+
+        $this->assertSame(12, $rows[0]['id_empleado']);
+    }
 }

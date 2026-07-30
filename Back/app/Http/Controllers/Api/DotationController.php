@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Requests\ConfirmDotationDeliveryRequest;
 use App\Http\Requests\CreateDotationDeliveryRequest;
 use App\Http\Requests\DeleteDotationDeliveryRequest;
+use App\Http\Requests\ExportDotationQuotationRequest;
 use App\Http\Requests\ListDotationDeliveriesRequest;
 use App\Http\Requests\ListDotationEmployeesRequest;
 use App\Http\Requests\SaveMyDotationSizeRequest;
@@ -12,6 +13,7 @@ use App\Services\DotationService;
 use Dedoc\Scramble\Attributes\Group;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 #[Group('Dotations', 'Gestion de tallas y entregas de dotacion.', weight: 7)]
 class DotationController extends ApiController
@@ -126,6 +128,24 @@ class DotationController extends ApiController
             ),
             'Empleados con tallas consultados correctamente',
         );
+    }
+
+    /**
+     * Exportar cotizacion de dotacion
+     *
+     * Descarga las tallas actuales y la ultima entrega confirmada por prenda.
+     */
+    public function exportQuotation(ExportDotationQuotationRequest $request): BinaryFileResponse
+    {
+        $export = $this->dotations->exportQuotation(
+            $request->validated('id_area'),
+            $request->validated('id_cargo'),
+            $request->validated('id_empleado'),
+        );
+
+        return response()->download($export['path'], $export['filename'], [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        ])->deleteFileAfterSend(true);
     }
 
     /**

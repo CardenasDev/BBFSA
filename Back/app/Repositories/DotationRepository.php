@@ -49,6 +49,11 @@ class DotationRepository extends StoredProcedureRepository
         return $this->call('SP_BBF_DOTACION_EMPLEADOS_LISTAR', [$search, $areaId, $positionId]);
     }
 
+    public function quotationReport(?int $areaId, ?int $positionId, ?int $employeeId): array
+    {
+        return $this->call('SP_BBF_DOTACION_COTIZACION_LISTAR', [$areaId, $positionId, $employeeId]);
+    }
+
     public function employeeSizes(int $employeeId): array
     {
         return $this->call('SP_BBF_DOTACION_TALLAS_EMPLEADO_LISTAR', [$employeeId]);
@@ -72,8 +77,7 @@ class DotationRepository extends StoredProcedureRepository
         ?string $evidencePath,
         ?string $evidenceMimeType,
         ?int $evidenceSizeBytes,
-    ): int
-    {
+    ): int {
         $row = $this->first('SP_BBF_DOTACION_ENTREGA_CREAR', [
             $employeeId,
             $deliveryDate,

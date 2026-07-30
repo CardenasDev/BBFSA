@@ -531,6 +531,12 @@ export interface DotationEmployeeFilters {
   id_cargo?: number | null;
 }
 
+export interface DotationQuotationFilters {
+  id_area?: number | null;
+  id_cargo?: number | null;
+  id_empleado?: number | null;
+}
+
 export interface DotationDeliveryFilters {
   id_empleado?: number | null;
   fecha_inicio?: string | null;
@@ -1112,4 +1118,110 @@ export interface TokenResponse {
 export interface HealthStatus {
   app: string;
   status: string;
+}
+// Devoluciones unificadas de dotaciones y herramientas.
+export type ReturnType = 'DOTACION' | 'HERRAMIENTA';
+export type ReturnStatus = 'REGISTRADA' | 'CONFIRMADA' | 'ANULADA';
+export type ReturnItemCondition = 'BUENO' | 'USADO' | 'DETERIORADO' | 'DANADO' | 'INCOMPLETO' | 'NO_FUNCIONAL';
+
+export interface AvailableReturnItem {
+  tipo_devolucion: ReturnType;
+  id_entrega: number;
+  id_detalle: number;
+  id_empleado: number;
+  fecha_entrega: string;
+  elemento: string;
+  talla?: string | null;
+  cantidad_entregada: number;
+  cantidad_devuelta: number;
+  cantidad_disponible: number;
+}
+
+export interface AvailableReturnDelivery {
+  tipo_devolucion: ReturnType;
+  id_entrega: number;
+  id_empleado: number;
+  fecha_entrega: string;
+  items: AvailableReturnItem[];
+}
+
+export interface ReturnListItem {
+  id_devolucion: number;
+  tipo_devolucion: ReturnType;
+  id_empleado: number;
+  id_entrega: number;
+  fecha_devolucion: string;
+  numero_documento?: string | null;
+  empleado?: string | null;
+  nombre_completo?: string | null;
+  total_elementos?: number;
+  total_unidades?: number;
+  total_evidencias?: number;
+  estado: ReturnStatus;
+}
+
+export interface ReturnDetail {
+  id_detalle?: number;
+  id_devolucion_detalle?: number;
+  elemento: string;
+  talla?: string | null;
+  cantidad?: number;
+  cantidad_devuelta?: number;
+  estado_elemento: ReturnItemCondition;
+  observaciones?: string | null;
+}
+
+export interface ReturnEvidence {
+  id_evidencia?: number;
+  nombre_archivo?: string | null;
+  nombre_original?: string | null;
+  mime_type?: string | null;
+  peso_bytes?: number | null;
+  fecha_carga?: string | null;
+  archivo_url?: string | null;
+  archivo_ruta?: string | null;
+}
+
+export interface ReturnRecord extends ReturnListItem {
+  motivo?: string | null;
+  observaciones?: string | null;
+  fecha_registro?: string | null;
+  fecha_confirmacion?: string | null;
+  fecha_anulacion?: string | null;
+  motivo_anulacion?: string | null;
+  registrado_por?: string | null;
+  confirmado_por?: string | null;
+  anulado_por?: string | null;
+}
+
+export interface ReturnRecordResponse {
+  return: ReturnRecord;
+  details: ReturnDetail[];
+  evidence: ReturnEvidence[];
+}
+
+export interface ReturnFilters {
+  type?: ReturnType | '';
+  employee_id?: number | null;
+  status?: ReturnStatus | '';
+  date_from?: string;
+  date_to?: string;
+}
+
+export interface CreateReturnDetail {
+  id_detalle: number;
+  cantidad: number;
+  estado_elemento: ReturnItemCondition;
+  observaciones?: string | null;
+}
+
+export interface CreateReturnPayload {
+  type: ReturnType;
+  employee_id: number;
+  delivery_id: number;
+  return_date: string;
+  reason: string;
+  observations?: string | null;
+  details: CreateReturnDetail[];
+  evidence: File[];
 }

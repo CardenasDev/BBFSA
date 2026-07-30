@@ -1,4 +1,5 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
+import { HttpErrorResponse, HttpResponse } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { finalize, forkJoin, of } from 'rxjs';
@@ -7,6 +8,7 @@ import { AuthService } from '../../core/services/auth.service';
 import { CatalogService } from '../../core/services/catalog.service';
 import { DotationService } from '../../core/services/dotation.service';
 import { apiErrorMessage } from '../../shared/api-error';
+import { blobErrorMessage, downloadBlob, downloadFilename } from '../../shared/file-download';
 
 interface EmployeeDeliverySummary {
   total: number;
@@ -20,6 +22,17 @@ interface EmployeeDeliverySummary {
   template: `
     <div class="page-heading">
       <div><p class="eyebrow">Dotaciones</p><h1>Control de dotaciones</h1><p class="muted">Consulta el historial agrupado por empleado.</p></div>
+      @if (auth.hasPermission('DOTACIONES_ADMIN_VER')) {
+        <button
+          class="btn secondary"
+          type="button"
+          aria-label="Exportar cotización de dotaciones"
+          (click)="exportQuotation()"
+          [disabled]="exporting()"
+        >
+          {{ exporting() ? 'Generando archivo...' : 'Exportar cotización' }}
+        </button>
+      }
     </div>
 
     <section class="panel">
@@ -42,6 +55,8 @@ interface EmployeeDeliverySummary {
 
       @if (catalogsError()) { <div class="alert error">{{ catalogsError() }} <button class="btn small ghost" type="button" (click)="loadCatalogs()" [disabled]="loadingCatalogs()">Reintentar</button></div> }
       @if (error()) { <div class="alert error">{{ error() }} <button class="btn small ghost" type="button" (click)="loadEmployees()" [disabled]="loading()">Reintentar</button></div> }
+      @if (exportStatus()) { <div class="alert success" role="status" aria-live="polite">{{ exportStatus() }}</div> }
+      @if (exportError()) { <div class="alert error" role="alert">{{ exportError() }}</div> }
 
       <div class="table-wrap">
         <table>
@@ -73,7 +88,7 @@ interface EmployeeDeliverySummary {
   `,
 })
 export class DotationEmployeesComponent implements OnInit {
-  private readonly auth = inject(AuthService);
+  readonly auth = inject(AuthService);
   private readonly service = inject(DotationService);
   private readonly catalogService = inject(CatalogService);
   readonly employees = signal<DotationEmployeeSummary[]>([]);
@@ -82,8 +97,11 @@ export class DotationEmployeesComponent implements OnInit {
   readonly positions = signal<Position[]>([]);
   readonly loading = signal(false);
   readonly loadingCatalogs = signal(false);
+  readonly exporting = signal(false);
   readonly error = signal('');
   readonly catalogsError = signal('');
+  readonly exportStatus = signal('');
+  readonly exportError = signal('');
   textoBusqueda = '';
   idArea: number | null = null;
   idCargo: number | null = null;
@@ -126,6 +144,24 @@ export class DotationEmployeesComponent implements OnInit {
     });
   }
 
+  exportQuotation(): void {
+    if (this.exporting()) {
+      return;
+    }
+
+    this.exporting.set(true);
+    this.exportError.set('');
+    this.exportStatus.set('Generando archivo de cotización...');
+
+    this.service.exportQuotation({
+      id_area: this.idArea,
+      id_cargo: this.idCargo,
+    }).pipe(finalize(() => this.exporting.set(false))).subscribe({
+      next: (response) => this.handleQuotationResponse(response),
+      error: (error) => void this.handleQuotationError(error),
+    });
+  }
+
   deliverySummary(employee: DotationEmployeeSummary): EmployeeDeliverySummary {
     return this.summaries()[employee.id_empleado] ?? {
       total: employee.total_entregas ?? 0,
@@ -156,5 +192,36 @@ export class DotationEmployeesComponent implements OnInit {
       summaries[delivery.id_empleado] = summary;
     });
     return summaries;
+  }
+
+  private handleQuotationResponse(response: HttpResponse<Blob>): void {
+    if (!response.body) {
+      this.exportStatus.set('');
+      this.exportError.set('No fue posible generar el archivo de cotización. Intenta nuevamente.');
+      return;
+    }
+
+    downloadBlob(
+      response.body,
+      downloadFilename(response.headers.get('Content-Disposition'), 'cotizacion-dotacion.xlsx'),
+    );
+    this.exportStatus.set('El archivo de cotización fue generado correctamente.');
+  }
+
+  private async handleQuotationError(error: unknown): Promise<void> {
+    this.exportStatus.set('');
+    const fallback = 'No fue posible generar el archivo de cotización. Intenta nuevamente.';
+    const backendMessage = await blobErrorMessage(error, fallback);
+
+    if (error instanceof HttpErrorResponse && error.status === 404) {
+      this.exportError.set(
+        backendMessage === fallback
+          ? 'No se encontró información de dotación para los filtros seleccionados.'
+          : backendMessage,
+      );
+      return;
+    }
+
+    this.exportError.set(fallback);
   }
 }

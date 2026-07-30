@@ -48,6 +48,40 @@ describe('DotationService combinations and deliveries', () => {
     http.verify();
   });
 
+  it('exports quotation as a blob response with valid filters only', () => {
+    const { service, http } = setup();
+
+    service.exportQuotation({
+      id_area: 5,
+      id_cargo: 9,
+      id_empleado: 12,
+    }).subscribe((response) => expect(response.body).toBeInstanceOf(Blob));
+
+    const request = http.expectOne((candidate) => candidate.url === `${environment.apiUrl}/dotations/quotation/export`);
+    expect(request.request.method).toBe('GET');
+    expect(request.request.responseType).toBe('blob');
+    expect(request.request.params.get('id_area')).toBe('5');
+    expect(request.request.params.get('id_cargo')).toBe('9');
+    expect(request.request.params.get('id_empleado')).toBe('12');
+    request.flush(new Blob(['xlsx']));
+    http.verify();
+  });
+
+  it('omits empty and zero quotation filters', () => {
+    const { service, http } = setup();
+
+    service.exportQuotation({
+      id_area: null,
+      id_cargo: 0,
+      id_empleado: undefined,
+    }).subscribe();
+
+    const request = http.expectOne(`${environment.apiUrl}/dotations/quotation/export`);
+    expect(request.request.params.keys()).toEqual([]);
+    request.flush(new Blob(['xlsx']));
+    http.verify();
+  });
+
   it('sends an ordinary delivery and physical evidence as FormData', () => {
     const { service, http } = setup();
     const file = new File(['evidence'], 'entrega.jpg', { type: 'image/jpeg' });

@@ -87,12 +87,13 @@ export class AdminLayoutComponent {
       icon: 'D',
       route: '/admin/dotations/my-sizes',
       menuKey: 'dotations',
-      permissions: ['DOTACIONES_VER', 'HERRAMIENTAS_MIS_ENTREGAS_VER'],
+      permissions: ['DOTACIONES_VER', 'HERRAMIENTAS_MIS_ENTREGAS_VER', 'DEVOLUCIONES_VER'],
       children: [
         { label: 'Mis tallas', icon: 'M', route: '/admin/dotations/my-sizes', permissions: ['DOTACIONES_MIS_TALLAS_VER'] },
         { label: 'Mis dotaciones', icon: 'D', route: '/admin/dotations/my-deliveries', permissions: ['DOTACIONES_MIS_ENTREGAS_VER'] },
         { label: 'Mis herramientas', icon: 'H', route: '/admin/my-tool-deliveries', permissions: ['HERRAMIENTAS_MIS_ENTREGAS_VER'] },
         { label: 'Control de dotaciones', icon: 'C', route: '/admin/dotations/employees', permissions: ['DOTACIONES_ADMIN_VER'] },
+        { label: 'Devoluciones', icon: 'R', route: '/admin/returns', permissions: ['DEVOLUCIONES_VER'] },
       ],
     },
     {

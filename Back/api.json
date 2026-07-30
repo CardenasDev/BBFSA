@@ -7,7 +7,7 @@
     },
     "servers": [
         {
-            "url": "https://cardenas.com.co/api"
+            "url": "http://127.0.0.1:8000/api"
         }
     ],
     "tags": [
@@ -62,6 +62,10 @@
         {
             "name": "Mis herramientas",
             "description": "Entregas de herramientas del empleado autenticado."
+        },
+        {
+            "name": "Devoluciones",
+            "description": "Devoluciones unificadas de dotaciones y herramientas."
         }
     ],
     "security": [
@@ -3101,6 +3105,76 @@
                                         "data"
                                     ]
                                 }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/dotations/quotation/export": {
+            "get": {
+                "operationId": "dotation.exportQuotation",
+                "description": "Descarga las tallas actuales y la ultima entrega confirmada por prenda.",
+                "summary": "Exportar cotizacion de dotacion",
+                "tags": [
+                    "Dotations"
+                ],
+                "parameters": [
+                    {
+                        "name": "id_area",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "integer",
+                                "null"
+                            ],
+                            "minimum": 1
+                        }
+                    },
+                    {
+                        "name": "id_cargo",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "integer",
+                                "null"
+                            ],
+                            "minimum": 1
+                        }
+                    },
+                    {
+                        "name": "id_empleado",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "integer",
+                                "null"
+                            ],
+                            "minimum": 1
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": {
+                                "schema": {
+                                    "type": "string",
+                                    "format": "binary"
+                                }
+                            }
+                        },
+                        "headers": {
+                            "Content-Disposition": {
+                                "required": true,
+                                "schema": {
+                                    "type": "string"
+                                },
+                                "example": "attachment"
                             }
                         }
                     },
@@ -6547,6 +6621,436 @@
                 }
             }
         },
+        "/returns/available": {
+            "get": {
+                "operationId": "return.available",
+                "summary": "Listar elementos disponibles para devoluci\u00f3n, agrupados por entrega",
+                "tags": [
+                    "Devoluciones"
+                ],
+                "parameters": [
+                    {
+                        "name": "type",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "DOTACION",
+                                "HERRAMIENTA"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "employee_id",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "const": "Elementos disponibles consultados correctamente."
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {}
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "message",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/returns": {
+            "get": {
+                "operationId": "return.index",
+                "summary": "Listar devoluciones con filtros opcionales",
+                "tags": [
+                    "Devoluciones"
+                ],
+                "parameters": [
+                    {
+                        "name": "type",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "enum": [
+                                "DOTACION",
+                                "HERRAMIENTA"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "employee_id",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "integer",
+                                "null"
+                            ],
+                            "minimum": 1
+                        }
+                    },
+                    {
+                        "name": "status",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "enum": [
+                                "REGISTRADA",
+                                "CONFIRMADA",
+                                "ANULADA"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "date_from",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "format": "date-time"
+                        }
+                    },
+                    {
+                        "name": "date_to",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "format": "date-time"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "const": "Devoluciones consultadas correctamente."
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {}
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "message",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            },
+            "post": {
+                "operationId": "return.store",
+                "description": "Recibe multipart/form-data. `details` es un arreglo JSON y `evidence[]` uno o varios archivos.",
+                "summary": "Registrar devoluci\u00f3n",
+                "tags": [
+                    "Devoluciones"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/StoreReturnRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "const": "Devoluci\u00f3n registrada correctamente."
+                                        },
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "id_devolucion": {
+                                                    "type": "integer"
+                                                },
+                                                "estado": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "required": [
+                                                "id_devolucion",
+                                                "estado"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "message",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/returns/{id}": {
+            "get": {
+                "operationId": "return.show",
+                "summary": "Consultar cabecera, detalles y evidencias de una devoluci\u00f3n",
+                "tags": [
+                    "Devoluciones"
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "const": "Devoluci\u00f3n consultada correctamente."
+                                        },
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "return": {},
+                                                "details": {
+                                                    "type": "array",
+                                                    "items": {}
+                                                },
+                                                "evidence": {
+                                                    "type": "array",
+                                                    "items": {}
+                                                }
+                                            },
+                                            "required": [
+                                                "return",
+                                                "details",
+                                                "evidence"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "message",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/returns/{id}/confirm": {
+            "post": {
+                "operationId": "return.confirm",
+                "summary": "Confirmar la recepci\u00f3n de una devoluci\u00f3n registrada",
+                "tags": [
+                    "Devoluciones"
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "const": "Devoluci\u00f3n confirmada correctamente."
+                                        },
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "id_devolucion": {
+                                                    "type": "integer"
+                                                },
+                                                "estado": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "required": [
+                                                "id_devolucion",
+                                                "estado"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "message",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/returns/{id}/cancel": {
+            "post": {
+                "operationId": "return.cancel",
+                "summary": "Anular l\u00f3gicamente una devoluci\u00f3n, conservando sus evidencias",
+                "tags": [
+                    "Devoluciones"
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/CancelReturnRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "const": "Devoluci\u00f3n anulada correctamente."
+                                        },
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "id_devolucion": {
+                                                    "type": "integer"
+                                                },
+                                                "estado": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "required": [
+                                                "id_devolucion",
+                                                "estado"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "message",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
         "/my-tool-deliveries": {
             "get": {
                 "operationId": "myToolDelivery.index",
@@ -6820,6 +7324,19 @@
                     "id_rol"
                 ],
                 "title": "AssignRoleRequest"
+            },
+            "CancelReturnRequest": {
+                "type": "object",
+                "properties": {
+                    "reason": {
+                        "type": "string",
+                        "maxLength": 500
+                    }
+                },
+                "required": [
+                    "reason"
+                ],
+                "title": "CancelReturnRequest"
             },
             "ChangeApplicantStatusRequest": {
                 "type": "object",
@@ -8090,6 +8607,101 @@
                     "estado_empleado"
                 ],
                 "title": "StoreEmployeeRequest"
+            },
+            "StoreReturnRequest": {
+                "type": "object",
+                "properties": {
+                    "type": {
+                        "type": "string",
+                        "enum": [
+                            "DOTACION",
+                            "HERRAMIENTA"
+                        ]
+                    },
+                    "employee_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "delivery_id": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "return_date": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "reason": {
+                        "type": "string",
+                        "maxLength": 500
+                    },
+                    "observations": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 1000
+                    },
+                    "evidence": {
+                        "type": "array",
+                        "items": {
+                            "type": "string",
+                            "format": "binary",
+                            "contentMediaType": "application/octet-stream",
+                            "maxLength": 5120
+                        },
+                        "minItems": 1
+                    },
+                    "details": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "id_detalle": {
+                                    "type": "integer",
+                                    "minimum": 1
+                                },
+                                "cantidad": {
+                                    "type": "integer",
+                                    "minimum": 1
+                                },
+                                "estado_elemento": {
+                                    "type": "string",
+                                    "enum": [
+                                        "BUENO",
+                                        "USADO",
+                                        "DETERIORADO",
+                                        "DANADO",
+                                        "INCOMPLETO",
+                                        "NO_FUNCIONAL"
+                                    ]
+                                },
+                                "observaciones": {
+                                    "type": [
+                                        "string",
+                                        "null"
+                                    ],
+                                    "maxLength": 500
+                                }
+                            },
+                            "required": [
+                                "id_detalle",
+                                "cantidad",
+                                "estado_elemento"
+                            ]
+                        },
+                        "minItems": 1
+                    }
+                },
+                "required": [
+                    "type",
+                    "employee_id",
+                    "delivery_id",
+                    "return_date",
+                    "reason",
+                    "evidence",
+                    "details"
+                ],
+                "title": "StoreReturnRequest"
             },
             "StoreRoleRequest": {
                 "type": "object",

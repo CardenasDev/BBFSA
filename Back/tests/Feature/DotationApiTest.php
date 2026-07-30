@@ -27,6 +27,7 @@ class DotationApiTest extends TestCase
             'POST api/dotations/my-sizes',
             'GET|HEAD api/dotations/my-deliveries',
             'GET|HEAD api/dotations/employees',
+            'GET|HEAD api/dotations/quotation/export',
             'GET|HEAD api/dotations/employees/{employeeId}/history',
             'GET|HEAD api/dotations/employees/{employeeId}/sizes',
             'POST api/dotations/deliveries',

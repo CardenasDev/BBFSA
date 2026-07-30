@@ -8,12 +8,13 @@ import { CatalogService } from '../../core/services/catalog.service';
 import { EmployeeService } from '../../core/services/employee.service';
 import { apiErrorMessage } from '../../shared/api-error';
 import { environment } from '../../../environments/environment';
+import { CameraFilePickerComponent } from '../../shared/camera-file-picker.component';
 
 const EMPLOYEE_STATUSES: EmployeeStatus[] = ['ACTIVO', 'RETIRADO', 'SUSPENDIDO', 'INCAPACITADO', 'EN_PROCESO_RETIRO'];
 
 @Component({
   standalone: true,
-  imports: [FormsModule, ReactiveFormsModule],
+  imports: [FormsModule, ReactiveFormsModule, CameraFilePickerComponent],
   template: `
     <div class="page-heading">
       <div>
@@ -140,9 +141,8 @@ const EMPLOYEE_STATUSES: EmployeeStatus[] = ['ACTIVO', 'RETIRADO', 'SUSPENDIDO',
           @if (photoError()) { <div class="alert error form-wide">{{ photoError() }}</div> }
           <div class="form-wide photo-field">
             <div>
-              <label>Foto del empleado
-                <input type="file" accept="image/png,image/jpeg,image/jpg,image/webp" (change)="selectPhoto($event)" />
-              </label>
+              <span class="field-label">Foto del empleado</span>
+              <app-camera-file-picker accept="image/png,image/jpeg,image/jpg,image/webp" galleryLabel="Seleccionar de galería" (filesSelected)="setPhotoFiles($event)" />
               <small class="muted">JPG, PNG o WebP. Maximo 2 MB.</small>
             </div>
             @if (photoPreviewUrl()) {
@@ -585,7 +585,12 @@ export class EmployeesComponent implements OnInit {
 
   selectPhoto(event: Event): void {
     const input = event.target as HTMLInputElement;
-    const file = input.files?.[0] ?? null;
+    this.setPhotoFiles([...(input.files ?? [])]);
+    input.value = '';
+  }
+
+  setPhotoFiles(files: File[]): void {
+    const file = files[0] ?? null;
     this.photoError.set('');
     this.selectedPhoto.set(null);
 
@@ -597,14 +602,12 @@ export class EmployeesComponent implements OnInit {
     if (!allowedTypes.has(file.type)) {
       this.photoPreviewUrl.set(this.currentEmployeePhotoPreview());
       this.photoError.set('La foto debe ser de tipo jpg, jpeg, png o webp.');
-      input.value = '';
       return;
     }
 
     if (file.size > 2 * 1024 * 1024) {
       this.photoPreviewUrl.set(this.currentEmployeePhotoPreview());
       this.photoError.set('La foto no debe superar 2 MB.');
-      input.value = '';
       return;
     }
 

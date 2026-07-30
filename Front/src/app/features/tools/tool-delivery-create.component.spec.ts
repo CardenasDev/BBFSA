@@ -56,6 +56,15 @@ describe('ToolDeliveryCreateComponent', () => {
     expect(tools.createToolDelivery).toHaveBeenCalledWith(expect.objectContaining({ evidencias: files }));
   });
 
+  it('adds camera Files to the same evidence payload as gallery files', () => {
+    const cameraFile = new File(['camera'], 'evidencia-camera.jpg', { type: 'image/jpeg' });
+    validForm([]);
+    component.addEvidenceFiles([cameraFile]);
+    vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
+    component.submit();
+    expect(tools.createToolDelivery).toHaveBeenCalledWith(expect.objectContaining({ evidencias: [cameraFile] }));
+  });
+
   it('rejects empty, oversized, extension-mismatched and invalid MIME files', () => {
     for (const [file, message] of [
       [new File([], 'empty.jpg', { type: 'image/jpeg' }), 'leer'],

@@ -6,6 +6,7 @@ import { finalize, forkJoin } from 'rxjs';
 import { Employee, Tool } from '../../core/models/api.models';
 import { EmployeeService } from '../../core/services/employee.service';
 import { ToolService } from '../../core/services/tool.service';
+import { CameraFilePickerComponent } from '../../shared/camera-file-picker.component';
 
 interface DetailDraft { key: number; id_herramienta: number | null; cantidad: number; observaciones: string; }
 interface EvidencePreview { file: File; url: string; }
@@ -16,7 +17,7 @@ const EVIDENCE_EXTENSIONS = new Set(['jpg', 'jpeg', 'png', 'webp']);
 
 @Component({
   standalone: true,
-  imports: [FormsModule, RouterLink],
+  imports: [FormsModule, RouterLink, CameraFilePickerComponent],
   template: `
     <div class="page-heading"><div><p class="eyebrow">Herramientas</p><h1>Registrar entrega</h1><p class="muted">Entrega varias herramientas a un empleado en una sola operación.</p></div><a class="btn ghost" routerLink="/admin/tool-deliveries">Volver</a></div>
     <form class="panel" (ngSubmit)="submit()">
@@ -39,13 +40,13 @@ const EVIDENCE_EXTENSIONS = new Set(['jpg', 'jpeg', 'png', 'webp']);
       </div>
       <section class="drawer-section evidence-section">
         <div class="section-title"><div><h2>Evidencias *</h2><p class="muted">Adjunta una o varias fotografías JPG, PNG o WEBP. Máximo 5 MB por foto.</p></div></div>
-        <label>Seleccionar fotografías<input #evidenceInput type="file" multiple accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" (change)="selectFiles($event)" /></label>
+        <app-camera-file-picker [multiple]="true" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" galleryLabel="Seleccionar de galería" (filesSelected)="addEvidenceFiles($event)" />
         <div class="evidence-grid">
           @for (preview of evidence(); track preview.url) {
             <article class="evidence-card">
               <img [src]="preview.url" [alt]="'Vista previa de ' + preview.file.name" />
               <div><strong>{{ preview.file.name }}</strong><small>{{ fileSize(preview.file.size) }}</small></div>
-              <button class="btn small danger-outline" type="button" (click)="removeFile(preview, evidenceInput)" [attr.aria-label]="'Retirar ' + preview.file.name">Retirar</button>
+              <button class="btn small danger-outline" type="button" (click)="removeFile(preview)" [attr.aria-label]="'Retirar ' + preview.file.name">Retirar</button>
             </article>
           } @empty { <p class="empty">Debes adjuntar al menos una fotografía.</p> }
         </div>
@@ -95,14 +96,17 @@ export class ToolDeliveryCreateComponent implements OnInit, OnDestroy {
   }
   selectFiles(event: Event): void {
     const input = event.target as HTMLInputElement;
+    this.addEvidenceFiles([...(input.files ?? [])]);
+    input.value = '';
+  }
+  addEvidenceFiles(files: File[]): void {
     this.error.set('');
-    for (const file of [...(input.files ?? [])]) {
+    for (const file of files) {
       const validation = this.validateFile(file);
       if (validation) { this.error.set(validation); continue; }
       const duplicate = this.evidence().some((item) => item.file.name === file.name && item.file.size === file.size && item.file.lastModified === file.lastModified);
       if (!duplicate) this.evidence.update((items) => [...items, { file, url: URL.createObjectURL(file) }]);
     }
-    input.value = '';
   }
   removeFile(preview: EvidencePreview, input?: HTMLInputElement): void {
     URL.revokeObjectURL(preview.url);

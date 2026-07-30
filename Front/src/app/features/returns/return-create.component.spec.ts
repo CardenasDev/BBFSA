@@ -118,6 +118,23 @@ describe('ReturnCreateComponent', () => {
     expect(component.saving()).toBe(false);
   });
 
+  it('adds multiple camera captures to the return evidence payload', () => {
+    vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
+    component.type = 'HERRAMIENTA'; component.employeeId = 20; component.deliveryId = 7; component.reason = 'Fin';
+    component.drafts.set([{
+      selected: true,
+      item: { tipo_devolucion: 'HERRAMIENTA', id_entrega: 7, id_detalle: 1, id_empleado: 20, fecha_entrega: '2026-07-01', elemento: 'Taladro', cantidad_entregada: 1, cantidad_devuelta: 0, cantidad_disponible: 1 },
+      cantidad: 1, estado_elemento: 'BUENO', observaciones: '',
+    }]);
+    const captures = [
+      new File(['one'], 'evidencia-1.jpg', { type: 'image/jpeg' }),
+      new File(['two'], 'evidencia-2.jpg', { type: 'image/jpeg' }),
+    ];
+    component.addEvidenceFiles(captures);
+    component.submit();
+    expect(returns.createReturn).toHaveBeenCalledWith(expect.objectContaining({ evidence: captures }));
+  });
+
   it('keeps the submit state disabled until the request finishes', () => {
     const request = new Subject<{ id_devolucion: number; estado: string }>();
     returns.createReturn.mockReturnValue(request);

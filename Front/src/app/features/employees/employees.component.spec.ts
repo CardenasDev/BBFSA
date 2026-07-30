@@ -100,6 +100,19 @@ describe('EmployeesComponent export', () => {
     expect(revokeObjectURL).toHaveBeenCalledWith('blob:employees-export');
   });
 
+  it('acepta un File JPEG capturado por cámara y conserva la validación de 2 MB', () => {
+    const component = fixture.componentInstance;
+    const capture = new File(['camera'], 'evidencia-camera.jpg', { type: 'image/jpeg' });
+    component.setPhotoFiles([capture]);
+    expect(component.selectedPhoto()).toBe(capture);
+    expect(component.photoError()).toBe('');
+
+    const oversized = new File([new Uint8Array(2 * 1024 * 1024 + 1)], 'grande.jpg', { type: 'image/jpeg' });
+    component.setPhotoFiles([oversized]);
+    expect(component.selectedPhoto()).toBeNull();
+    expect(component.photoError()).toContain('2 MB');
+  });
+
   it('usa el nombre fallback cuando Content-Disposition no esta disponible', () => {
     exportButton().click();
     exportResponse.next(new HttpResponse({ body: new Blob(['xlsx']) }));

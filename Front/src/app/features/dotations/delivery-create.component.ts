@@ -13,6 +13,7 @@ import {
 } from '../../core/models/api.models';
 import { DotationService } from '../../core/services/dotation.service';
 import { apiErrorMessage } from '../../shared/api-error';
+import { CameraFilePickerComponent } from '../../shared/camera-file-picker.component';
 
 interface DeliveryDetailDraft {
   clientId: number;
@@ -27,7 +28,7 @@ interface DeliveryDetailDraft {
 
 @Component({
   standalone: true,
-  imports: [FormsModule, RouterLink],
+  imports: [FormsModule, RouterLink, CameraFilePickerComponent],
   template: `
     <div class="page-heading">
       <div><p class="eyebrow">Dotaciones</p><h1>Nueva entrega</h1><p class="muted">Registra una entrega ordinaria o extraordinaria.</p></div>
@@ -85,13 +86,14 @@ interface DeliveryDetailDraft {
               </select>
             </label>
             @if (origenEvidencia === 'ARCHIVO') {
-              <label class="form-wide">Archivo de evidencia *
-                <input #evidenceInput type="file" name="evidencia_archivo" accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx" (change)="selectEvidenceFile($event)" />
-              </label>
+              <div class="form-wide">
+                <span class="field-label">Archivo de evidencia *</span>
+                <app-camera-file-picker accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx" galleryLabel="Seleccionar de galería o archivos" (filesSelected)="setEvidenceFiles($event)" />
+              </div>
               @if (evidenciaArchivo) {
                 <div class="form-wide row-actions">
                   <span><strong>{{ evidenciaArchivo.name }}</strong> <span class="muted">{{ readableFileSize(evidenciaArchivo.size) }}</span></span>
-                  <button class="btn small danger-outline" type="button" (click)="removeEvidenceFile(evidenceInput)">Quitar</button>
+                  <button class="btn small danger-outline" type="button" (click)="removeEvidenceFile()">Quitar</button>
                 </div>
               }
             } @else {
@@ -308,7 +310,12 @@ export class DotationDeliveryCreateComponent implements OnInit {
 
   selectEvidenceFile(event: Event): void {
     const input = event.target as HTMLInputElement;
-    const file = input.files?.[0] ?? null;
+    this.setEvidenceFiles([...(input.files ?? [])]);
+    input.value = '';
+  }
+
+  setEvidenceFiles(files: File[]): void {
+    const file = files[0] ?? null;
     this.evidenceError.set('');
     if (!file) {
       this.evidenciaArchivo = null;
@@ -317,16 +324,15 @@ export class DotationDeliveryCreateComponent implements OnInit {
     const validation = this.validateEvidenceFile(file);
     if (validation) {
       this.evidenciaArchivo = null;
-      input.value = '';
       this.evidenceError.set(validation);
       return;
     }
     this.evidenciaArchivo = file;
   }
 
-  removeEvidenceFile(input: HTMLInputElement): void {
+  removeEvidenceFile(input?: HTMLInputElement): void {
     this.evidenciaArchivo = null;
-    input.value = '';
+    if (input) input.value = '';
     this.evidenceError.set('');
   }
 

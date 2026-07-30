@@ -13,6 +13,7 @@ import {
 import { EmployeeService } from '../../core/services/employee.service';
 import { ReturnService } from '../../core/services/return.service';
 import { apiErrorMessage } from '../../shared/api-error';
+import { CameraFilePickerComponent } from '../../shared/camera-file-picker.component';
 
 interface ReturnDraft {
   selected: boolean;
@@ -35,7 +36,7 @@ const CONDITIONS: Array<{ value: ReturnItemCondition; label: string }> = [
 
 @Component({
   standalone: true,
-  imports: [FormsModule, RouterLink],
+  imports: [FormsModule, RouterLink, CameraFilePickerComponent],
   template: `
     <section class="page-header"><div><p class="eyebrow">Devoluciones</p><h1>Registrar devolución</h1><p class="muted">Selecciona la entrega original y los elementos que serán recibidos.</p></div><a class="btn ghost" routerLink="/admin/returns">Volver</a></section>
     <section class="panel">
@@ -102,13 +103,13 @@ const CONDITIONS: Array<{ value: ReturnItemCondition; label: string }> = [
         <div class="form-wide drawer-section">
           <div class="section-title"><div><h2>6. Evidencias *</h2><p class="muted">Máximo 5 MB por archivo. PDF, JPG, PNG, WEBP, DOC o DOCX.</p></div></div>
           @if (type === 'HERRAMIENTA') { <p class="alert warning">Las devoluciones de herramientas requieren al menos una fotografía.</p> }
-          <label>Seleccionar archivos<input #evidenceInput type="file" multiple accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx" (change)="selectFiles($event)" /></label>
+          <app-camera-file-picker [multiple]="true" accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx" galleryLabel="Seleccionar de galería o archivos" (filesSelected)="addEvidenceFiles($event)" />
           <div class="evidence-grid">
             @for (preview of evidence(); track preview.file) {
               <article class="evidence-card">
                 @if (preview.url) { <img [src]="preview.url" [alt]="'Vista previa de ' + preview.file.name" /> }
                 <div><strong>{{ preview.file.name }}</strong><small>{{ preview.file.type || 'Tipo desconocido' }} · {{ fileSize(preview.file.size) }}</small></div>
-                <button class="btn small danger-outline" type="button" (click)="removeFile(preview, evidenceInput)" [attr.aria-label]="'Retirar ' + preview.file.name">Retirar</button>
+                <button class="btn small danger-outline" type="button" (click)="removeFile(preview)" [attr.aria-label]="'Retirar ' + preview.file.name">Retirar</button>
               </article>
             }
           </div>
@@ -198,7 +199,10 @@ export class ReturnCreateComponent implements OnInit, OnDestroy {
 
   selectFiles(event: Event): void {
     const input = event.target as HTMLInputElement;
-    const files = [...(input.files ?? [])];
+    this.addEvidenceFiles([...(input.files ?? [])]);
+    input.value = '';
+  }
+  addEvidenceFiles(files: File[]): void {
     this.error.set('');
     for (const file of files) {
       const validation = this.validateFile(file);
@@ -206,13 +210,12 @@ export class ReturnCreateComponent implements OnInit, OnDestroy {
       const duplicate = this.evidence().some((item) => item.file.name === file.name && item.file.size === file.size);
       if (!duplicate) this.evidence.update((items) => [...items, { file, url: file.type.startsWith('image/') ? URL.createObjectURL(file) : null }]);
     }
-    input.value = '';
   }
 
-  removeFile(preview: EvidencePreview, input: HTMLInputElement): void {
+  removeFile(preview: EvidencePreview, input?: HTMLInputElement): void {
     if (preview.url) URL.revokeObjectURL(preview.url);
     this.evidence.update((items) => items.filter((item) => item !== preview));
-    input.value = '';
+    if (input) input.value = '';
   }
 
   submit(): void {

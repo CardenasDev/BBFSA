@@ -152,23 +152,139 @@ class BulkLoadEmployeeServiceTest extends TestCase
         }
     }
 
-    public function test_validation_rejects_duplicate_existing_numeric_document_and_unknown_catalog_without_writing(): void
+    public function test_safe_numeric_document_is_converted_to_text_with_a_warning(): void
+    {
+        [$service, $repository] = $this->service();
+        $repository->shouldReceive('catalogs')->once()->andReturn($this->catalogs());
+        $repository->shouldReceive('existingDocuments')->once()->with(['1075676060'])->andReturn([]);
+        $file = $this->workbook([$this->row(['numero_documento' => 1075676060])]);
+
+        try {
+            $result = $service->validate($file);
+            $this->assertSame(0, $result['invalid']);
+            $this->assertSame(1, $result['valid']);
+            $this->assertSame('1075676060', $result['_rows'][0]['numero_documento']);
+            $this->assertCount(1, $result['warnings']);
+            $this->assertSame('numero_documento', $result['warnings'][0]['field']);
+            $this->assertStringContainsString('llegó como número', $result['warnings'][0]['message']);
+            $this->assertStringContainsString('ceros iniciales', $result['warnings'][0]['message']);
+        } finally {
+            @unlink($file->getRealPath());
+        }
+    }
+
+    public function test_numeric_document_warning_is_added_to_the_seven_historical_warnings(): void
+    {
+        [$service, $repository] = $this->service();
+        $repository->shouldReceive('catalogs')->once()->andReturn($this->catalogs());
+        $repository->shouldReceive('existingDocuments')->once()->andReturn([]);
+        $file = $this->workbook([$this->row([
+            'numero_documento' => 1075676060,
+            'copia_documento_si' => 'OK',
+            'contrato_firmado_si' => 'OK',
+            'fecha_finalizacion_contrato' => '15/08/2026',
+            'salario' => 2500000,
+            'ultimo_examen_medico' => '01/07/2026',
+            'ultima_entrega_dotaciones' => 'UNICA',
+            'finalizacion_contrato' => 'NO',
+        ])]);
+
+        try {
+            $result = $service->validate($file);
+            $this->assertSame(1, $result['valid']);
+            $this->assertSame(0, $result['invalid']);
+            $this->assertCount(8, $result['warnings']);
+            $this->assertCount(1, collect($result['warnings'])->filter(
+                fn ($warning) => $warning['field'] === 'numero_documento'
+            ));
+        } finally {
+            @unlink($file->getRealPath());
+        }
+    }
+
+    public function test_text_document_preserves_leading_zeroes_without_conversion_warning(): void
+    {
+        [$service, $repository] = $this->service();
+        $repository->shouldReceive('catalogs')->once()->andReturn($this->catalogs());
+        $repository->shouldReceive('existingDocuments')->once()->with(['0012345678'])->andReturn([]);
+        $file = $this->workbook([$this->row(['numero_documento' => '0012345678'])]);
+
+        try {
+            $result = $service->validate($file);
+            $this->assertSame(0, $result['invalid']);
+            $this->assertSame('0012345678', $result['_rows'][0]['numero_documento']);
+            $this->assertFalse(collect($result['warnings'])->contains(
+                fn ($warning) => $warning['field'] === 'numero_documento'
+            ));
+        } finally {
+            @unlink($file->getRealPath());
+        }
+    }
+
+    public function test_alphanumeric_document_remains_valid(): void
+    {
+        [$service, $repository] = $this->service();
+        $repository->shouldReceive('catalogs')->once()->andReturn($this->catalogs());
+        $repository->shouldReceive('existingDocuments')->once()->with(['AB-123X'])->andReturn([]);
+        $file = $this->workbook([$this->row(['numero_documento' => 'AB-123X'])]);
+
+        try {
+            $result = $service->validate($file);
+            $this->assertSame(0, $result['invalid']);
+            $this->assertSame('AB-123X', $result['_rows'][0]['numero_documento']);
+        } finally {
+            @unlink($file->getRealPath());
+        }
+    }
+
+    public function test_decimal_numeric_document_is_rejected_as_potentially_altered(): void
+    {
+        $this->assertUnsafeNumericDocument(1075676060.5);
+    }
+
+    public function test_negative_numeric_document_is_rejected_as_potentially_altered(): void
+    {
+        $this->assertUnsafeNumericDocument(-1075676060);
+    }
+
+    public function test_numeric_document_over_15_digits_is_rejected_as_potentially_imprecise(): void
+    {
+        $this->assertUnsafeNumericDocument(1234567890123456);
+    }
+
+    public function test_duplicates_are_detected_after_numeric_document_normalization(): void
+    {
+        [$service, $repository] = $this->service();
+        $repository->shouldReceive('catalogs')->once()->andReturn($this->catalogs());
+        $repository->shouldReceive('existingDocuments')->once()->with(['1075676060'])->andReturn([]);
+        $repository->shouldNotReceive('createEmployee');
+        $file = $this->workbook([
+            $this->row(['numero_documento' => 1075676060]),
+            $this->row(['numero_documento' => '1075676060', 'nombres' => 'LUIS']),
+        ]);
+
+        try {
+            $result = $service->validate($file);
+            $this->assertSame(2, $result['invalid']);
+            $this->assertCount(2, collect($result['errors'])->filter(
+                fn ($error) => str_contains($error['message'], 'duplicado')
+            ));
+        } finally {
+            @unlink($file->getRealPath());
+        }
+    }
+
+    public function test_validation_rejects_existing_document_and_unknown_catalog_without_writing(): void
     {
         [$service, $repository] = $this->service();
         $repository->shouldReceive('catalogs')->once()->andReturn($this->catalogs());
         $repository->shouldReceive('existingDocuments')->once()->andReturn(['0099']);
         $repository->shouldNotReceive('createEmployee');
-        $file = $this->workbook([
-            $this->row(['numero_documento' => '0099', 'area' => 'Área inexistente']),
-            $this->row(['numero_documento' => '0099']),
-            $this->row(['numero_documento' => 123456789012345]),
-        ]);
+        $file = $this->workbook([$this->row(['numero_documento' => '0099', 'area' => 'Área inexistente'])]);
 
         try {
             $result = $service->validate($file);
-            $this->assertSame(3, $result['invalid']);
-            $this->assertTrue(collect($result['errors'])->contains(fn ($error) => str_contains($error['message'], 'almacenado como texto')));
-            $this->assertTrue(collect($result['errors'])->contains(fn ($error) => str_contains($error['message'], 'duplicado')));
+            $this->assertSame(1, $result['invalid']);
             $this->assertTrue(collect($result['errors'])->contains(fn ($error) => str_contains($error['message'], 'Ya existe')));
             $this->assertTrue(collect($result['errors'])->contains(fn ($error) => $error['field'] === 'area'));
         } finally {
@@ -182,7 +298,8 @@ class BulkLoadEmployeeServiceTest extends TestCase
         $repository->shouldReceive('catalogs')->once()->andReturn($this->catalogs());
         $repository->shouldReceive('existingDocuments')->once()->andReturn([]);
         $repository->shouldReceive('createEmployee')->once()->with(Mockery::on(
-            fn ($row) => $row['numero_carpeta'] === '9'
+            fn ($row) => $row['numero_documento'] === '1075676060'
+                && $row['numero_carpeta'] === '9'
                 && $row['genero'] === 'M'
                 && $row['estado_empleado'] === 'ACTIVO'
                 && $row['id_tipo_contrato'] === 2
@@ -193,7 +310,7 @@ class BulkLoadEmployeeServiceTest extends TestCase
         $audit->shouldReceive('record')->once();
         DB::shouldReceive('transaction')->once()->andReturnUsing(fn ($callback) => $callback());
         $file = $this->workbook([$this->row([
-            'numero_documento' => '0088',
+            'numero_documento' => 1075676060,
             'numero_carpeta' => '9',
             'genero' => 'M',
             'tipo_contrato' => 'Indefinido',
@@ -234,6 +351,26 @@ class BulkLoadEmployeeServiceTest extends TestCase
         $audit = Mockery::mock(AuditService::class);
 
         return [new BulkLoadEmployeeService($repository, $audit), $repository, $audit];
+    }
+
+    private function assertUnsafeNumericDocument(int|float $document): void
+    {
+        [$service, $repository] = $this->service();
+        $repository->shouldReceive('catalogs')->once()->andReturn($this->catalogs());
+        $repository->shouldReceive('existingDocuments')->once()->andReturn([]);
+        $file = $this->workbook([$this->row(['numero_documento' => $document])]);
+
+        try {
+            $result = $service->validate($file);
+            $this->assertSame(1, $result['invalid']);
+            $this->assertTrue(collect($result['errors'])->contains(
+                fn ($error) => $error['field'] === 'numero_documento'
+                    && str_contains($error['message'], 'Excel pudo alterar')
+                    && str_contains($error['message'], 'máximo 15 dígitos')
+            ));
+        } finally {
+            @unlink($file->getRealPath());
+        }
     }
 
     private function workbook(array $rows, ?array $headers = null): UploadedFile

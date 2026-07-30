@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use OpenSpout\Common\Entity\Cell;
-use OpenSpout\Common\Entity\Cell\StringCell;
+use OpenSpout\Common\Entity\Cell\NumericCell;
 use OpenSpout\Common\Entity\Row;
 use OpenSpout\Common\Entity\Style\Color;
 use OpenSpout\Common\Entity\Style\Style;
@@ -236,17 +236,31 @@ class BulkLoadEmployeeService
             $rowErrors = [];
             $rowWarnings = [];
 
+            foreach ($entry['numeric_identifiers'] as $field => $numericValue) {
+                if (! $this->normalizeSafeNumericIdentifier($numericValue, $normalizedIdentifier)) {
+                    $rowErrors[] = $this->issue(
+                        $rowNumber,
+                        $field,
+                        'Excel pudo alterar este identificador. Recupéralo del archivo fuente y pégalo como texto; un valor numérico debe ser entero, no negativo, finito y tener máximo 15 dígitos.'
+                    );
+
+                    continue;
+                }
+
+                $row[$field] = $normalizedIdentifier;
+                if ($field === 'numero_documento') {
+                    $rowWarnings[] = $this->issue(
+                        $rowNumber,
+                        $field,
+                        'El documento llegó como número y se convertirá a texto. Verifica que no tuviera ceros iniciales.'
+                    );
+                }
+            }
+
             foreach (self::REQUIRED as $field) {
                 if ($row[$field] === null) {
                     $rowErrors[] = $this->issue($rowNumber, $field, 'El campo es obligatorio.');
                 }
-            }
-            if ($entry['numeric_document']) {
-                $rowErrors[] = $this->issue(
-                    $rowNumber,
-                    'numero_documento',
-                    'El documento debe estar almacenado como texto para conservar ceros iniciales y evitar notación científica.'
-                );
             }
             foreach ($entry['formula_fields'] as $field) {
                 $rowErrors[] = $this->issue($rowNumber, $field, 'No se permiten fórmulas en la plantilla.');
@@ -443,14 +457,18 @@ class BulkLoadEmployeeService
                         }
                         $values[$field] = $cell?->getValue();
                     }
-                    $documentCell = $cells[3] ?? null;
+                    $numericIdentifiers = [];
+                    foreach ([0 => 'numero_carpeta', 3 => 'numero_documento', 14 => 'telefono'] as $position => $field) {
+                        $identifierCell = $cells[$position] ?? null;
+                        if ($identifierCell instanceof NumericCell) {
+                            $numericIdentifiers[$field] = $identifierCell->getValue();
+                        }
+                    }
                     $rows[] = [
                         'row' => $index,
                         'values' => $values,
                         'formula_fields' => $formulaFields,
-                        'numeric_document' => $documentCell !== null
-                            && is_numeric($documentCell->getValue())
-                            && ! $documentCell instanceof StringCell,
+                        'numeric_identifiers' => $numericIdentifiers,
                     ];
                 }
             }
@@ -679,6 +697,22 @@ class BulkLoadEmployeeService
         return strtoupper(Str::ascii(preg_replace('/\s+/u', ' ', trim((string) $value))));
     }
 
+    private function normalizeSafeNumericIdentifier(mixed $value, ?string &$normalized): bool
+    {
+        if (! is_int($value) && ! is_float($value)) {
+            return false;
+        }
+
+        $number = (float) $value;
+        if (! is_finite($number) || $number < 0 || floor($number) !== $number || $number > 999999999999999) {
+            return false;
+        }
+
+        $normalized = is_int($value) ? (string) $value : sprintf('%.0f', $number);
+
+        return preg_match('/^\d{1,15}$/', $normalized) === 1;
+    }
+
     private function parseDate(mixed $value, ?string &$parsed): bool
     {
         if ($value instanceof DateTimeInterface) {
@@ -783,7 +817,7 @@ class BulkLoadEmployeeService
         return [
             ['Compatibilidad', 'La hoja conserva exactamente el formato entregado al cliente. El único cambio es reemplazar APELLIDO Y NOMBRE COMPLETO por dos columnas consecutivas: NOMBRES y APELLIDOS. No reordenes ni renombres las demás columnas.'],
             ['Obligatorios', 'TIPO DE DOCUMENTO, DOCUMENTO, NOMBRES y APELLIDOS. No se intenta dividir automáticamente el nombre completo.'],
-            ['Texto', 'N. CARPETA, DOCUMENTO y CELULAR deben mantenerse como texto para conservar ceros iniciales y evitar notación científica.'],
+            ['Texto', 'N. CARPETA, DOCUMENTO y CELULAR deben mantenerse como texto para conservar ceros iniciales. Al copiar y pegar, un DOCUMENTO numérico entero de hasta 15 dígitos puede convertirse de forma segura a texto; verifica la advertencia. Identificadores largos o con ceros iniciales deben conservarse como texto desde el archivo fuente.'],
             ['Fechas', 'Usa una fecha real de Excel visible como DD/MM/AAAA; también se aceptan DD/MM/AAAA y AAAA-MM-DD escritos explícitamente.'],
             ['Género', 'GENERO acepta M o F, igual que el archivo exportado.'],
             ['Mes', 'MES se deriva de FECHA DE INGRESO. Si se diligencia, debe coincidir con el mes de esa fecha y no se almacena independientemente.'],

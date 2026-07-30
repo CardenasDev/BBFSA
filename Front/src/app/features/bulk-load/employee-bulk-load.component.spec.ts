@@ -62,6 +62,28 @@ describe('EmployeeBulkLoadComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('no se persiste');
   });
 
+  it('shows numeric document conversion as safe, keeps import enabled, and includes it in the report', () => {
+    const conversionMessage = 'El documento llegó como número y se convertirá a texto. Verifica que no tuviera ceros iniciales.';
+    component.onFileInput({ target: { files: [new File(['xlsx'], 'empleados.xlsx')] } } as unknown as Event);
+    component.validation.set({
+      total: 1,
+      valid: 1,
+      invalid: 0,
+      errors: [],
+      warnings: [{ row: 3, field: 'numero_documento', message: conversionMessage }],
+    });
+    fixture.detectChanges();
+
+    const content = fixture.nativeElement.textContent;
+    const importButton = [...fixture.nativeElement.querySelectorAll('button')]
+      .find((button: HTMLButtonElement) => button.textContent?.includes('Importar 1 empleados')) as HTMLButtonElement;
+    expect(content).toContain('Conversión segura');
+    expect(content).toContain(conversionMessage);
+    expect(importButton.disabled).toBe(false);
+    expect(component['reportText']()).toContain(conversionMessage);
+    expect(component['reportText']()).toContain('ADVERTENCIA');
+  });
+
   it('prevents double validation while a request is active', () => {
     const request = new Subject<BulkLoadValidation>();
     service.validateEmployees.mockReturnValue(request);

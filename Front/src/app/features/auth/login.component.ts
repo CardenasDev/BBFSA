@@ -4,6 +4,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { finalize } from 'rxjs';
 import { AuthService } from '../../core/services/auth.service';
 import { apiErrorMessage } from '../../shared/api-error';
+import { APP_VERSION_LABEL } from '../../core/config/app-version';
 
 @Component({
   standalone: true, imports: [ReactiveFormsModule],
@@ -26,11 +27,13 @@ import { apiErrorMessage } from '../../shared/api-error';
           @if (form.controls.password.touched && form.controls.password.invalid) { <small class="field-error">La contraseña es obligatoria.</small> }
           <button class="btn primary full" type="submit" [disabled]="loading()">{{ loading() ? 'Validando…' : 'Iniciar sesión' }}</button>
           <p class="security-note">Conexión protegida con autenticación JWT.</p>
+          <small class="app-version login-version" aria-label="Versión de la aplicación">{{ appVersion }}</small>
         </form>
       </section>
     </main>`,
 })
 export class LoginComponent {
+  readonly appVersion = APP_VERSION_LABEL;
   private readonly fb = inject(FormBuilder); private readonly auth = inject(AuthService); private readonly router = inject(Router); private readonly route = inject(ActivatedRoute);
   readonly loading = signal(false); readonly error = signal('');
   readonly form = this.fb.nonNullable.group({ usuario: ['', Validators.required], password: ['', Validators.required] });

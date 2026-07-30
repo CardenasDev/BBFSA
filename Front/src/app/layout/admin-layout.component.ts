@@ -4,6 +4,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { filter } from 'rxjs';
 import { finalize } from 'rxjs';
 import { AuthService } from '../core/services/auth.service';
+import { APP_VERSION_LABEL } from '../core/config/app-version';
 
 interface MenuItem {
   label: string;
@@ -46,7 +47,10 @@ interface MenuItem {
             }
           }
         </nav>
-        <div class="sidebar-footer"><span class="status-dot"></span> Sesion protegida</div>
+        <div class="sidebar-footer">
+          <div><span class="status-dot"></span> Sesión protegida</div>
+          <small class="app-version sidebar-version" aria-label="Versión de la aplicación">{{ appVersion }}</small>
+        </div>
       </aside>
       <div class="page-shell">
         <header class="topbar">
@@ -60,6 +64,7 @@ interface MenuItem {
     </div>`,
 })
 export class AdminLayoutComponent {
+  readonly appVersion = APP_VERSION_LABEL;
   readonly auth = inject(AuthService);
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);

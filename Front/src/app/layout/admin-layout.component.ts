@@ -70,6 +70,7 @@ export class AdminLayoutComponent {
     { label: 'Dashboard', icon: '⌂', route: '/admin/dashboard', permissions: ['DASHBOARD_VER'] },
     { label: 'Aspirantes', icon: 'A', route: '/admin/applicants', permissions: ['ASPIRANTES_VER'] },
     { label: 'Empleados', icon: 'E', route: '/admin/employees', permissions: ['EMPLEADOS_VER'] },
+    { label: 'Carga masiva', icon: 'CM', route: '/admin/bulk-load', permissions: ['EMPLEADOS_VER', 'EMPLEADOS_CREAR'] },
     {
       label: 'Herramientas',
       icon: 'H',

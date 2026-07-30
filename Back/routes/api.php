@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\ApplicantController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\BulkLoadEmployeeController;
 use App\Http\Controllers\Api\CatalogController;
 use App\Http\Controllers\Api\ContractingController;
 use App\Http\Controllers\Api\DomainController;
@@ -30,6 +31,11 @@ Route::prefix('auth')->group(function (): void {
 });
 
 Route::middleware('auth.jwt')->group(function (): void {
+    Route::prefix('bulk-load/employees')->group(function (): void {
+        Route::get('template', [BulkLoadEmployeeController::class, 'template'])->middleware('permission:EMPLEADOS_VER,EMPLEADOS_CREAR');
+        Route::post('validate', [BulkLoadEmployeeController::class, 'validateFile'])->middleware('permission:EMPLEADOS_VER,EMPLEADOS_CREAR');
+        Route::post('import', [BulkLoadEmployeeController::class, 'import'])->middleware('permission:EMPLEADOS_CREAR');
+    });
     Route::get('catalogs/document-types', [CatalogController::class, 'documentTypes'])->middleware('permission:EMPLEADOS_VER,EMPLEADOS_CREAR');
     Route::get('catalogs/areas', [CatalogController::class, 'areas'])->middleware('permission:EMPLEADOS_VER,EMPLEADOS_CREAR');
     Route::get('catalogs/positions', [CatalogController::class, 'positions'])->middleware('permission:EMPLEADOS_VER,EMPLEADOS_CREAR');

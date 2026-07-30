@@ -7315,6 +7315,184 @@
                     }
                 }
             }
+        },
+        "/bulk-load/employees/template": {
+            "get": {
+                "operationId": "bulkLoadEmployee.template",
+                "summary": "Descargar plantilla oficial de carga masiva de empleados",
+                "description": "Genera un XLSX compatible con el export entregado: hoja PERSONAL EMPRESA ACTIVOS y 51 columnas en el mismo orden, reemplazando únicamente APELLIDO Y NOMBRE COMPLETO por NOMBRES y APELLIDOS.",
+                "tags": [
+                    "BulkLoadEmployee"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": {
+                                "schema": {
+                                    "type": "string",
+                                    "format": "binary"
+                                }
+                            }
+                        },
+                        "headers": {
+                            "Content-Disposition": {
+                                "required": true,
+                                "schema": {
+                                    "type": "string"
+                                },
+                                "example": "attachment"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/bulk-load/employees/validate": {
+            "post": {
+                "operationId": "bulkLoadEmployee.validateFile",
+                "summary": "Validar un XLSX de empleados sin realizar escrituras",
+                "description": "Valida el contrato compatible de 51 columnas. Las columnas históricas se aceptan con advertencias y no crean documentos, contratos ni otros históricos.",
+                "tags": [
+                    "BulkLoadEmployee"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/BulkLoadEmployeeFileRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "const": "Archivo validado."
+                                        },
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "total": {
+                                                    "type": "integer"
+                                                },
+                                                "valid": {
+                                                    "type": "integer"
+                                                },
+                                                "invalid": {
+                                                    "type": "integer"
+                                                },
+                                                "warnings": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "$ref": "#/components/schemas/BulkLoadRowIssue"
+                                                    }
+                                                },
+                                                "errors": {
+                                                    "type": "array",
+                                                    "items": {
+                                                        "$ref": "#/components/schemas/BulkLoadRowIssue"
+                                                    }
+                                                }
+                                            },
+                                            "required": [
+                                                "total",
+                                                "valid",
+                                                "invalid",
+                                                "warnings",
+                                                "errors"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "message",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/bulk-load/employees/import": {
+            "post": {
+                "operationId": "bulkLoadEmployee.import",
+                "summary": "Revalidar e importar at\u00f3micamente un XLSX de empleados",
+                "description": "Revalida el archivo completo e importa de forma atómica únicamente empleado, ficha de ingreso, asociaciones de seguridad social y tallas actuales.",
+                "tags": [
+                    "BulkLoadEmployee"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/BulkLoadEmployeeFileRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "const": "Carga masiva completada."
+                                        },
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "created": {
+                                                    "type": "integer"
+                                                },
+                                                "total": {
+                                                    "type": "integer"
+                                                }
+                                            },
+                                            "required": [
+                                                "created",
+                                                "total"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "message",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
         }
     },
     "components": {
@@ -7352,6 +7530,40 @@
                     "id_rol"
                 ],
                 "title": "AssignRoleRequest"
+            },
+            "BulkLoadEmployeeFileRequest": {
+                "type": "object",
+                "properties": {
+                    "file": {
+                        "type": "string",
+                        "format": "binary",
+                        "contentMediaType": "application/octet-stream",
+                        "maxLength": 5120
+                    }
+                },
+                "required": [
+                    "file"
+                ],
+                "title": "BulkLoadEmployeeFileRequest"
+            },
+            "BulkLoadRowIssue": {
+                "type": "object",
+                "properties": {
+                    "row": {
+                        "type": "integer"
+                    },
+                    "field": {
+                        "type": "string"
+                    },
+                    "message": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "row",
+                    "field",
+                    "message"
+                ]
             },
             "CancelReturnRequest": {
                 "type": "object",

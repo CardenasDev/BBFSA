@@ -124,6 +124,7 @@ Route::middleware('auth.jwt')->group(function (): void {
         Route::get('deliveries', [DotationController::class, 'deliveries'])->middleware('permission:DOTACIONES_ENTREGAS_VER');
         Route::delete('deliveries/{deliveryId}', [DotationController::class, 'deleteDelivery'])->whereNumber('deliveryId')->middleware('permission:DOTACIONES_ENTREGAS_ELIMINAR');
         Route::post('deliveries/{deliveryId}/confirm', [DotationController::class, 'confirmDeliveryReceived'])->whereNumber('deliveryId')->middleware('permission:DOTACIONES_MIS_ENTREGAS_CONFIRMAR');
+        Route::post('deliveries/{deliveryId}/confirm-by-hr', [DotationController::class, 'confirmDeliveryByHr'])->whereNumber('deliveryId')->middleware('permission:DOTACIONES_ENTREGAS_CREAR');
         Route::get('deliveries/{deliveryId}/details', [DotationController::class, 'deliveryDetails'])->whereNumber('deliveryId')->middleware('permission:DOTACIONES_ENTREGAS_VER');
     });
     Route::prefix('returns')->group(function (): void {

@@ -302,4 +302,20 @@ class DotationController extends ApiController
             'Entrega de dotaciÃ³n confirmada correctamente',
         );
     }
+
+    /**
+     * Confirmar entrega presencial por RRHH
+     *
+     * Permite al personal autorizado confirmar la entrega en presencia del empleado.
+     * Permiso requerido: DOTACIONES_ENTREGAS_CREAR.
+     *
+     * @response array{success: bool, message: string, data: array{id_dotacion_entrega: int, id_empleado: int, fecha_entrega: string, fecha_confirmacion: string|null, estado: string, observaciones: string|null, observacion_confirmacion: string|null, firma_url: string|null, id_confirmado_por: int|null}}
+     */
+    public function confirmDeliveryByHr(ConfirmDotationDeliveryRequest $request, int $deliveryId): JsonResponse
+    {
+        return $this->success(
+            $this->dotations->confirmDeliveryByHr($this->actorId($request), $deliveryId, $request->validated(), $this->context($request)),
+            'Entrega de dotacion confirmada presencialmente',
+        );
+    }
 }

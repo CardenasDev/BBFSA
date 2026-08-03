@@ -151,6 +151,26 @@ class DotationServiceTest extends TestCase
         $this->assertSame('REGISTRADA', $result['estado']);
     }
 
+    public function test_hr_confirms_delivery_presentially_and_audits_the_action(): void
+    {
+        [$service, $repository, $audit] = $this->service();
+        $repository->shouldReceive('confirmDeliveryByHr')
+            ->once()
+            ->with(99, 31, 'Entrega presencial')
+            ->andReturn([
+                'id_dotacion_entrega' => 31,
+                'id_empleado' => 5,
+                'estado' => 'ENTREGADA',
+            ]);
+        $audit->shouldReceive('record')->once();
+
+        $result = $service->confirmDeliveryByHr(99, 31, [
+            'observacion_confirmacion' => 'Entrega presencial',
+        ], []);
+
+        $this->assertSame('ENTREGADA', $result['estado']);
+    }
+
     public function test_deletes_new_evidence_file_when_header_creation_fails(): void
     {
         [$service, $repository] = $this->service();

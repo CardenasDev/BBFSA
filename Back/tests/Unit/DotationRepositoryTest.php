@@ -114,6 +114,22 @@ class DotationRepositoryTest extends TestCase
         $this->assertSame(7, $row['id_dotacion_entrega']);
     }
 
+    public function test_confirm_delivery_by_hr_calls_dedicated_stored_procedure(): void
+    {
+        DB::shouldReceive('select')
+            ->once()
+            ->with('CALL SP_BBF_DOTACION_ENTREGA_CONFIRMAR_POR_RRHH(?,?,?)', [
+                99,
+                7,
+                'Entrega presencial',
+            ])
+            ->andReturn([(object) ['ID_DOTACION_ENTREGA' => 7, 'ESTADO' => 'ENTREGADA']]);
+
+        $row = app(DotationRepository::class)->confirmDeliveryByHr(99, 7, 'Entrega presencial');
+
+        $this->assertSame('ENTREGADA', $row['estado']);
+    }
+
     public function test_employee_history_calls_stored_procedure_with_employee_id(): void
     {
         DB::shouldReceive('select')

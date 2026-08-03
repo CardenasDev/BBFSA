@@ -38,6 +38,7 @@ class DotationApiTest extends TestCase
             'GET|HEAD api/dotations/deliveries',
             'DELETE api/dotations/deliveries/{deliveryId}',
             'POST api/dotations/deliveries/{deliveryId}/confirm',
+            'POST api/dotations/deliveries/{deliveryId}/confirm-by-hr',
             'POST api/dotations/deliveries/{deliveryId}/prepare',
             'GET|HEAD api/dotations/deliveries/{deliveryId}/details',
         ], $routes);
@@ -324,6 +325,23 @@ class DotationApiTest extends TestCase
             ->assertUnprocessable()
             ->assertJsonPath('success', false)
             ->assertJsonValidationErrors(['firma_url']);
+    }
+
+    public function test_confirm_delivery_by_hr_uses_existing_delivery_create_permission(): void
+    {
+        $this->withToken($this->tokenWithPermissions(['DOTACIONES_ENTREGAS_CREAR']))
+            ->postJson('/api/dotations/deliveries/7/confirm-by-hr', [
+                'observacion_confirmacion' => str_repeat('a', 501),
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['observacion_confirmacion']);
+    }
+
+    public function test_confirm_delivery_by_hr_rejects_users_without_permission(): void
+    {
+        $this->withToken($this->tokenWithPermissions([]))
+            ->postJson('/api/dotations/deliveries/7/confirm-by-hr', [])
+            ->assertForbidden();
     }
 
     public function test_delete_delivery_validates_deletion_reason_max_length(): void

@@ -175,6 +175,18 @@ class DotationRepository extends StoredProcedureRepository
         ]);
     }
 
+    public function confirmDeliveryByHr(
+        int $userId,
+        int $deliveryId,
+        ?string $confirmationObservation,
+    ): ?array {
+        return $this->first('SP_BBF_DOTACION_ENTREGA_CONFIRMAR_POR_RRHH', [
+            $userId,
+            $deliveryId,
+            $confirmationObservation,
+        ]);
+    }
+
     public function deliveryDetails(int $deliveryId): array
     {
         return $this->call('SP_BBF_DOTACION_ENTREGA_DETALLE_LISTAR', [$deliveryId]);

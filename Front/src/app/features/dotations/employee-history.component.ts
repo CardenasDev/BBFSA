@@ -3,10 +3,11 @@ import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { finalize } from 'rxjs';
-import { EmployeeDotationHistory } from '../../core/models/api.models';
+import { DotationEvidenceOrigin, EmployeeDotationHistory } from '../../core/models/api.models';
 import { AuthService } from '../../core/services/auth.service';
 import { DotationService, resolveDotationEvidenceUrl } from '../../core/services/dotation.service';
 import { apiErrorMessage } from '../../shared/api-error';
+import { CameraFilePickerComponent } from '../../shared/camera-file-picker.component';
 
 interface DeliveryHistoryGroup {
   id_dotacion_entrega: number;
@@ -31,7 +32,7 @@ interface DeliveryHistoryGroup {
 
 @Component({
   standalone: true,
-  imports: [FormsModule, RouterLink],
+  imports: [FormsModule, RouterLink, CameraFilePickerComponent],
   template: `
     <div class="page-heading">
       <div>
@@ -106,6 +107,16 @@ interface DeliveryHistoryGroup {
               <p class="muted">Fecha entrega: {{ group.fecha_entrega }}</p>
             </div>
             <div class="row-actions">
+              @if (canPrepareDelivery(group)) {
+                <button
+                  class="btn small primary"
+                  type="button"
+                  (click)="openPrepareDelivery(group)"
+                  [disabled]="preparing()"
+                >
+                  Confirmar compra
+                </button>
+              }
               @if (canDeleteDelivery(group)) {
                 <button
                   class="btn small danger-outline"
@@ -114,6 +125,16 @@ interface DeliveryHistoryGroup {
                   [disabled]="deleting()"
                 >
                   Eliminar entrega
+                </button>
+              }
+              @if (canConfirmDeliveryByHr(group)) {
+                <button
+                  class="btn small primary"
+                  type="button"
+                  (click)="confirmDeliveryByHr(group)"
+                  [disabled]="confirmingDelivery()"
+                >
+                  {{ confirmingDelivery() ? 'Confirmando...' : 'Confirmar entrega' }}
                 </button>
               }
               <span
@@ -285,6 +306,106 @@ interface DeliveryHistoryGroup {
         </div>
       </aside>
     }
+
+    @if (selectedPrepareDelivery(); as delivery) {
+      <button
+        class="drawer-backdrop"
+        type="button"
+        aria-label="Cerrar confirmacion de compra"
+        (click)="closePrepareDelivery()"
+      ></button>
+      <aside class="role-drawer" aria-label="Confirmar compra y preparar entrega" aria-modal="true">
+        <header class="drawer-header">
+          <div>
+            <p class="eyebrow">Compra completada</p>
+            <h2>Entrega #{{ delivery.id_dotacion_entrega }}</h2>
+          </div>
+          <button
+            class="icon-btn close-btn"
+            type="button"
+            (click)="closePrepareDelivery()"
+            aria-label="Cerrar"
+          >
+            x
+          </button>
+        </header>
+
+        <p class="muted">
+          Registra la fecha real y la evidencia de la compra. La solicitud pasara a lista para
+          entregar; el empleado confirmara el recibido posteriormente.
+        </p>
+
+        @if (prepareError()) {
+          <div class="alert error" role="alert">{{ prepareError() }}</div>
+        }
+
+        <label
+          >Fecha real de entrega *
+          <input
+            type="date"
+            name="prepare_fecha"
+            [(ngModel)]="prepareDate"
+            [disabled]="preparing()"
+          />
+        </label>
+
+        <label
+          >Origen de evidencia *
+          <select
+            name="prepare_origin"
+            [(ngModel)]="prepareOrigin"
+            (ngModelChange)="clearPrepareEvidence()"
+            [disabled]="preparing()"
+          >
+            <option value="ARCHIVO">Archivo</option>
+            <option value="URL">URL externa</option>
+          </select>
+        </label>
+
+        @if (prepareOrigin === 'ARCHIVO') {
+          <app-camera-file-picker
+            accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx"
+            galleryLabel="Seleccionar evidencia"
+            (filesSelected)="setPrepareFiles($event)"
+          />
+          @if (prepareFile) {
+            <p>
+              <strong>{{ prepareFile.name }}</strong>
+            </p>
+          }
+        } @else {
+          <label
+            >URL de evidencia *
+            <input
+              type="url"
+              name="prepare_url"
+              [(ngModel)]="prepareUrl"
+              maxlength="500"
+              placeholder="https://..."
+            />
+          </label>
+        }
+
+        <div class="form-actions">
+          <button
+            class="btn secondary"
+            type="button"
+            (click)="closePrepareDelivery()"
+            [disabled]="preparing()"
+          >
+            Cancelar
+          </button>
+          <button
+            class="btn primary"
+            type="button"
+            (click)="confirmPrepareDelivery()"
+            [disabled]="preparing()"
+          >
+            {{ preparing() ? 'Confirmando...' : 'Confirmar compra' }}
+          </button>
+        </div>
+      </aside>
+    }
   `,
 })
 export class EmployeeDotationHistoryComponent implements OnInit {
@@ -294,11 +415,19 @@ export class EmployeeDotationHistoryComponent implements OnInit {
   readonly history = signal<EmployeeDotationHistory[]>([]);
   readonly loading = signal(false);
   readonly deleting = signal(false);
+  readonly preparing = signal(false);
+  readonly confirmingDelivery = signal(false);
   readonly error = signal('');
   readonly deleteError = signal('');
   readonly success = signal('');
   readonly selectedDeleteDelivery = signal<DeliveryHistoryGroup | null>(null);
+  readonly selectedPrepareDelivery = signal<DeliveryHistoryGroup | null>(null);
+  readonly prepareError = signal('');
   deleteReason = '';
+  prepareDate = new Date().toISOString().slice(0, 10);
+  prepareOrigin: DotationEvidenceOrigin = 'ARCHIVO';
+  prepareFile: File | null = null;
+  prepareUrl = '';
   employeeId = 0;
 
   ngOnInit(): void {
@@ -406,6 +535,106 @@ export class EmployeeDotationHistoryComponent implements OnInit {
 
   canCreateDelivery(): boolean {
     return this.auth.hasPermission('DOTACIONES_ENTREGAS_CREAR');
+  }
+
+  canPrepareDelivery(delivery: DeliveryHistoryGroup): boolean {
+    return (
+      this.auth.hasPermission('DOTACIONES_ENTREGAS_CREAR') && delivery.estado === 'POR_COMPRAR'
+    );
+  }
+
+  canConfirmDeliveryByHr(delivery: DeliveryHistoryGroup): boolean {
+    return this.auth.hasPermission('DOTACIONES_ENTREGAS_CREAR') && delivery.estado === 'REGISTRADA';
+  }
+
+  confirmDeliveryByHr(delivery: DeliveryHistoryGroup): void {
+    if (!this.canConfirmDeliveryByHr(delivery)) return;
+    if (!window.confirm('¿Confirmas que la dotación fue entregada presencialmente al empleado?'))
+      return;
+
+    this.confirmingDelivery.set(true);
+    this.error.set('');
+    this.success.set('');
+    this.service
+      .confirmDeliveryByHr(delivery.id_dotacion_entrega, {
+        observacion_confirmacion: 'Entrega presencial confirmada por Recursos Humanos.',
+      })
+      .pipe(finalize(() => this.confirmingDelivery.set(false)))
+      .subscribe({
+        next: () => {
+          this.success.set('Entrega presencial confirmada correctamente.');
+          this.load();
+        },
+        error: (error) =>
+          this.error.set(apiErrorMessage(error, 'No fue posible confirmar la entrega presencial.')),
+      });
+  }
+
+  openPrepareDelivery(delivery: DeliveryHistoryGroup): void {
+    this.selectedPrepareDelivery.set(delivery);
+    this.prepareDate = new Date().toISOString().slice(0, 10);
+    this.prepareOrigin = 'ARCHIVO';
+    this.prepareFile = null;
+    this.prepareUrl = '';
+    this.prepareError.set('');
+    this.success.set('');
+  }
+
+  closePrepareDelivery(): void {
+    if (this.preparing()) return;
+    this.selectedPrepareDelivery.set(null);
+    this.prepareFile = null;
+    this.prepareUrl = '';
+    this.prepareError.set('');
+  }
+
+  clearPrepareEvidence(): void {
+    this.prepareFile = null;
+    this.prepareUrl = '';
+    this.prepareError.set('');
+  }
+
+  setPrepareFiles(files: File[]): void {
+    this.prepareFile = files[0] ?? null;
+    this.prepareError.set('');
+  }
+
+  confirmPrepareDelivery(): void {
+    const delivery = this.selectedPrepareDelivery();
+    if (!delivery || !this.prepareDate) {
+      this.prepareError.set('Selecciona la fecha real de entrega.');
+      return;
+    }
+    if (this.prepareOrigin === 'ARCHIVO' && !this.prepareFile) {
+      this.prepareError.set('Selecciona el archivo de evidencia.');
+      return;
+    }
+    if (this.prepareOrigin === 'URL' && !/^https?:\/\/\S+$/i.test(this.prepareUrl.trim())) {
+      this.prepareError.set('Ingresa una URL de evidencia valida.');
+      return;
+    }
+
+    this.preparing.set(true);
+    this.prepareError.set('');
+    this.service
+      .prepareDelivery(delivery.id_dotacion_entrega, {
+        fecha_entrega: this.prepareDate,
+        origen_evidencia: this.prepareOrigin,
+        evidencia_archivo: this.prepareOrigin === 'ARCHIVO' ? this.prepareFile : null,
+        evidencia_url: this.prepareOrigin === 'URL' ? this.prepareUrl.trim() : null,
+      })
+      .pipe(finalize(() => this.preparing.set(false)))
+      .subscribe({
+        next: () => {
+          this.success.set('Compra confirmada. La dotacion quedo lista para entregar.');
+          this.selectedPrepareDelivery.set(null);
+          this.prepareFile = null;
+          this.prepareUrl = '';
+          this.load();
+        },
+        error: (error) =>
+          this.prepareError.set(apiErrorMessage(error, 'No fue posible confirmar la compra.')),
+      });
   }
 
   canDeleteDelivery(delivery: DeliveryHistoryGroup): boolean {

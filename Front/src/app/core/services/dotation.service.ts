@@ -224,6 +224,17 @@ export class DotationService {
       .pipe(map((response) => response.data));
   }
 
+  confirmDeliveryByHr(
+    deliveryId: number,
+    payload: ConfirmDotationDeliveryRequest,
+  ): Observable<ConfirmedDotationDelivery> {
+    return this.http
+      .post<
+        ApiResponse<ConfirmedDotationDelivery>
+      >(`${this.url}/deliveries/${deliveryId}/confirm-by-hr`, payload)
+      .pipe(map((response) => response.data));
+  }
+
   deleteDelivery(
     deliveryId: number,
     motivoEliminacion?: string,

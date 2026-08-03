@@ -515,6 +515,29 @@ class DotationService
         return $mapped;
     }
 
+    public function confirmDeliveryByHr(int $userId, int $deliveryId, array $data, array $context): array
+    {
+        $confirmed = $this->dotations->confirmDeliveryByHr(
+            $userId,
+            $deliveryId,
+            $data['observacion_confirmacion'] ?? null,
+        );
+
+        if (! $confirmed) {
+            throw new ApiException('No fue posible confirmar presencialmente la entrega de dotacion.', 422);
+        }
+
+        $mapped = $this->mapConfirmedDelivery($confirmed);
+        $this->audit->record($userId, 'DOTACIONES', 'DOTACIONES_ENTREGA_CONFIRMAR_POR_RRHH', 'DOTACION_ENTREGA', $deliveryId, null, [
+            'id_usuario_rrhh' => $userId,
+            'id_dotacion_entrega' => $deliveryId,
+            'observacion_confirmacion' => $data['observacion_confirmacion'] ?? null,
+            'modalidad_confirmacion' => 'PRESENCIAL_RRHH',
+        ], $context);
+
+        return $mapped;
+    }
+
     private function writeQuotationWorkbook(string $path, array $reportRows): void
     {
         $headerStyle = (new Style)->setFontBold()->setShouldWrapText();

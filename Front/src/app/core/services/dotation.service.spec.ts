@@ -234,6 +234,24 @@ describe('DotationService combinations and deliveries', () => {
     http.verify();
   });
 
+  it('confirms a delivery presentially by HR', () => {
+    const { service, http } = setup();
+    service
+      .confirmDeliveryByHr(31, {
+        observacion_confirmacion: 'Entrega presencial confirmada por Recursos Humanos.',
+      })
+      .subscribe();
+    const request = http.expectOne(`${environment.apiUrl}/dotations/deliveries/31/confirm-by-hr`);
+    expect(request.request.method).toBe('POST');
+    expect(request.request.body.observacion_confirmacion).toContain('Recursos Humanos');
+    request.flush({
+      success: true,
+      message: 'ok',
+      data: { id_dotacion_entrega: 31, estado: 'ENTREGADA' },
+    });
+    http.verify();
+  });
+
   it('sends an extraordinary delivery and external URL as FormData without a combination', () => {
     const { service, http } = setup();
     const payload: CreateDotationDeliveryRequest = {

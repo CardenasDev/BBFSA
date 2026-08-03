@@ -300,6 +300,22 @@ export interface DotationSize {
   activo: boolean;
 }
 
+export type DotationArticleGender = 'HOMBRE' | 'MUJER' | 'UNISEX' | 'NO_APLICA';
+export type DotationArticleUnit = 'UNIDAD' | 'PAR' | 'JUEGO';
+
+export interface DotationArticle {
+  id_dotacion_articulo: number;
+  codigo: string;
+  articulo: string;
+  descripcion?: string | null;
+  genero: DotationArticleGender;
+  unidad_medida: DotationArticleUnit;
+  id_tipo_dotacion: number;
+  tipo_dotacion: string;
+  requiere_talla: boolean;
+  activo: boolean;
+}
+
 export type DotationDeliveryType = 'ORDINARIA' | 'EXTRAORDINARIA';
 export type DotationEvidenceOrigin = 'ARCHIVO' | 'URL';
 export type DotationDeliveryStatus = 'POR_COMPRAR' | 'REGISTRADA' | 'ENTREGADA' | 'ANULADA';
@@ -401,7 +417,7 @@ export interface EmployeeDotationHistory extends DotationEvidence {
   codigo_combinacion?: string | null;
   nombre_combinacion?: string | null;
   fecha_confirmacion?: string | null;
-    estado: DotationDeliveryStatus;
+  estado: DotationDeliveryStatus;
   observaciones_entrega?: string | null;
   observacion_confirmacion?: string | null;
   firma_url?: string | null;
@@ -410,6 +426,11 @@ export interface EmployeeDotationHistory extends DotationEvidence {
   id_confirmado_por?: number | null;
   confirmado_por?: string | null;
   id_dotacion_entrega_detalle: number;
+  id_dotacion_articulo?: number | null;
+  codigo_articulo?: string | null;
+  articulo: string;
+  genero?: DotationArticleGender | null;
+  unidad_medida?: DotationArticleUnit | null;
   id_tipo_dotacion: number;
   tipo_dotacion: string;
   id_talla_dotacion?: number | null;
@@ -431,7 +452,7 @@ export interface DotationDelivery extends DotationEvidence {
   codigo_combinacion?: string | null;
   nombre_combinacion?: string | null;
   fecha_confirmacion?: string | null;
-    estado: DotationDeliveryStatus;
+  estado: DotationDeliveryStatus;
   observaciones?: string | null;
   observacion_confirmacion?: string | null;
   firma_url?: string | null;
@@ -502,6 +523,11 @@ export interface DotationDeliveryDetail extends DotationEvidence {
   estado?: string | null;
   observaciones_entrega?: string | null;
   fecha_confirmacion?: string | null;
+  id_dotacion_articulo?: number | null;
+  codigo_articulo?: string | null;
+  articulo: string;
+  genero?: DotationArticleGender | null;
+  unidad_medida?: DotationArticleUnit | null;
   id_tipo_dotacion: number;
   tipo_dotacion: string;
   requiere_talla?: boolean;
@@ -515,15 +541,16 @@ export interface DotationDeliveryDetail extends DotationEvidence {
 export interface CreateDotationDeliveryRequest {
   id_empleado: number;
   fecha_entrega: string;
-    tipo_entrega: DotationDeliveryType;
-    estado_inicial: 'POR_COMPRAR' | 'REGISTRADA';
+  tipo_entrega: DotationDeliveryType;
+  estado_inicial: 'POR_COMPRAR' | 'REGISTRADA';
   id_dotacion_combinacion: number | null;
-    origen_evidencia?: DotationEvidenceOrigin | null;
+  origen_evidencia?: DotationEvidenceOrigin | null;
   evidencia_archivo?: File | null;
   evidencia_url?: string | null;
   evidencia_nombre_archivo?: string | null;
   observaciones?: string | null;
   detalles: {
+    id_dotacion_articulo: number;
     id_tipo_dotacion: number;
     id_talla_dotacion?: number | null;
     cantidad: number;
@@ -1145,7 +1172,13 @@ export interface HealthStatus {
 // Devoluciones unificadas de dotaciones y herramientas.
 export type ReturnType = 'DOTACION' | 'HERRAMIENTA';
 export type ReturnStatus = 'REGISTRADA' | 'CONFIRMADA' | 'ANULADA';
-export type ReturnItemCondition = 'BUENO' | 'USADO' | 'DETERIORADO' | 'DANADO' | 'INCOMPLETO' | 'NO_FUNCIONAL';
+export type ReturnItemCondition =
+  | 'BUENO'
+  | 'USADO'
+  | 'DETERIORADO'
+  | 'DANADO'
+  | 'INCOMPLETO'
+  | 'NO_FUNCIONAL';
 
 export interface AvailableReturnItem {
   tipo_devolucion: ReturnType;
@@ -1153,7 +1186,10 @@ export interface AvailableReturnItem {
   id_detalle: number;
   id_empleado: number;
   fecha_entrega: string;
+  id_dotacion_articulo?: number | null;
+  codigo_articulo?: string | null;
   elemento: string;
+  tipo_dotacion?: string | null;
   talla?: string | null;
   cantidad_entregada: number;
   cantidad_devuelta: number;
@@ -1186,7 +1222,10 @@ export interface ReturnListItem {
 export interface ReturnDetail {
   id_detalle?: number;
   id_devolucion_detalle?: number;
+  id_dotacion_articulo?: number | null;
+  codigo_articulo?: string | null;
   elemento: string;
+  tipo_dotacion?: string | null;
   talla?: string | null;
   cantidad?: number;
   cantidad_devuelta?: number;

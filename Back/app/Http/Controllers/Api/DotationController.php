@@ -48,6 +48,31 @@ class DotationController extends ApiController
     }
 
     /**
+     * Listar artículos de dotación
+     *
+     * Retorna el catálogo de artículos específicos. Puede filtrarse por familia y género.
+     *
+     * @response array{success: bool, message: string, data: list<array{id_dotacion_articulo: int, codigo: string, articulo: string, descripcion: string|null, genero: string, unidad_medida: string, id_tipo_dotacion: int, tipo_dotacion: string, requiere_talla: bool, activo: bool}>}
+     */
+    public function articles(Request $request): JsonResponse
+    {
+        $request->validate([
+            'id_tipo_dotacion' => ['nullable', 'integer', 'min:1'],
+            'genero' => ['nullable', 'string', 'in:HOMBRE,MUJER,UNISEX,NO_APLICA'],
+            'incluir_inactivos' => ['nullable', 'boolean'],
+        ]);
+
+        return $this->success(
+            $this->dotations->articles(
+                $request->integer('id_tipo_dotacion') ?: null,
+                $request->input('genero'),
+                $request->boolean('incluir_inactivos'),
+            ),
+            'Artículos de dotación consultados correctamente',
+        );
+    }
+
+    /**
      * Listar combinaciones de dotacion
      *
      * Retorna las combinaciones activas configuradas para entregas ordinarias.
@@ -180,7 +205,7 @@ class DotationController extends ApiController
      *
      * Retorna todos los items entregados a un empleado agrupables por entrega.
      *
-     * @response array{success: bool, message: string, data: list<array{id_dotacion_entrega: int, id_empleado: int, numero_documento: string, nombre_completo: string, area: string|null, cargo: string|null, fecha_entrega: string, fecha_confirmacion: string|null, estado: string, observaciones_entrega: string|null, observacion_confirmacion: string|null, firma_url: string|null, id_registrado_por: int|null, registrado_por: string|null, id_confirmado_por: int|null, confirmado_por: string|null, id_dotacion_entrega_detalle: int, id_tipo_dotacion: int, tipo_dotacion: string, id_talla_dotacion: int|null, talla: string|null, cantidad: int, observaciones_detalle: string|null, created_at: string|null, updated_at: string|null}>}
+     * @response array{success: bool, message: string, data: list<array{id_dotacion_entrega: int, id_empleado: int, numero_documento: string, nombre_completo: string, area: string|null, cargo: string|null, fecha_entrega: string, fecha_confirmacion: string|null, estado: string, id_dotacion_entrega_detalle: int, id_dotacion_articulo: int|null, codigo_articulo: string|null, articulo: string, genero: string|null, unidad_medida: string|null, id_tipo_dotacion: int, tipo_dotacion: string, id_talla_dotacion: int|null, talla: string|null, cantidad: int}>}
      */
     public function employeeHistory(int $employeeId): JsonResponse
     {
@@ -193,7 +218,7 @@ class DotationController extends ApiController
     /**
      * Registrar entrega de dotacion
      *
-     * Crea una entrega de dotacion, su evidencia obligatoria y sus detalles en una transaccion.
+     * Crea una entrega ordinaria o extraordinaria por artículos específicos. La combinación es opcional para entregas ordinarias.
      * Acepta multipart/form-data con origen_evidencia ARCHIVO o URL.
      */
     public function createDelivery(CreateDotationDeliveryRequest $request): JsonResponse
@@ -236,6 +261,8 @@ class DotationController extends ApiController
      * Consultar detalle de entrega
      *
      * Retorna los items registrados en una entrega de dotacion.
+     *
+     * @response array{success: bool, message: string, data: list<array{id_dotacion_entrega_detalle: int, id_dotacion_entrega: int, id_dotacion_articulo: int|null, codigo_articulo: string|null, articulo: string, genero: string|null, unidad_medida: string|null, id_tipo_dotacion: int, tipo_dotacion: string, requiere_talla: bool, id_talla_dotacion: int|null, talla: string|null, cantidad: int}>}
      */
     public function deliveryDetails(int $deliveryId): JsonResponse
     {

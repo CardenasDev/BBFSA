@@ -9,6 +9,8 @@ import {
   CreatedDotationDelivery,
   CreateDotationDeliveryRequest,
   DeleteDotationDeliveryResponse,
+  DotationArticle,
+  DotationArticleGender,
   DotationCombination,
   DotationCombinationDetail,
   DotationDelivery,
@@ -41,9 +43,9 @@ export class DotationService {
 
   getTypes(soloActivos = true): Observable<DotationType[]> {
     const params = new HttpParams().set('solo_activos', String(soloActivos));
-    return this.http.get<ApiResponse<DotationType[]>>(`${this.url}/types`, { params }).pipe(
-      map((response) => response.data ?? []),
-    );
+    return this.http
+      .get<ApiResponse<DotationType[]>>(`${this.url}/types`, { params })
+      .pipe(map((response) => response.data ?? []));
   }
 
   getSizes(idTipoDotacion?: number | null, soloActivos = true): Observable<DotationSize[]> {
@@ -51,63 +53,67 @@ export class DotationService {
     if (idTipoDotacion) {
       params = params.set('id_tipo_dotacion', String(idTipoDotacion));
     }
-    return this.http.get<ApiResponse<DotationSize[]>>(`${this.url}/sizes`, { params }).pipe(
-      map((response) => response.data ?? []),
-    );
+    return this.http
+      .get<ApiResponse<DotationSize[]>>(`${this.url}/sizes`, { params })
+      .pipe(map((response) => response.data ?? []));
   }
 
   getCombinations(): Observable<DotationCombination[]> {
-    return this.http.get<ApiResponse<DotationCombination[]>>(`${this.url}/combinations`).pipe(
-      map((response) => response.data ?? []),
-    );
+    return this.http
+      .get<ApiResponse<DotationCombination[]>>(`${this.url}/combinations`)
+      .pipe(map((response) => response.data ?? []));
   }
 
   getCombinationDetail(combinationId: number): Observable<DotationCombinationDetail[]> {
-    return this.http.get<ApiResponse<DotationCombinationDetail[]>>(`${this.url}/combinations/${combinationId}`).pipe(
-      map((response) => response.data ?? []),
-    );
+    return this.http
+      .get<ApiResponse<DotationCombinationDetail[]>>(`${this.url}/combinations/${combinationId}`)
+      .pipe(map((response) => response.data ?? []));
   }
 
   getMySizes(): Observable<MyDotationSize[]> {
-    return this.http.get<ApiResponse<MyDotationSize[]>>(`${this.url}/my-sizes`).pipe(
-      map((response) => response.data ?? []),
-    );
+    return this.http
+      .get<ApiResponse<MyDotationSize[]>>(`${this.url}/my-sizes`)
+      .pipe(map((response) => response.data ?? []));
   }
 
   getMyDeliveries(): Observable<MyDotationDelivery[]> {
-    return this.http.get<ApiResponse<MyDotationDelivery[]>>(`${this.url}/my-deliveries`).pipe(
-      map((response) => response.data ?? []),
-    );
+    return this.http
+      .get<ApiResponse<MyDotationDelivery[]>>(`${this.url}/my-deliveries`)
+      .pipe(map((response) => response.data ?? []));
   }
 
   saveMySize(payload: SaveMyDotationSizeRequest): Observable<MyDotationSize> {
-    return this.http.post<ApiResponse<MyDotationSize>>(`${this.url}/my-sizes`, payload).pipe(
-      map((response) => response.data),
-    );
+    return this.http
+      .post<ApiResponse<MyDotationSize>>(`${this.url}/my-sizes`, payload)
+      .pipe(map((response) => response.data));
   }
 
   getEmployees(filters: DotationEmployeeFilters = {}): Observable<DotationEmployeeSummary[]> {
-    return this.http.get<ApiResponse<DotationEmployeeSummary[]>>(`${this.url}/employees`, { params: this.params(filters) }).pipe(
-      map((response) => response.data ?? []),
-    );
+    return this.http
+      .get<
+        ApiResponse<DotationEmployeeSummary[]>
+      >(`${this.url}/employees`, { params: this.params(filters) })
+      .pipe(map((response) => response.data ?? []));
   }
 
   getEmployeeSizes(employeeId: number): Observable<EmployeeDotationSize[]> {
-    return this.http.get<ApiResponse<EmployeeDotationSize[]>>(`${this.url}/employees/${employeeId}/sizes`).pipe(
-      map((response) => response.data ?? []),
-    );
+    return this.http
+      .get<ApiResponse<EmployeeDotationSize[]>>(`${this.url}/employees/${employeeId}/sizes`)
+      .pipe(map((response) => response.data ?? []));
   }
 
   getEmployeeHistory(employeeId: number): Observable<EmployeeDotationHistory[]> {
-    return this.http.get<ApiResponse<EmployeeDotationHistory[]>>(`${this.url}/employees/${employeeId}/history`).pipe(
-      map((response) => response.data ?? []),
-    );
+    return this.http
+      .get<ApiResponse<EmployeeDotationHistory[]>>(`${this.url}/employees/${employeeId}/history`)
+      .pipe(map((response) => response.data ?? []));
   }
 
   getDeliveries(filters: DotationDeliveryFilters = {}): Observable<DotationDelivery[]> {
-    return this.http.get<ApiResponse<DotationDelivery[]>>(`${this.url}/deliveries`, { params: this.params(filters) }).pipe(
-      map((response) => response.data ?? []),
-    );
+    return this.http
+      .get<
+        ApiResponse<DotationDelivery[]>
+      >(`${this.url}/deliveries`, { params: this.params(filters) })
+      .pipe(map((response) => response.data ?? []));
   }
 
   createDelivery(payload: CreateDotationDeliveryRequest): Observable<CreatedDotationDelivery> {
@@ -135,6 +141,10 @@ export class DotationService {
       }
     }
     payload.detalles.forEach((detail, index) => {
+      formData.append(
+        `detalles[${index}][id_dotacion_articulo]`,
+        String(detail.id_dotacion_articulo),
+      );
       formData.append(`detalles[${index}][id_tipo_dotacion]`, String(detail.id_tipo_dotacion));
       if (detail.id_talla_dotacion != null) {
         formData.append(`detalles[${index}][id_talla_dotacion]`, String(detail.id_talla_dotacion));
@@ -145,9 +155,9 @@ export class DotationService {
       }
     });
 
-    return this.http.post<ApiResponse<CreatedDotationDelivery>>(`${this.url}/deliveries`, formData).pipe(
-      map((response) => response.data),
-    );
+    return this.http
+      .post<ApiResponse<CreatedDotationDelivery>>(`${this.url}/deliveries`, formData)
+      .pipe(map((response) => response.data));
   }
 
   exportQuotation(filters: DotationQuotationFilters = {}): Observable<HttpResponse<Blob>> {
@@ -158,43 +168,77 @@ export class DotationService {
     });
   }
 
+  getArticles(
+    idTipoDotacion?: number | null,
+    genero?: DotationArticleGender | null,
+    incluirInactivos = false,
+  ): Observable<DotationArticle[]> {
+    let params = new HttpParams().set('incluir_inactivos', incluirInactivos ? '1' : '0');
+    if (idTipoDotacion) params = params.set('id_tipo_dotacion', String(idTipoDotacion));
+    if (genero) params = params.set('genero', genero);
+    return this.http
+      .get<ApiResponse<DotationArticle[]>>(`${this.url}/articles`, { params })
+      .pipe(map((response) => response.data ?? []));
+  }
+
   exportPurchaseQuotation(filters: DotationQuotationFilters = {}): Observable<HttpResponse<Blob>> {
     return this.http.get(`${this.url}/purchase-quotation/export`, {
-      params: this.params(filters), observe: 'response', responseType: 'blob',
+      params: this.params(filters),
+      observe: 'response',
+      responseType: 'blob',
     });
   }
 
-  prepareDelivery(deliveryId: number, payload: PrepareDotationDeliveryRequest): Observable<DotationDelivery> {
+  prepareDelivery(
+    deliveryId: number,
+    payload: PrepareDotationDeliveryRequest,
+  ): Observable<DotationDelivery> {
     const formData = new FormData();
     formData.append('fecha_entrega', payload.fecha_entrega);
     formData.append('origen_evidencia', payload.origen_evidencia);
-    if (payload.evidencia_nombre_archivo) formData.append('evidencia_nombre_archivo', payload.evidencia_nombre_archivo);
-    if (payload.origen_evidencia === 'ARCHIVO' && payload.evidencia_archivo) formData.append('evidencia_archivo', payload.evidencia_archivo);
-    if (payload.origen_evidencia === 'URL' && payload.evidencia_url) formData.append('evidencia_url', payload.evidencia_url);
-    return this.http.post<ApiResponse<DotationDelivery>>(`${this.url}/deliveries/${deliveryId}/prepare`, formData)
+    if (payload.evidencia_nombre_archivo)
+      formData.append('evidencia_nombre_archivo', payload.evidencia_nombre_archivo);
+    if (payload.origen_evidencia === 'ARCHIVO' && payload.evidencia_archivo)
+      formData.append('evidencia_archivo', payload.evidencia_archivo);
+    if (payload.origen_evidencia === 'URL' && payload.evidencia_url)
+      formData.append('evidencia_url', payload.evidencia_url);
+    return this.http
+      .post<ApiResponse<DotationDelivery>>(`${this.url}/deliveries/${deliveryId}/prepare`, formData)
       .pipe(map((response) => response.data));
   }
 
   getDeliveryDetails(deliveryId: number): Observable<DotationDeliveryDetail[]> {
-    return this.http.get<ApiResponse<DotationDeliveryDetail[]>>(`${this.url}/deliveries/${deliveryId}/details`).pipe(
-      map((response) => response.data ?? []),
-    );
+    return this.http
+      .get<ApiResponse<DotationDeliveryDetail[]>>(`${this.url}/deliveries/${deliveryId}/details`)
+      .pipe(map((response) => response.data ?? []));
   }
 
-  confirmDeliveryReceived(deliveryId: number, payload: ConfirmDotationDeliveryRequest): Observable<ConfirmedDotationDelivery> {
-    return this.http.post<ApiResponse<ConfirmedDotationDelivery>>(`${this.url}/deliveries/${deliveryId}/confirm`, payload).pipe(
-      map((response) => response.data),
-    );
+  confirmDeliveryReceived(
+    deliveryId: number,
+    payload: ConfirmDotationDeliveryRequest,
+  ): Observable<ConfirmedDotationDelivery> {
+    return this.http
+      .post<
+        ApiResponse<ConfirmedDotationDelivery>
+      >(`${this.url}/deliveries/${deliveryId}/confirm`, payload)
+      .pipe(map((response) => response.data));
   }
 
-  deleteDelivery(deliveryId: number, motivoEliminacion?: string): Observable<DeleteDotationDeliveryResponse> {
-    return this.http.request<ApiResponse<DeleteDotationDeliveryResponse>>('DELETE', `${this.url}/deliveries/${deliveryId}`, {
-      body: {
-        motivo_eliminacion: motivoEliminacion,
-      },
-    }).pipe(
-      map((response) => response.data),
-    );
+  deleteDelivery(
+    deliveryId: number,
+    motivoEliminacion?: string,
+  ): Observable<DeleteDotationDeliveryResponse> {
+    return this.http
+      .request<ApiResponse<DeleteDotationDeliveryResponse>>(
+        'DELETE',
+        `${this.url}/deliveries/${deliveryId}`,
+        {
+          body: {
+            motivo_eliminacion: motivoEliminacion,
+          },
+        },
+      )
+      .pipe(map((response) => response.data));
   }
 
   private params(filters: object): HttpParams {

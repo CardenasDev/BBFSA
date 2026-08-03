@@ -40,6 +40,19 @@ class DotationRepositoryTest extends TestCase
         app(DotationRepository::class)->sizes(1, false);
     }
 
+    public function test_articles_calls_stored_procedure_with_filters_in_order(): void
+    {
+        DB::shouldReceive('select')
+            ->once()
+            ->with('CALL SP_BBF_DOTACION_ARTICULOS_LISTAR(?,?,?)', [2, 'MUJER', 0])
+            ->andReturn([(object) ['ID_DOTACION_ARTICULO' => 12, 'ARTICULO' => 'Pantalón Mujer Drill']]);
+
+        $rows = app(DotationRepository::class)->articles(2, 'MUJER', false);
+
+        $this->assertSame(12, $rows[0]['id_dotacion_articulo']);
+        $this->assertSame('Pantalón Mujer Drill', $rows[0]['articulo']);
+    }
+
     public function test_combinations_call_expected_stored_procedures(): void
     {
         DB::shouldReceive('select')
@@ -151,8 +164,9 @@ class DotationRepositoryTest extends TestCase
 
         DB::shouldReceive('select')
             ->once()
-            ->with('CALL SP_BBF_DOTACION_ENTREGA_DETALLE_AGREGAR(?,?,?,?,?)', [
+            ->with('CALL SP_BBF_DOTACION_ENTREGA_DETALLE_AGREGAR_V2(?,?,?,?,?,?)', [
                 7,
+                41,
                 1,
                 3,
                 2,
@@ -176,7 +190,7 @@ class DotationRepositoryTest extends TestCase
             null,
             null,
         );
-        $repository->addDeliveryDetail($deliveryId, 1, 3, 2, 'Camisas institucionales');
+        $repository->addDeliveryDetail($deliveryId, 41, 1, 3, 2, 'Camisas institucionales');
 
         $this->assertSame(7, $deliveryId);
     }

@@ -32,7 +32,7 @@ class DotationService
         'Empleado' => 'nombre_completo',
         'Área' => 'area',
         'Cargo' => 'cargo',
-        'Prenda' => 'tipo_dotacion',
+        'Prenda' => 'articulo',
         'Talla actual' => 'talla_actual',
         'Fecha última entrega' => 'fecha_ultima_entrega',
         'Talla última entrega' => 'talla_ultima_entrega',
@@ -56,6 +56,14 @@ class DotationService
     public function sizes(?int $dotationTypeId, bool $onlyActive = true): array
     {
         return array_map(fn (array $row): array => $this->mapSize($row), $this->dotations->sizes($dotationTypeId, $onlyActive));
+    }
+
+    public function articles(?int $dotationTypeId, ?string $gender, bool $includeInactive = false): array
+    {
+        return array_map(
+            fn (array $row): array => $this->mapArticle($row),
+            $this->dotations->articles($dotationTypeId, $this->blankToNull($gender), $includeInactive),
+        );
     }
 
     public function combinations(): array
@@ -204,6 +212,7 @@ class DotationService
                 foreach ($details as $detail) {
                     $this->dotations->addDeliveryDetail(
                         $deliveryId,
+                        (int) $detail['id_dotacion_articulo'],
                         (int) $detail['id_tipo_dotacion'],
                         $this->nullableInt($detail, 'id_talla_dotacion'),
                         (int) $detail['cantidad'],
@@ -340,10 +349,6 @@ class DotationService
             throw new ApiException('El tipo de entrega no es válido.', 422);
         }
 
-        if ($deliveryType === 'ORDINARIA' && $combinationId === null) {
-            throw new ApiException('La entrega ordinaria requiere una combinación.', 422);
-        }
-
         if ($deliveryType === 'EXTRAORDINARIA' && $combinationId !== null) {
             throw new ApiException('La entrega extraordinaria no debe tener una combinación asociada.', 422);
         }
@@ -353,21 +358,27 @@ class DotationService
             throw new ApiException('El empleado no existe o no se encuentra activo.', 422);
         }
 
-        $detailsByType = [];
+        $detailsByArticleAndSize = [];
         foreach ($details as $detail) {
             $dotationTypeId = (int) $detail['id_tipo_dotacion'];
-            if (isset($detailsByType[$dotationTypeId])) {
-                throw new ApiException('No se puede duplicar un tipo de dotación dentro de la misma entrega.', 422);
+            $detailKey = (int) $detail['id_dotacion_articulo'].'|'.($detail['id_talla_dotacion'] ?? '');
+            if (isset($detailsByArticleAndSize[$detailKey])) {
+                throw new ApiException('No se puede duplicar un artículo con la misma talla dentro de la entrega.', 422);
             }
             if ((int) $detail['cantidad'] < 1) {
                 throw new ApiException('La cantidad de cada prenda debe ser mayor a cero.', 422);
             }
-            $detailsByType[$dotationTypeId] = $detail;
+            $detailsByArticleAndSize[$detailKey] = $detail;
         }
 
         $activeTypes = [];
         foreach ($this->dotations->types(true) as $type) {
             $activeTypes[(int) $type['id_tipo_dotacion']] = $type;
+        }
+
+        $activeArticles = [];
+        foreach ($this->dotations->articles(null, null, false) as $article) {
+            $activeArticles[(int) $article['id_dotacion_articulo']] = $article;
         }
 
         $activeSizes = [];
@@ -380,7 +391,7 @@ class DotationService
             $employeeSizesByType[(int) $employeeSize['id_tipo_dotacion']] = $employeeSize;
         }
 
-        if ($deliveryType === 'ORDINARIA') {
+        if ($deliveryType === 'ORDINARIA' && $combinationId !== null) {
             $combination = $this->dotations->combinationDetails((int) $combinationId);
             if ($combination === []) {
                 throw new ApiException('La combinación no existe, no está activa o no contiene prendas activas.', 422);
@@ -391,26 +402,40 @@ class DotationService
                 $combinationByType[(int) $item['id_tipo_dotacion']] = $item;
             }
 
-            $missing = array_diff_key($combinationByType, $detailsByType);
-            $additional = array_diff_key($detailsByType, $combinationByType);
+            $detailTotalsByType = [];
+            foreach ($detailsByArticleAndSize as $detail) {
+                $typeId = (int) $detail['id_tipo_dotacion'];
+                $detailTotalsByType[$typeId] = ($detailTotalsByType[$typeId] ?? 0) + (int) $detail['cantidad'];
+            }
+            $missing = array_diff_key($combinationByType, $detailTotalsByType);
+            $additional = array_diff_key($detailTotalsByType, $combinationByType);
             if ($missing !== [] || $additional !== []) {
                 throw new ApiException('Las prendas enviadas no corresponden a la combinación seleccionada.', 422);
             }
 
             foreach ($combinationByType as $dotationTypeId => $item) {
-                if ((int) $detailsByType[$dotationTypeId]['cantidad'] !== (int) $item['cantidad']) {
+                if ((int) $detailTotalsByType[$dotationTypeId] !== (int) $item['cantidad']) {
                     throw new ApiException("La cantidad de {$item['tipo_dotacion']} no corresponde a la combinación seleccionada.", 422);
                 }
             }
         }
 
-        foreach ($detailsByType as $dotationTypeId => $detail) {
+        foreach ($detailsByArticleAndSize as $detail) {
+            $dotationTypeId = (int) $detail['id_tipo_dotacion'];
+            $dotationArticleId = (int) $detail['id_dotacion_articulo'];
+            $article = $activeArticles[$dotationArticleId] ?? null;
+            if ($article === null) {
+                throw new ApiException('Uno de los artículos no existe o no está activo.', 422);
+            }
+            if ((int) $article['id_tipo_dotacion'] !== $dotationTypeId) {
+                throw new ApiException('Uno de los artículos no pertenece a la familia indicada.', 422);
+            }
             $type = $activeTypes[$dotationTypeId] ?? null;
             if ($type === null) {
                 throw new ApiException('Uno de los tipos de dotación no existe o no está activo.', 422);
             }
 
-            $typeName = (string) ($type['nombre'] ?? 'la prenda');
+            $typeName = (string) ($article['articulo'] ?? $type['nombre'] ?? 'la prenda');
             $sentSizeId = $this->nullableInt($detail, 'id_talla_dotacion');
             $requiresSize = (bool) ($type['requiere_talla'] ?? false);
 
@@ -432,7 +457,7 @@ class DotationService
             }
         }
 
-        return array_values($detailsByType);
+        return array_values($detailsByArticleAndSize);
     }
 
     public function deliveries(?int $employeeId, ?string $startDate, ?string $endDate): array
@@ -515,6 +540,7 @@ class DotationService
             $writer->addRow(Row::fromValues(array_keys(self::QUOTATION_REPORT_COLUMNS), $headerStyle));
 
             foreach ($reportRows as $index => $reportRow) {
+                $reportRow['articulo'] ??= $reportRow['tipo_dotacion'] ?? '';
                 $this->assertQuotationAliases($reportRow, $index);
                 $cells = [];
 
@@ -542,9 +568,9 @@ class DotationService
                 if (strtoupper((string) ($row['estado'] ?? '')) !== 'POR_COMPRAR') {
                     continue;
                 }
-                $key = (string) ($row['tipo_dotacion'] ?? '').'|'.(string) ($row['talla'] ?? '');
+                $key = (string) ($row['id_dotacion_articulo'] ?? $row['articulo'] ?? '').'|'.(string) ($row['talla'] ?? '');
                 $summary[$key] ??= [
-                    'prenda' => (string) ($row['tipo_dotacion'] ?? ''),
+                    'prenda' => (string) ($row['articulo'] ?? $row['tipo_dotacion'] ?? ''),
                     'talla' => (string) ($row['talla'] ?? 'Sin talla'),
                     'cantidad' => 0,
                 ];
@@ -587,7 +613,7 @@ class DotationService
                 $writer->addRow(new Row([
                     new StringCell((string) $row['numero_documento'], null),
                     new StringCell((string) $row['nombre_completo'], null),
-                    new StringCell((string) $row['tipo_dotacion'], null),
+                    new StringCell((string) ($row['articulo'] ?? $row['tipo_dotacion']), null),
                     Cell::fromValue($row['talla'] ?? 'Sin talla'),
                     new NumericCell((int) $row['cantidad'], null),
                     new NumericCell((int) $row['id_dotacion_entrega'], null),
@@ -686,6 +712,22 @@ class DotationService
             'talla' => (string) ($row['talla'] ?? ''),
             'descripcion' => $row['descripcion'] ?? null,
             'orden' => $this->nullableInt($row, 'orden'),
+            'activo' => (bool) ($row['activo'] ?? false),
+        ];
+    }
+
+    private function mapArticle(array $row): array
+    {
+        return [
+            'id_dotacion_articulo' => (int) ($row['id_dotacion_articulo'] ?? 0),
+            'codigo' => (string) ($row['codigo'] ?? ''),
+            'articulo' => (string) ($row['articulo'] ?? ''),
+            'descripcion' => $row['descripcion'] ?? null,
+            'genero' => (string) ($row['genero'] ?? 'UNISEX'),
+            'unidad_medida' => (string) ($row['unidad_medida'] ?? 'UNIDAD'),
+            'id_tipo_dotacion' => (int) ($row['id_tipo_dotacion'] ?? 0),
+            'tipo_dotacion' => (string) ($row['tipo_dotacion'] ?? ''),
+            'requiere_talla' => (bool) ($row['requiere_talla'] ?? false),
             'activo' => (bool) ($row['activo'] ?? false),
         ];
     }
@@ -809,6 +851,11 @@ class DotationService
             'id_confirmado_por' => $this->nullableInt($row, 'id_confirmado_por'),
             'confirmado_por' => $row['confirmado_por'] ?? null,
             'id_dotacion_entrega_detalle' => (int) ($row['id_dotacion_entrega_detalle'] ?? 0),
+            'id_dotacion_articulo' => $this->nullableInt($row, 'id_dotacion_articulo'),
+            'codigo_articulo' => $row['codigo_articulo'] ?? null,
+            'articulo' => (string) ($row['articulo'] ?? $row['tipo_dotacion'] ?? ''),
+            'genero' => $row['genero'] ?? null,
+            'unidad_medida' => $row['unidad_medida'] ?? null,
             'id_tipo_dotacion' => (int) ($row['id_tipo_dotacion'] ?? 0),
             'tipo_dotacion' => (string) ($row['tipo_dotacion'] ?? ''),
             'id_talla_dotacion' => $this->nullableInt($row, 'id_talla_dotacion'),
@@ -887,6 +934,11 @@ class DotationService
             'estado' => $row['estado'] ?? null,
             'observaciones_entrega' => $row['observaciones_entrega'] ?? null,
             'fecha_confirmacion' => $row['fecha_confirmacion'] ?? null,
+            'id_dotacion_articulo' => $this->nullableInt($row, 'id_dotacion_articulo'),
+            'codigo_articulo' => $row['codigo_articulo'] ?? null,
+            'articulo' => (string) ($row['articulo'] ?? $row['tipo_dotacion'] ?? ''),
+            'genero' => $row['genero'] ?? null,
+            'unidad_medida' => $row['unidad_medida'] ?? null,
             'id_tipo_dotacion' => (int) ($row['id_tipo_dotacion'] ?? 0),
             'tipo_dotacion' => (string) ($row['tipo_dotacion'] ?? ''),
             'requiere_talla' => (bool) ($row['requiere_talla'] ?? false),

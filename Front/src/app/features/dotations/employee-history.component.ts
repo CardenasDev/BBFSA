@@ -34,30 +34,66 @@ interface DeliveryHistoryGroup {
   imports: [FormsModule, RouterLink],
   template: `
     <div class="page-heading">
-      <div><p class="eyebrow">Dotaciones</p><h1>Historial de dotaciones</h1><p class="muted">Todo lo entregado al empleado, agrupado por entrega.</p></div>
+      <div>
+        <p class="eyebrow">Dotaciones</p>
+        <h1>Historial de dotaciones</h1>
+        <p class="muted">Todo lo entregado al empleado, agrupado por entrega.</p>
+      </div>
       <div class="row-actions">
-        @if (canCreateDelivery()) { <a class="btn primary" [routerLink]="['/admin/dotations/deliveries/create']" [queryParams]="{ employeeId: employeeId }">Nueva entrega</a> }
+        @if (canCreateDelivery()) {
+          <a
+            class="btn primary"
+            [routerLink]="['/admin/dotations/deliveries/create']"
+            [queryParams]="{ employeeId: employeeId }"
+            >Nueva entrega</a
+          >
+        }
         <a class="btn ghost" routerLink="/admin/dotations/employees">Volver</a>
       </div>
     </div>
 
-    @if (error()) { <div class="alert error" role="alert">{{ error() }} <button class="btn small ghost" type="button" (click)="load()" [disabled]="loading()">Reintentar</button></div> }
-    @if (success()) { <div class="alert success" role="status">{{ success() }}</div> }
+    @if (error()) {
+      <div class="alert error" role="alert">
+        {{ error() }}
+        <button class="btn small ghost" type="button" (click)="load()" [disabled]="loading()">
+          Reintentar
+        </button>
+      </div>
+    }
+    @if (success()) {
+      <div class="alert success" role="status">{{ success() }}</div>
+    }
 
     @if (history().length) {
       <section class="panel profile-summary">
         <div class="avatar large">{{ initials() }}</div>
         <div>
           <h2>{{ employeeName() }}</h2>
-          <p class="muted">Documento {{ employeeDocument() }} - {{ employeeArea() }} - {{ employeePosition() }}</p>
+          <p class="muted">
+            Documento {{ employeeDocument() }} - {{ employeeArea() }} - {{ employeePosition() }}
+          </p>
         </div>
-        <span class="badge" [class.success]="pendingConfirmations() === 0" [class.danger]="pendingConfirmations() > 0">{{ pendingConfirmations() }} pendientes</span>
+        <span
+          class="badge"
+          [class.success]="pendingConfirmations() === 0"
+          [class.danger]="pendingConfirmations() > 0"
+          >{{ pendingConfirmations() }} pendientes</span
+        >
       </section>
 
       <section class="stats-grid">
-        <article class="stat-card"><span>Total entregas</span><strong>{{ totalDeliveries() }}</strong><small>Entregas unicas registradas</small></article>
-        <article class="stat-card"><span>Total items entregados</span><strong>{{ totalItemsDelivered() }}</strong><small>Suma de cantidades en detalles</small></article>
-        <article class="stat-card"><span>Ultima entrega</span><strong>{{ lastDeliveryDate() }}</strong><small>Fecha mas reciente registrada</small></article>
+        <article class="stat-card">
+          <span>Total entregas</span><strong>{{ totalDeliveries() }}</strong
+          ><small>Entregas unicas registradas</small>
+        </article>
+        <article class="stat-card">
+          <span>Total items entregados</span><strong>{{ totalItemsDelivered() }}</strong
+          ><small>Suma de cantidades en detalles</small>
+        </article>
+        <article class="stat-card">
+          <span>Ultima entrega</span><strong>{{ lastDeliveryDate() }}</strong
+          ><small>Fecha mas reciente registrada</small>
+        </article>
       </section>
     }
 
@@ -71,38 +107,97 @@ interface DeliveryHistoryGroup {
             </div>
             <div class="row-actions">
               @if (canDeleteDelivery(group)) {
-                <button class="btn small danger-outline" type="button" (click)="openDeleteDelivery(group)" [disabled]="deleting()">Eliminar entrega</button>
+                <button
+                  class="btn small danger-outline"
+                  type="button"
+                  (click)="openDeleteDelivery(group)"
+                  [disabled]="deleting()"
+                >
+                  Eliminar entrega
+                </button>
               }
-              <span class="badge" [class.success]="group.estado === 'ENTREGADA'" [class.danger]="group.estado === 'ANULADA'">{{ statusLabel(group.estado) }}</span>
+              <span
+                class="badge"
+                [class.success]="group.estado === 'ENTREGADA'"
+                [class.danger]="group.estado === 'ANULADA'"
+                >{{ statusLabel(group.estado) }}</span
+              >
             </div>
           </div>
 
           <dl>
-            <dt>Tipo de entrega</dt><dd>{{ group.tipo_entrega === 'EXTRAORDINARIA' ? 'Extraordinaria' : 'Ordinaria' }}</dd>
-            <dt>Combinacion</dt><dd>{{ combinationLabel(group) }}</dd>
-            <dt>Fecha confirmacion</dt><dd>{{ group.estado === 'POR_COMPRAR' ? 'No aplica' : (group.fecha_confirmacion || 'Pendiente') }}</dd>
-            <dt>Confirmado por</dt><dd>{{ group.estado === 'POR_COMPRAR' ? 'No aplica' : (group.confirmado_por || (group.id_confirmado_por ? 'ID ' + group.id_confirmado_por : 'Pendiente')) }}</dd>
-            <dt>Registrado por</dt><dd>{{ group.registrado_por || (group.id_registrado_por ? 'ID ' + group.id_registrado_por : 'Sin dato') }}</dd>
-            <dt>Observacion entrega</dt><dd>{{ group.observaciones_entrega || 'Sin observaciones' }}</dd>
-            <dt>Observacion confirmacion</dt><dd>{{ group.observacion_confirmacion || 'Sin observacion' }}</dd>
+            <dt>Tipo de entrega</dt>
+            <dd>{{ group.tipo_entrega === 'EXTRAORDINARIA' ? 'Extraordinaria' : 'Ordinaria' }}</dd>
+            <dt>Combinacion</dt>
+            <dd>{{ combinationLabel(group) }}</dd>
+            <dt>Fecha confirmacion</dt>
+            <dd>
+              {{
+                group.estado === 'POR_COMPRAR'
+                  ? 'No aplica'
+                  : group.fecha_confirmacion || 'Pendiente'
+              }}
+            </dd>
+            <dt>Confirmado por</dt>
+            <dd>
+              {{
+                group.estado === 'POR_COMPRAR'
+                  ? 'No aplica'
+                  : group.confirmado_por ||
+                    (group.id_confirmado_por ? 'ID ' + group.id_confirmado_por : 'Pendiente')
+              }}
+            </dd>
+            <dt>Registrado por</dt>
+            <dd>
+              {{
+                group.registrado_por ||
+                  (group.id_registrado_por ? 'ID ' + group.id_registrado_por : 'Sin dato')
+              }}
+            </dd>
+            <dt>Observacion entrega</dt>
+            <dd>{{ group.observaciones_entrega || 'Sin observaciones' }}</dd>
+            <dt>Observacion confirmacion</dt>
+            <dd>{{ group.observacion_confirmacion || 'Sin observacion' }}</dd>
             <dt>Evidencia</dt>
             <dd>
               @if (evidenceUrl(group); as url) {
-                <a [href]="url" target="_blank" rel="noopener noreferrer">Ver {{ group.evidencia_nombre_original || group.evidencia_nombre_archivo || 'evidencia' }}</a>
+                <a [href]="url" target="_blank" rel="noopener noreferrer"
+                  >Ver
+                  {{
+                    group.evidencia_nombre_original || group.evidencia_nombre_archivo || 'evidencia'
+                  }}</a
+                >
                 <span class="muted"> {{ group.evidencia_fecha_carga || '' }}</span>
-              } @else { — }
+              } @else {
+                —
+              }
             </dd>
           </dl>
 
           <div class="table-wrap">
             <table>
-              <thead><tr><th>Tipo dotacion</th><th>Talla</th><th>Cantidad</th><th>Observaciones detalle</th></tr></thead>
+              <thead>
+                <tr>
+                  <th>Articulo</th>
+                  <th>Familia</th>
+                  <th>Genero / unidad</th>
+                  <th>Talla</th>
+                  <th>Cantidad</th>
+                  <th>Observaciones detalle</th>
+                </tr>
+              </thead>
               <tbody>
                 @for (item of group.items; track item.id_dotacion_entrega_detalle) {
                   <tr>
+                    <td>
+                      <strong>{{ item.articulo || item.tipo_dotacion }}</strong>
+                    </td>
                     <td>{{ item.tipo_dotacion }}</td>
+                    <td>{{ item.genero || '—' }} / {{ item.unidad_medida || '—' }}</td>
                     <td>{{ item.talla || 'Sin talla' }}</td>
-                    <td><strong>{{ item.cantidad }}</strong></td>
+                    <td>
+                      <strong>{{ item.cantidad }}</strong>
+                    </td>
                     <td>{{ item.observaciones_detalle || 'Sin observaciones' }}</td>
                   </tr>
                 }
@@ -111,34 +206,82 @@ interface DeliveryHistoryGroup {
           </div>
         </article>
       } @empty {
-        <div class="empty tall">{{ loading() ? 'Cargando historial...' : 'Este empleado aún no tiene dotaciones registradas.' }}</div>
+        <div class="empty tall">
+          {{
+            loading()
+              ? 'Cargando historial...'
+              : 'Este empleado aún no tiene dotaciones registradas.'
+          }}
+        </div>
       }
     </section>
 
     @if (selectedDeleteDelivery(); as delivery) {
-      <button class="drawer-backdrop" type="button" aria-label="Cerrar eliminacion" (click)="closeDeleteDelivery()"></button>
+      <button
+        class="drawer-backdrop"
+        type="button"
+        aria-label="Cerrar eliminacion"
+        (click)="closeDeleteDelivery()"
+      ></button>
       <aside class="role-drawer" aria-label="Eliminar entrega" aria-modal="true">
         <header class="drawer-header">
-          <div><p class="eyebrow">Eliminacion logica</p><h2>Entrega #{{ delivery.id_dotacion_entrega }}</h2></div>
-          <button class="icon-btn close-btn" type="button" (click)="closeDeleteDelivery()" aria-label="Cerrar">x</button>
+          <div>
+            <p class="eyebrow">Eliminacion logica</p>
+            <h2>Entrega #{{ delivery.id_dotacion_entrega }}</h2>
+          </div>
+          <button
+            class="icon-btn close-btn"
+            type="button"
+            (click)="closeDeleteDelivery()"
+            aria-label="Cerrar"
+          >
+            x
+          </button>
         </header>
 
         <section class="drawer-section">
           <h3>Seguro que deseas eliminar esta entrega de dotacion?</h3>
-          <p class="muted">Esta accion ocultara la entrega del historial normal, pero no borrara el registro fisico de la base de datos.</p>
+          <p class="muted">
+            Esta accion ocultara la entrega del historial normal, pero no borrara el registro fisico
+            de la base de datos.
+          </p>
           <p class="muted">Fecha de entrega: {{ delivery.fecha_entrega }}</p>
         </section>
 
-        @if (deleteError()) { <div class="alert error" role="alert">{{ deleteError() }}</div> }
+        @if (deleteError()) {
+          <div class="alert error" role="alert">{{ deleteError() }}</div>
+        }
 
-        <label>Motivo de eliminacion <span class="optional">opcional</span>
-          <textarea rows="5" maxlength="500" name="motivo_eliminacion" [(ngModel)]="deleteReason" [disabled]="deleting()" placeholder="Registro creado por error."></textarea>
+        <label
+          >Motivo de eliminacion <span class="optional">opcional</span>
+          <textarea
+            rows="5"
+            maxlength="500"
+            name="motivo_eliminacion"
+            [(ngModel)]="deleteReason"
+            [disabled]="deleting()"
+            placeholder="Registro creado por error."
+          ></textarea>
         </label>
         <p class="muted">{{ deleteReason.length }}/500 caracteres</p>
 
         <div class="form-actions">
-          <button class="btn secondary" type="button" (click)="closeDeleteDelivery()" [disabled]="deleting()">Cancelar</button>
-          <button class="btn danger-outline" type="button" (click)="confirmDeleteDelivery()" [disabled]="deleting()">{{ deleting() ? 'Eliminando...' : 'Eliminar' }}</button>
+          <button
+            class="btn secondary"
+            type="button"
+            (click)="closeDeleteDelivery()"
+            [disabled]="deleting()"
+          >
+            Cancelar
+          </button>
+          <button
+            class="btn danger-outline"
+            type="button"
+            (click)="confirmDeleteDelivery()"
+            [disabled]="deleting()"
+          >
+            {{ deleting() ? 'Eliminando...' : 'Eliminar' }}
+          </button>
         </div>
       </aside>
     }
@@ -171,10 +314,19 @@ export class EmployeeDotationHistoryComponent implements OnInit {
 
     this.loading.set(true);
     this.error.set('');
-    this.service.getEmployeeHistory(this.employeeId).pipe(finalize(() => this.loading.set(false))).subscribe({
-      next: (history) => this.history.set(history),
-      error: (error) => this.error.set(apiErrorMessage(error, 'No fue posible cargar el historial de dotaciones del empleado.')),
-    });
+    this.service
+      .getEmployeeHistory(this.employeeId)
+      .pipe(finalize(() => this.loading.set(false)))
+      .subscribe({
+        next: (history) => this.history.set(history),
+        error: (error) =>
+          this.error.set(
+            apiErrorMessage(
+              error,
+              'No fue posible cargar el historial de dotaciones del empleado.',
+            ),
+          ),
+      });
   }
 
   deliveryGroups(): DeliveryHistoryGroup[] {
@@ -221,16 +373,27 @@ export class EmployeeDotationHistoryComponent implements OnInit {
   }
 
   totalItemsDelivered(): number {
-    return this.history().filter((item) => item.estado === 'ENTREGADA').reduce((total, item) => total + Number(item.cantidad || 0), 0);
+    return this.history()
+      .filter((item) => item.estado === 'ENTREGADA')
+      .reduce((total, item) => total + Number(item.cantidad || 0), 0);
   }
 
   pendingConfirmations(): number {
-    return this.deliveryGroups().filter((group) => !group.fecha_confirmacion && group.estado === 'REGISTRADA').length;
+    return this.deliveryGroups().filter(
+      (group) => !group.fecha_confirmacion && group.estado === 'REGISTRADA',
+    ).length;
   }
 
   lastDeliveryDate(): string {
-    return this.deliveryGroups().filter((group) => group.estado === 'ENTREGADA')
-      .reduce<string | null>((latest, group) => !latest || group.fecha_entrega > latest ? group.fecha_entrega : latest, null) ?? 'Sin entregas';
+    return (
+      this.deliveryGroups()
+        .filter((group) => group.estado === 'ENTREGADA')
+        .reduce<string | null>(
+          (latest, group) =>
+            !latest || group.fecha_entrega > latest ? group.fecha_entrega : latest,
+          null,
+        ) ?? 'Sin entregas'
+    );
   }
 
   statusLabel(status: string): string {
@@ -246,9 +409,11 @@ export class EmployeeDotationHistoryComponent implements OnInit {
   }
 
   canDeleteDelivery(delivery: DeliveryHistoryGroup): boolean {
-    return this.auth.hasPermission('DOTACIONES_ENTREGAS_ELIMINAR')
-      && delivery.estado === 'REGISTRADA'
-      && !delivery.fecha_confirmacion;
+    return (
+      this.auth.hasPermission('DOTACIONES_ENTREGAS_ELIMINAR') &&
+      delivery.estado === 'REGISTRADA' &&
+      !delivery.fecha_confirmacion
+    );
   }
 
   openDeleteDelivery(delivery: DeliveryHistoryGroup): void {
@@ -276,7 +441,8 @@ export class EmployeeDotationHistoryComponent implements OnInit {
 
     this.deleting.set(true);
     this.deleteError.set('');
-    this.service.deleteDelivery(delivery.id_dotacion_entrega, this.blankToUndefined(this.deleteReason))
+    this.service
+      .deleteDelivery(delivery.id_dotacion_entrega, this.blankToUndefined(this.deleteReason))
       .pipe(finalize(() => this.deleting.set(false)))
       .subscribe({
         next: () => {
@@ -306,7 +472,12 @@ export class EmployeeDotationHistoryComponent implements OnInit {
   }
 
   initials(): string {
-    return this.employeeName().split(/\s+/).slice(0, 2).map((part) => part[0]).join('').toUpperCase();
+    return this.employeeName()
+      .split(/\s+/)
+      .slice(0, 2)
+      .map((part) => part[0])
+      .join('')
+      .toUpperCase();
   }
 
   private firstRow(): EmployeeDotationHistory | undefined {
@@ -318,9 +489,10 @@ export class EmployeeDotationHistoryComponent implements OnInit {
       return 'No tienes permiso para eliminar entregas de dotacion.';
     }
 
-    const message = error instanceof HttpErrorResponse
-      ? String((error.error as { message?: string } | null)?.message ?? '').toLowerCase()
-      : '';
+    const message =
+      error instanceof HttpErrorResponse
+        ? String((error.error as { message?: string } | null)?.message ?? '').toLowerCase()
+        : '';
 
     if (message.includes('confirm') || message.includes('entregada')) {
       return 'No se puede eliminar una entrega ya confirmada.';

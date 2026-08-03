@@ -108,6 +108,7 @@ Route::middleware('auth.jwt')->group(function (): void {
     Route::prefix('dotations')->group(function (): void {
         Route::get('types', [DotationController::class, 'types'])->middleware('permission:DOTACIONES_CATALOGOS_VER');
         Route::get('sizes', [DotationController::class, 'sizes'])->middleware('permission:DOTACIONES_CATALOGOS_VER');
+        Route::get('articles', [DotationController::class, 'articles'])->middleware('permission:DOTACIONES_CATALOGOS_VER');
         Route::get('combinations', [DotationController::class, 'combinations'])->middleware('permission:DOTACIONES_CATALOGOS_VER');
         Route::get('combinations/{combinationId}', [DotationController::class, 'combinationDetails'])->whereNumber('combinationId')->middleware('permission:DOTACIONES_CATALOGOS_VER');
         Route::get('my-sizes', [DotationController::class, 'mySizes'])->middleware('permission:DOTACIONES_MIS_TALLAS_VER');

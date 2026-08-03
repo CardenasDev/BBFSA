@@ -19,6 +19,7 @@ describe('DotationDeliveryCreateComponent camera integration', () => {
           useValue: {
             getEmployees: () => of([]),
             getTypes: () => of([]),
+            getArticles: () => of([]),
             getCombinations: () => of([]),
             createDelivery,
           },
@@ -35,13 +36,26 @@ describe('DotationDeliveryCreateComponent camera integration', () => {
     component.setEvidenceFiles([capture]);
     component.idEmpleado = 10;
     component.tipoEntrega = 'EXTRAORDINARIA';
-    component.details.set([{
-      clientId: 1, id_tipo_dotacion: 4, tipo_dotacion: 'Camisa', requiere_talla: false,
-      id_talla_dotacion: null, talla: null, cantidad: 1, observaciones: '',
-    }]);
+    component.details.set([
+      {
+        clientId: 1,
+        id_tipo_dotacion: 4,
+        tipo_dotacion: 'Camisa',
+        requiere_talla: false,
+        id_talla_dotacion: null,
+        talla: null,
+        cantidad: 1,
+        observaciones: '',
+      },
+    ]);
     createDelivery.mockReturnValue(throwError(() => new Error('backend')));
+    component.details.update((details) =>
+      details.map((detail) => ({ ...detail, id_dotacion_articulo: 41, articulo: 'Camisa Admon' })),
+    );
     component.submit();
-    expect(createDelivery).toHaveBeenCalledWith(expect.objectContaining({ evidencia_archivo: capture }));
+    expect(createDelivery).toHaveBeenCalledWith(
+      expect.objectContaining({ evidencia_archivo: capture }),
+    );
     expect(component.evidenciaArchivo).toBe(capture);
   });
 
@@ -59,12 +73,24 @@ describe('DotationDeliveryCreateComponent camera integration', () => {
     component.idEmpleado = 10;
     component.estadoInicial = 'POR_COMPRAR';
     component.tipoEntrega = 'EXTRAORDINARIA';
-    component.details.set([{
-      clientId: 1, id_tipo_dotacion: 4, tipo_dotacion: 'Camisa', requiere_talla: false,
-      id_talla_dotacion: null, talla: null, cantidad: 1, observaciones: '',
-    }]);
+    component.articles.set([]);
+    component.details.set([
+      {
+        clientId: 1,
+        id_tipo_dotacion: 4,
+        tipo_dotacion: 'Camisa',
+        requiere_talla: false,
+        id_talla_dotacion: null,
+        talla: null,
+        cantidad: 1,
+        observaciones: '',
+      },
+    ]);
     createDelivery.mockReturnValue(throwError(() => new Error('backend')));
 
+    component.details.update((details) =>
+      details.map((detail) => ({ ...detail, id_dotacion_articulo: 41, articulo: 'Camisa Admon' })),
+    );
     component.submit();
 
     const payload = createDelivery.mock.calls[0][0];

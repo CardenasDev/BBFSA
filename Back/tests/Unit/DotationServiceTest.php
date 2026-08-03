@@ -69,7 +69,7 @@ class DotationServiceTest extends TestCase
         $repository->shouldReceive('combinationDetails')->once()->with(1)->andReturn($this->combination());
 
         $this->expectException(ApiException::class);
-        $this->expectExceptionMessage('El empleado no tiene registrada la talla indicada para Chaqueta.');
+        $this->expectExceptionMessage('El empleado no tiene registrada la talla indicada para Chaqueta Cuarto Frio.');
 
         $details = $this->details();
         $details[0]['id_talla_dotacion'] = 99;
@@ -92,7 +92,7 @@ class DotationServiceTest extends TestCase
             5, '2026-07-24', 'EXTRAORDINARIA', null, 99, null, 'REGISTRADA',
             'Evidencia entrega', null, 'https://example.com/evidencia.jpg', null, null, null,
         )->andReturn(21);
-        $repository->shouldReceive('addDeliveryDetail')->once()->with(21, 3, 25, 1, null);
+        $repository->shouldReceive('addDeliveryDetail')->once()->with(21, 103, 3, 25, 1, null);
         $audit->shouldReceive('record')->once();
 
         $result = $service->createDelivery([
@@ -228,6 +228,11 @@ class DotationServiceTest extends TestCase
             ['id_tipo_dotacion' => 2, 'nombre' => 'Pantalón', 'requiere_talla' => 1],
             ['id_tipo_dotacion' => 3, 'nombre' => 'Calzado', 'requiere_talla' => 1],
         ]);
+        $repository->shouldReceive('articles')->once()->with(null, null, false)->andReturn([
+            ['id_dotacion_articulo' => 101, 'articulo' => 'Chaqueta Cuarto Frio', 'id_tipo_dotacion' => 7],
+            ['id_dotacion_articulo' => 102, 'articulo' => 'Pantalón Hombre clásico', 'id_tipo_dotacion' => 2],
+            ['id_dotacion_articulo' => 103, 'articulo' => 'Bota cuero Liso', 'id_tipo_dotacion' => 3],
+        ]);
         $repository->shouldReceive('sizes')->once()->with(null, true)->andReturn([
             ['id_talla_dotacion' => 30, 'id_tipo_dotacion' => 7],
             ['id_talla_dotacion' => 15, 'id_tipo_dotacion' => 2],
@@ -247,9 +252,9 @@ class DotationServiceTest extends TestCase
     private function details(): array
     {
         return [
-            ['id_tipo_dotacion' => 7, 'id_talla_dotacion' => 30, 'cantidad' => 1],
-            ['id_tipo_dotacion' => 2, 'id_talla_dotacion' => 15, 'cantidad' => 1],
-            ['id_tipo_dotacion' => 3, 'id_talla_dotacion' => 25, 'cantidad' => 1],
+            ['id_dotacion_articulo' => 101, 'id_tipo_dotacion' => 7, 'id_talla_dotacion' => 30, 'cantidad' => 1],
+            ['id_dotacion_articulo' => 102, 'id_tipo_dotacion' => 2, 'id_talla_dotacion' => 15, 'cantidad' => 1],
+            ['id_dotacion_articulo' => 103, 'id_tipo_dotacion' => 3, 'id_talla_dotacion' => 25, 'cantidad' => 1],
         ];
     }
 }

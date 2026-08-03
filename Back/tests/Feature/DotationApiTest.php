@@ -2,8 +2,8 @@
 
 namespace Tests\Feature;
 
-use App\Services\JwtService;
 use App\Services\DotationService;
+use App\Services\JwtService;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
@@ -23,6 +23,7 @@ class DotationApiTest extends TestCase
         $this->assertEqualsCanonicalizing([
             'GET|HEAD api/dotations/types',
             'GET|HEAD api/dotations/sizes',
+            'GET|HEAD api/dotations/articles',
             'GET|HEAD api/dotations/combinations',
             'GET|HEAD api/dotations/combinations/{combinationId}',
             'GET|HEAD api/dotations/my-sizes',
@@ -50,6 +51,31 @@ class DotationApiTest extends TestCase
                 'success' => false,
                 'message' => 'Token de acceso requerido.',
             ]);
+    }
+
+    public function test_articles_endpoint_uses_existing_catalog_permission_and_maps_filters(): void
+    {
+        $this->mock(DotationService::class, function (MockInterface $mock): void {
+            $mock->shouldReceive('articles')->once()->with(2, 'MUJER', false)->andReturn([
+                [
+                    'id_dotacion_articulo' => 12,
+                    'codigo' => 'PANT_MUJER_DRILL',
+                    'articulo' => 'Pantalón Mujer Drill',
+                    'id_tipo_dotacion' => 2,
+                    'tipo_dotacion' => 'Pantalón',
+                    'requiere_talla' => true,
+                    'genero' => 'MUJER',
+                    'unidad_medida' => 'UNIDAD',
+                    'activo' => true,
+                ],
+            ]);
+        });
+
+        $this->withToken($this->tokenWithPermissions(['DOTACIONES_CATALOGOS_VER']))
+            ->getJson('/api/dotations/articles?id_tipo_dotacion=2&genero=MUJER&incluir_inactivos=0')
+            ->assertOk()
+            ->assertJsonPath('data.0.articulo', 'Pantalón Mujer Drill')
+            ->assertJsonPath('data.0.tipo_dotacion', 'Pantalón');
     }
 
     public function test_employee_history_endpoint_requires_jwt(): void
@@ -122,7 +148,7 @@ class DotationApiTest extends TestCase
             ->assertJsonValidationErrors(['detalles']);
     }
 
-    public function test_ordinary_delivery_requires_combination(): void
+    public function test_ordinary_delivery_does_not_require_combination_but_requires_article(): void
     {
         $this->withToken($this->tokenWithPermissions(['DOTACIONES_ENTREGAS_CREAR']))
             ->postJson('/api/dotations/deliveries', [
@@ -136,7 +162,7 @@ class DotationApiTest extends TestCase
                 ]],
             ])
             ->assertUnprocessable()
-            ->assertJsonValidationErrors(['id_dotacion_combinacion']);
+            ->assertJsonValidationErrors(['detalles.0.id_dotacion_articulo']);
     }
 
     public function test_extraordinary_delivery_rejects_combination(): void
@@ -180,7 +206,7 @@ class DotationApiTest extends TestCase
                 'id_empleado' => 5,
                 'fecha_entrega' => '2026-07-24',
                 'tipo_entrega' => 'EXTRAORDINARIA',
-                'detalles' => [['id_tipo_dotacion' => 3, 'cantidad' => 1]],
+                'detalles' => [['id_dotacion_articulo' => 103, 'id_tipo_dotacion' => 3, 'cantidad' => 1]],
             ])
             ->assertUnprocessable()
             ->assertJsonValidationErrors(['origen_evidencia']);
@@ -204,7 +230,7 @@ class DotationApiTest extends TestCase
                 'fecha_entrega' => '2026-08-10',
                 'tipo_entrega' => 'EXTRAORDINARIA',
                 'estado_inicial' => 'POR_COMPRAR',
-                'detalles' => [['id_tipo_dotacion' => 3, 'cantidad' => 1]],
+                'detalles' => [['id_dotacion_articulo' => 103, 'id_tipo_dotacion' => 3, 'cantidad' => 1]],
             ])
             ->assertCreated()
             ->assertJsonPath('data.estado', 'POR_COMPRAR');
@@ -520,6 +546,11 @@ class DotationApiTest extends TestCase
                     'ID_CONFIRMADO_POR' => null,
                     'CONFIRMADO_POR' => null,
                     'ID_DOTACION_ENTREGA_DETALLE' => 4,
+                    'ID_DOTACION_ARTICULO' => 81,
+                    'CODIGO_ARTICULO' => 'BATA_DRILL',
+                    'ARTICULO' => 'Bata tipo Drill',
+                    'GENERO' => 'UNISEX',
+                    'UNIDAD_MEDIDA' => 'UNIDAD',
                     'ID_TIPO_DOTACION' => 1,
                     'TIPO_DOTACION' => 'Delantal',
                     'ID_TALLA_DOTACION' => 5,
@@ -567,6 +598,11 @@ class DotationApiTest extends TestCase
                     'id_confirmado_por' => null,
                     'confirmado_por' => null,
                     'id_dotacion_entrega_detalle' => 4,
+                    'id_dotacion_articulo' => 81,
+                    'codigo_articulo' => 'BATA_DRILL',
+                    'articulo' => 'Bata tipo Drill',
+                    'genero' => 'UNISEX',
+                    'unidad_medida' => 'UNIDAD',
                     'id_tipo_dotacion' => 1,
                     'tipo_dotacion' => 'Delantal',
                     'id_talla_dotacion' => 5,

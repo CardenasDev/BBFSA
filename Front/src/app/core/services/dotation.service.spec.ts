@@ -18,8 +18,12 @@ describe('DotationService combinations and deliveries', () => {
   }
 
   it('resolves physical evidence against backendUrl and preserves external URLs', () => {
-    expect(resolveDotationEvidenceUrl('/uploads/dotations/evidence.jpg')).toBe(`${environment.backendUrl}/uploads/dotations/evidence.jpg`);
-    expect(resolveDotationEvidenceUrl('https://cdn.example.com/evidence.jpg')).toBe('https://cdn.example.com/evidence.jpg');
+    expect(resolveDotationEvidenceUrl('/uploads/dotations/evidence.jpg')).toBe(
+      `${environment.backendUrl}/uploads/dotations/evidence.jpg`,
+    );
+    expect(resolveDotationEvidenceUrl('https://cdn.example.com/evidence.jpg')).toBe(
+      'https://cdn.example.com/evidence.jpg',
+    );
     expect(resolveDotationEvidenceUrl(null)).toBeNull();
   });
 
@@ -28,36 +32,54 @@ describe('DotationService combinations and deliveries', () => {
     service.getCombinations().subscribe((items) => expect(items[0].codigo).toBe('DOT-01'));
     const combinations = http.expectOne(`${environment.apiUrl}/dotations/combinations`);
     expect(combinations.request.method).toBe('GET');
-    combinations.flush({ success: true, message: 'ok', data: [{ id_dotacion_combinacion: 1, codigo: 'DOT-01', nombre: 'Combinacion 1', activo: true }] });
+    combinations.flush({
+      success: true,
+      message: 'ok',
+      data: [
+        { id_dotacion_combinacion: 1, codigo: 'DOT-01', nombre: 'Combinacion 1', activo: true },
+      ],
+    });
 
-    service.getCombinationDetail(1).subscribe((items) => expect(items[0].tipo_dotacion).toBe('Chaqueta'));
+    service
+      .getCombinationDetail(1)
+      .subscribe((items) => expect(items[0].tipo_dotacion).toBe('Chaqueta'));
     const detail = http.expectOne(`${environment.apiUrl}/dotations/combinations/1`);
     expect(detail.request.method).toBe('GET');
-    detail.flush({ success: true, message: 'ok', data: [{
-      id_dotacion_combinacion_detalle: 1,
-      id_dotacion_combinacion: 1,
-      codigo_combinacion: 'DOT-01',
-      combinacion: 'Combinacion 1',
-      id_tipo_dotacion: 7,
-      tipo_dotacion: 'Chaqueta',
-      requiere_talla: true,
-      cantidad: 1,
-      orden: 1,
-      activo: true,
-    }] });
+    detail.flush({
+      success: true,
+      message: 'ok',
+      data: [
+        {
+          id_dotacion_combinacion_detalle: 1,
+          id_dotacion_combinacion: 1,
+          codigo_combinacion: 'DOT-01',
+          combinacion: 'Combinacion 1',
+          id_tipo_dotacion: 7,
+          tipo_dotacion: 'Chaqueta',
+          requiere_talla: true,
+          cantidad: 1,
+          orden: 1,
+          activo: true,
+        },
+      ],
+    });
     http.verify();
   });
 
   it('exports quotation as a blob response with valid filters only', () => {
     const { service, http } = setup();
 
-    service.exportQuotation({
-      id_area: 5,
-      id_cargo: 9,
-      id_empleado: 12,
-    }).subscribe((response) => expect(response.body).toBeInstanceOf(Blob));
+    service
+      .exportQuotation({
+        id_area: 5,
+        id_cargo: 9,
+        id_empleado: 12,
+      })
+      .subscribe((response) => expect(response.body).toBeInstanceOf(Blob));
 
-    const request = http.expectOne((candidate) => candidate.url === `${environment.apiUrl}/dotations/quotation/export`);
+    const request = http.expectOne(
+      (candidate) => candidate.url === `${environment.apiUrl}/dotations/quotation/export`,
+    );
     expect(request.request.method).toBe('GET');
     expect(request.request.responseType).toBe('blob');
     expect(request.request.params.get('id_area')).toBe('5');
@@ -70,11 +92,13 @@ describe('DotationService combinations and deliveries', () => {
   it('omits empty and zero quotation filters', () => {
     const { service, http } = setup();
 
-    service.exportQuotation({
-      id_area: null,
-      id_cargo: 0,
-      id_empleado: undefined,
-    }).subscribe();
+    service
+      .exportQuotation({
+        id_area: null,
+        id_cargo: 0,
+        id_empleado: undefined,
+      })
+      .subscribe();
 
     const request = http.expectOne(`${environment.apiUrl}/dotations/quotation/export`);
     expect(request.request.params.keys()).toEqual([]);
@@ -82,10 +106,31 @@ describe('DotationService combinations and deliveries', () => {
     http.verify();
   });
 
+  it('loads articles using family and gender filters', () => {
+    const { service, http } = setup();
+    service
+      .getArticles(2, 'MUJER')
+      .subscribe((items) => expect(items[0].articulo).toBe('Pantalón Mujer Drill'));
+    const request = http.expectOne(
+      (candidate) => candidate.url === `${environment.apiUrl}/dotations/articles`,
+    );
+    expect(request.request.params.get('id_tipo_dotacion')).toBe('2');
+    expect(request.request.params.get('genero')).toBe('MUJER');
+    expect(request.request.params.get('incluir_inactivos')).toBe('0');
+    request.flush({
+      success: true,
+      message: 'ok',
+      data: [{ id_dotacion_articulo: 12, articulo: 'Pantalón Mujer Drill' }],
+    });
+    http.verify();
+  });
+
   it('exports pending purchase quotation through its independent endpoint', () => {
     const { service, http } = setup();
     service.exportPurchaseQuotation({ id_area: 5, id_cargo: 9 }).subscribe();
-    const request = http.expectOne((candidate) => candidate.url === `${environment.apiUrl}/dotations/purchase-quotation/export`);
+    const request = http.expectOne(
+      (candidate) => candidate.url === `${environment.apiUrl}/dotations/purchase-quotation/export`,
+    );
     expect(request.request.method).toBe('GET');
     expect(request.request.params.get('id_area')).toBe('5');
     expect(request.request.params.get('id_cargo')).toBe('9');
@@ -106,7 +151,9 @@ describe('DotationService combinations and deliveries', () => {
       origen_evidencia: 'ARCHIVO',
       evidencia_archivo: file,
       evidencia_nombre_archivo: 'Evidencia entrega',
-      detalles: [{ id_tipo_dotacion: 7, id_talla_dotacion: 30, cantidad: 1 }],
+      detalles: [
+        { id_dotacion_articulo: 101, id_tipo_dotacion: 7, id_talla_dotacion: 30, cantidad: 1 },
+      ],
     };
     service.createDelivery(payload).subscribe();
     const request = http.expectOne(`${environment.apiUrl}/dotations/deliveries`);
@@ -121,6 +168,7 @@ describe('DotationService combinations and deliveries', () => {
     expect(body.get('evidencia_archivo')).toBe(file);
     expect(body.has('evidencia_url')).toBe(false);
     expect(body.get('detalles[0][id_tipo_dotacion]')).toBe('7');
+    expect(body.get('detalles[0][id_dotacion_articulo]')).toBe('101');
     expect(body.get('detalles[0][id_talla_dotacion]')).toBe('30');
     expect(body.get('detalles[0][cantidad]')).toBe('1');
     request.flush({ success: true, message: 'ok', data: { id_dotacion_entrega: 20 } });
@@ -139,34 +187,50 @@ describe('DotationService combinations and deliveries', () => {
       evidencia_archivo: new File(['residual'], 'residual.jpg', { type: 'image/jpeg' }),
       evidencia_url: 'https://example.com/residual.jpg',
       evidencia_nombre_archivo: 'Residual',
-      detalles: [{ id_tipo_dotacion: 3, cantidad: 1 }],
+      detalles: [{ id_dotacion_articulo: 103, id_tipo_dotacion: 3, cantidad: 1 }],
     };
     service.createDelivery(payload).subscribe();
     const request = http.expectOne(`${environment.apiUrl}/dotations/deliveries`);
     const body = request.request.body as FormData;
     [
-      'origen_evidencia', 'evidencia', 'evidencia_archivo', 'evidencia_url',
-      'evidencia_nombre_archivo', 'evidencia_nombre_original', 'evidencia_ruta',
-      'evidencia_mime_type', 'evidencia_peso_bytes',
+      'origen_evidencia',
+      'evidencia',
+      'evidencia_archivo',
+      'evidencia_url',
+      'evidencia_nombre_archivo',
+      'evidencia_nombre_original',
+      'evidencia_ruta',
+      'evidencia_mime_type',
+      'evidencia_peso_bytes',
     ].forEach((key) => expect(body.has(key), key).toBe(false));
-    request.flush({ success: true, message: 'ok', data: { id_dotacion_entrega: 31, estado: 'POR_COMPRAR' } });
+    request.flush({
+      success: true,
+      message: 'ok',
+      data: { id_dotacion_entrega: 31, estado: 'POR_COMPRAR' },
+    });
     http.verify();
   });
 
   it('prepares the same purchase request with multipart evidence', () => {
     const { service, http } = setup();
     const file = new File(['evidence'], 'lista.jpg', { type: 'image/jpeg' });
-    service.prepareDelivery(31, {
-      fecha_entrega: '2026-08-12',
-      origen_evidencia: 'ARCHIVO',
-      evidencia_archivo: file,
-    }).subscribe();
+    service
+      .prepareDelivery(31, {
+        fecha_entrega: '2026-08-12',
+        origen_evidencia: 'ARCHIVO',
+        evidencia_archivo: file,
+      })
+      .subscribe();
     const request = http.expectOne(`${environment.apiUrl}/dotations/deliveries/31/prepare`);
     const body = request.request.body as FormData;
     expect(request.request.method).toBe('POST');
     expect(body.get('fecha_entrega')).toBe('2026-08-12');
     expect(body.get('evidencia_archivo')).toBe(file);
-    request.flush({ success: true, message: 'ok', data: { id_dotacion_entrega: 31, estado: 'REGISTRADA' } });
+    request.flush({
+      success: true,
+      message: 'ok',
+      data: { id_dotacion_entrega: 31, estado: 'REGISTRADA' },
+    });
     http.verify();
   });
 
@@ -180,7 +244,9 @@ describe('DotationService combinations and deliveries', () => {
       id_dotacion_combinacion: null,
       origen_evidencia: 'URL',
       evidencia_url: 'https://example.com/evidencia.jpg',
-      detalles: [{ id_tipo_dotacion: 3, id_talla_dotacion: 25, cantidad: 1 }],
+      detalles: [
+        { id_dotacion_articulo: 103, id_tipo_dotacion: 3, id_talla_dotacion: 25, cantidad: 1 },
+      ],
     };
     service.createDelivery(payload).subscribe();
     const request = http.expectOne(`${environment.apiUrl}/dotations/deliveries`);

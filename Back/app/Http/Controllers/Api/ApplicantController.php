@@ -145,6 +145,15 @@ class ApplicantController extends ApiController
         );
     }
 
+    /** Cargar o reemplazar un documento previamente registrado para el aspirante. */
+    public function updateDocument(RegisterApplicantDocumentRequest $request, int $applicantId, int $documentId): JsonResponse
+    {
+        return $this->success(
+            $this->applicants->updateDocument($applicantId, $documentId, $request->validated(), $this->actorId($request), $this->context($request)),
+            'Documento del aspirante actualizado correctamente',
+        );
+    }
+
     /**
      * Listar historial de estados del aspirante
      *

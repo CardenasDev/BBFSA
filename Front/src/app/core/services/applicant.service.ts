@@ -63,6 +63,10 @@ export class ApplicantService {
     return this.http.post<ApiResponse<ApplicantDocument>>(`${this.url}/${applicantId}/documents`, payload).pipe(map((response) => response.data));
   }
 
+  updateDocument(applicantId: number, documentId: number, payload: RegisterApplicantDocumentRequest | FormData): Observable<ApplicantDocument> {
+    return this.http.post<ApiResponse<ApplicantDocument>>(`${this.url}/${applicantId}/documents/${documentId}`, payload).pipe(map((response) => response.data));
+  }
+
   getStatusHistory(applicantId: number): Observable<ApplicantStatusHistory[]> {
     return this.http.get<ApiResponse<ApplicantStatusHistory[]>>(`${this.url}/${applicantId}/status-history`).pipe(map((response) => response.data ?? []));
   }

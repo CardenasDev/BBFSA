@@ -71,9 +71,30 @@ class ContractingService
         return $this->contracting->listContracts($employeeId);
     }
 
+    public function minimumSalary(string $date): array
+    {
+        $parameter = $this->contracting->getCurrentParameter('SALARIO_MINIMO', $date);
+        $value = $parameter['valor'] ?? null;
+
+        if (! $parameter || ! is_numeric($value) || (float) $value <= 0) {
+            throw new ApiException('No existe un salario minimo vigente parametrizado para la fecha indicada.', 422);
+        }
+
+        return [...$parameter, 'valor_numerico' => (float) $value];
+    }
+
     public function createContract(int $employeeId, int $userId, array $data, array $context): array
     {
         $payload = $this->normalizeData($data);
+        $minimumSalary = $this->minimumSalary($payload['fecha_inicio'])['valor_numerico'];
+        $salary = $payload['salario_base'] ?? null;
+        if (! is_numeric($salary) || (float) $salary < $minimumSalary) {
+            throw new ApiException('El salario base no puede ser inferior al salario minimo vigente de $'.number_format($minimumSalary, 0, ',', '.').'.', 422);
+        }
+        $contractNumber = $payload['numero_contrato'] ?? null;
+        if ($contractNumber && $this->contracting->contractNumberExists($employeeId, $contractNumber)) {
+            throw new ApiException('El numero de contrato ya existe para este empleado.', 422);
+        }
         $created = $this->contracting->createContract($employeeId, $userId, $payload);
 
         if (! $created) {

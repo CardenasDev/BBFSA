@@ -3,6 +3,7 @@
 namespace App\Repositories;
 
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 
 class ContractingRepository extends StoredProcedureRepository
 {
@@ -71,9 +72,23 @@ class ContractingRepository extends StoredProcedureRepository
         return $row ? $this->normalizeTemplateJson($row) : null;
     }
 
+    public function getCurrentParameter(string $code, string $date): ?array
+    {
+        return $this->first('SP_BBF_PARAMETRO_VIGENTE_OBTENER', [$code, $date]);
+    }
+
     public function listContracts(int $employeeId): array
     {
         return array_map(fn (array $row): array => $this->normalizeTemplateJson($row), $this->call('SP_BBF_CONTRATACION_CONTRATOS_LISTAR', [$employeeId]));
+    }
+
+    public function contractNumberExists(int $employeeId, string $contractNumber): bool
+    {
+        return DB::table('bbf_empleado_contratos')
+            ->where('ID_EMPLEADO', $employeeId)
+            ->where('NUMERO_CONTRATO', trim($contractNumber))
+            ->where('ELIMINADO', 0)
+            ->exists();
     }
 
     public function createContract(int $employeeId, int $userId, array $data): array

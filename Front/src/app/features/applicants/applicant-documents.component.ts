@@ -42,6 +42,7 @@ export class ApplicantDocumentsComponent implements OnInit {
   readonly loadingLaborDocumentTypes = signal(false);
   readonly saving = signal(false);
   readonly createOpen = signal(false);
+  readonly editingDocumentId = signal<number | null>(null);
   readonly error = signal('');
   readonly formError = signal('');
   readonly success = signal('');
@@ -87,9 +88,24 @@ export class ApplicantDocumentsComponent implements OnInit {
     this.createOpen.set(true);
   }
 
+  openEdit(document: ApplicantDocument): void {
+    this.resetForm();
+    this.success.set('');
+    this.editingDocumentId.set(document.id_aspirante_documento);
+    this.form = {
+      id_tipo_documento_laboral: document.id_tipo_documento_laboral,
+      origen_documento: 'ARCHIVO_FISICO',
+      nombre_archivo: document.nombre_archivo || document.nombre_original || '',
+      archivo_url: '',
+      observaciones: document.observaciones || '',
+    };
+    this.createOpen.set(true);
+  }
+
   closeCreate(): void {
     if (this.saving()) return;
     this.createOpen.set(false);
+    this.editingDocumentId.set(null);
   }
 
   onOriginChange(origin: ApplicantDocumentOrigin | null): void {
@@ -132,11 +148,16 @@ export class ApplicantDocumentsComponent implements OnInit {
 
     this.saving.set(true);
     this.formError.set('');
-    this.service.registerDocument(this.applicantId, this.payload()).pipe(finalize(() => this.saving.set(false))).subscribe({
+    const documentId = this.editingDocumentId();
+    const request = documentId
+      ? this.service.updateDocument(this.applicantId, documentId, this.payload())
+      : this.service.registerDocument(this.applicantId, this.payload());
+    request.pipe(finalize(() => this.saving.set(false))).subscribe({
       next: () => {
-        this.success.set('Documento registrado correctamente.');
+        this.success.set(documentId ? 'Documento actualizado correctamente.' : 'Documento registrado correctamente.');
         this.resetForm();
         this.createOpen.set(false);
+        this.editingDocumentId.set(null);
         this.load();
       },
       error: (error) => this.formError.set(apiErrorMessage(error, 'No fue posible registrar el documento.')),
@@ -276,6 +297,7 @@ export class ApplicantDocumentsComponent implements OnInit {
     this.form = this.emptyForm();
     this.clearSelectedFile();
     this.formError.set('');
+    this.editingDocumentId.set(null);
   }
 
   private clearSelectedFile(): void {

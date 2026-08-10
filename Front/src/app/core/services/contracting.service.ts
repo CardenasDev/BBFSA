@@ -38,6 +38,16 @@ export interface ContractTemplateFilters {
   solo_activas?: number | boolean | null;
 }
 
+export interface CurrentSystemParameter {
+  id_parametro: number;
+  codigo: string;
+  nombre: string;
+  valor: string;
+  valor_numerico: number;
+  vigencia_desde: string;
+  vigencia_hasta?: string | null;
+}
+
 @Injectable({ providedIn: 'root' })
 export class ContractingService {
   private readonly http = inject(HttpClient);
@@ -103,6 +113,13 @@ export class ContractingService {
         ApiResponse<ContractTemplate | null>
       >(`${this.url}/contract-templates/by-type`, { params })
       .pipe(map((response) => response.data ?? null));
+  }
+
+  getMinimumSalary(date: string): Observable<CurrentSystemParameter> {
+    const params = new HttpParams().set('fecha', date);
+    return this.http
+      .get<ApiResponse<CurrentSystemParameter>>(`${this.url}/parameters/minimum-salary`, { params })
+      .pipe(map((response) => response.data));
   }
 
   getContracts(employeeId: number): Observable<EmployeeContract[]> {

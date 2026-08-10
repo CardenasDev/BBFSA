@@ -45,7 +45,7 @@ const BASE_FIELDS = [
     <div class="page-heading">
       <div><p class="eyebrow">Contratacion</p><h1>Historial contractual</h1><p class="muted">Contratos registrados para el empleado.</p></div>
       <div class="row-actions">
-        @if (auth.hasPermission('CONTRATACION_CREAR')) { <button class="btn primary" type="button" (click)="openCreate()">Nuevo contrato</button> }
+        @if (auth.hasPermission('CONTRATACION_CREAR')) { <button class="btn primary" type="button" (click)="openCreate()" [disabled]="loading()">Nuevo contrato</button> }
         <a class="btn ghost" routerLink="/admin/contracting">Volver</a>
       </div>
     </div>
@@ -173,7 +173,11 @@ const BASE_FIELDS = [
             </section>
           }
 
-          @if (isFieldVisible('numero_contrato')) { <label>Numero de contrato<input name="numero_contrato" [(ngModel)]="form.numero_contrato" maxlength="100" /></label> }
+          @if (isFieldVisible('numero_contrato')) {
+            <label>Numero de contrato
+              <input name="numero_contrato" [(ngModel)]="form.numero_contrato" maxlength="100" />
+            </label>
+          }
           @if (isFieldVisible('id_area')) {
             <label>Area
               <select name="id_area" [(ngModel)]="form.id_area">
@@ -208,10 +212,10 @@ const BASE_FIELDS = [
             </label>
           }
           @if (isFieldVisible('lugar_labores')) { <label>Lugar de labores<input name="lugar_labores" [(ngModel)]="form.lugar_labores" maxlength="250" placeholder="VEREDA SAN JOSE, FINCA BARRO BLANCO" /></label> }
-          <label>Fecha inicio<input type="date" name="fecha_inicio" [(ngModel)]="form.fecha_inicio" required /></label>
+          <label>Fecha inicio<input type="date" name="fecha_inicio" [(ngModel)]="form.fecha_inicio" (ngModelChange)="onStartDateChange($event)" required /></label>
           @if (isFieldVisible('fecha_fin')) { <label>Fecha fin<input type="date" name="fecha_fin" [(ngModel)]="form.fecha_fin" /></label> }
           @if (isFieldVisible('duracion_meses')) { <label>Duracion meses<input type="number" min="0" name="duracion_meses" [(ngModel)]="form.duracion_meses" /></label> }
-          @if (isFieldVisible('salario_base')) { <label>Salario base<input type="number" min="0" name="salario_base" [(ngModel)]="form.salario_base" /></label> }
+          @if (isFieldVisible('salario_base')) { <label>Salario base<input type="number" [min]="minimumSalary() || 0" name="salario_base" [(ngModel)]="form.salario_base" required /></label> }
           @if (isFieldVisible('jornada_laboral')) { <label>Jornada laboral<input name="jornada_laboral" [(ngModel)]="form.jornada_laboral" maxlength="150" /></label> }
           @if (isFieldVisible('periodo_prueba_dias')) { <label>Periodo prueba dias<input type="number" min="0" name="periodo_prueba_dias" [(ngModel)]="form.periodo_prueba_dias" /></label> }
           @if (isFieldVisible('prorroga_dias')) { <label>Prorroga dias<input type="number" min="0" name="prorroga_dias" [(ngModel)]="form.prorroga_dias" /></label> }
@@ -237,7 +241,7 @@ const BASE_FIELDS = [
           <label class="form-wide">Observaciones<textarea rows="3" name="observaciones" [(ngModel)]="form.observaciones"></textarea></label>
           <div class="form-actions form-wide">
             <button class="btn secondary" type="button" (click)="closeCreate()" [disabled]="saving()">Cancelar</button>
-            <button class="btn primary" type="submit" [disabled]="saving()">{{ saving() ? 'Guardando...' : 'Registrar contrato' }}</button>
+            <button class="btn primary" type="submit" [disabled]="saving() || salaryLoading()">{{ saving() ? 'Guardando...' : (salaryLoading() ? 'Consultando salario...' : 'Registrar contrato') }}</button>
           </div>
         </form>
       </aside>
@@ -311,6 +315,8 @@ export class ContractingContractsComponent implements OnInit {
   readonly loading = signal(false);
   readonly templatesLoading = signal(false);
   readonly saving = signal(false);
+  readonly salaryLoading = signal(false);
+  readonly minimumSalary = signal<number | null>(null);
   readonly createOpen = signal(false);
   readonly generationOpen = signal(false);
   readonly generationLoading = signal(false);
@@ -360,6 +366,8 @@ export class ContractingContractsComponent implements OnInit {
 
   openCreate(): void {
     this.form = this.emptyForm();
+    this.form.numero_contrato = this.nextContractNumber();
+    this.loadMinimumSalary(this.form.fecha_inicio ?? '', true);
     this.contractTemplates.set([]);
     this.selectedTemplate.set(null);
     this.formError.set('');
@@ -631,11 +639,16 @@ export class ContractingContractsComponent implements OnInit {
     if (this.contractTemplates().length > 0 && !this.form.id_plantilla_contrato) return 'Selecciona una plantilla para el contrato.';
     if (!this.form.fecha_inicio) return 'La fecha de inicio es obligatoria.';
     if (this.isFieldVisible('fecha_fin') && this.form.fecha_fin && this.form.fecha_fin < this.form.fecha_inicio) return 'La fecha fin no puede ser menor que la fecha inicio.';
-    if (Number(this.form.salario_base ?? 0) < 0) return 'El salario base debe ser mayor o igual a cero.';
+    if (this.form.salario_base === null || this.form.salario_base === undefined) return 'El salario base es obligatorio.';
+    if (this.minimumSalary() === null) return 'No fue posible consultar el salario minimo vigente.';
+    if (Number(this.form.salario_base) < Number(this.minimumSalary())) return `El salario base no puede ser inferior a $${Number(this.minimumSalary()).toLocaleString('es-CO')}.`;
     if (Number(this.form.duracion_meses ?? 0) < 0) return 'La duracion en meses debe ser mayor o igual a cero.';
     if (Number(this.form.periodo_prueba_dias ?? 0) < 0) return 'El periodo de prueba debe ser mayor o igual a cero.';
     if (Number(this.form.prorroga_dias ?? 0) < 0) return 'La prorroga en dias debe ser mayor o igual a cero.';
     if ((this.form.numero_contrato ?? '').length > 100) return 'El numero de contrato no puede superar 100 caracteres.';
+    if (this.form.numero_contrato && this.contracts().some((contract) => contract.numero_contrato?.trim().toLocaleLowerCase() === this.form.numero_contrato?.trim().toLocaleLowerCase())) {
+      return 'El numero de contrato ya existe para este empleado.';
+    }
     if ((this.form.periodo_pago ?? '').length > 100) return 'El periodo de pago no puede superar 100 caracteres.';
     if ((this.form.lugar_labores ?? '').length > 250) return 'El lugar de labores no puede superar 250 caracteres.';
     if ((this.form.jornada_laboral ?? '').length > 150) return 'La jornada laboral no puede superar 150 caracteres.';
@@ -700,6 +713,59 @@ export class ContractingContractsComponent implements OnInit {
       auxilio_transporte: null,
       tipo_cargo_contrato: null,
     };
+  }
+
+  onStartDateChange(value: string): void {
+    this.loadMinimumSalary(value, false);
+  }
+
+  private nextContractNumber(): string {
+    const numbered = this.contracts()
+      .map((contract) => contract.numero_contrato?.trim() ?? '')
+      .map((value) => {
+        const match = value.match(/^(.*?)(\d+)(\D*)$/);
+        return match
+          ? { value, prefix: match[1], digits: match[2], suffix: match[3], number: Number(match[2]) }
+          : null;
+      })
+      .filter((item): item is { value: string; prefix: string; digits: string; suffix: string; number: number } => !!item && Number.isFinite(item.number));
+
+    if (numbered.length === 0) {
+      return String(this.contracts().length + 1);
+    }
+
+    const latest = numbered.reduce((maximum, current) => current.number > maximum.number ? current : maximum);
+    const nextDigits = String(latest.number + 1).padStart(latest.digits.length, '0');
+    return `${latest.prefix}${nextDigits}${latest.suffix}`;
+  }
+
+  private loadMinimumSalary(date: string, forceSuggestion: boolean): void {
+    if (!date) {
+      this.minimumSalary.set(null);
+      return;
+    }
+
+    const previousMinimum = this.minimumSalary();
+    this.salaryLoading.set(true);
+    this.service.getMinimumSalary(date).pipe(finalize(() => this.salaryLoading.set(false))).subscribe({
+      next: (parameter) => {
+        const value = Number(parameter.valor_numerico ?? parameter.valor);
+        if (!Number.isFinite(value) || value <= 0) {
+          this.minimumSalary.set(null);
+          this.formError.set('El salario minimo vigente no tiene un valor numerico valido.');
+          return;
+        }
+
+        this.minimumSalary.set(value);
+        if (forceSuggestion || this.form.salario_base == null || Number(this.form.salario_base) === previousMinimum) {
+          this.form.salario_base = value;
+        }
+      },
+      error: (error) => {
+        this.minimumSalary.set(null);
+        this.formError.set(apiErrorMessage(error, 'No fue posible consultar el salario minimo vigente.'));
+      },
+    });
   }
 
   private numberOrNull(value: unknown): number | null {

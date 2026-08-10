@@ -102,14 +102,6 @@ import { TrainingService } from '../../core/services/training.service';
                 (change)="setDocument(c.id_capacitacion_compromiso, $event)"
               />
             </label>
-            <label class="field">
-              Firma
-              <input
-                type="file"
-                accept="image/png,image/jpeg"
-                (change)="setSignature(c.id_capacitacion_compromiso, $event)"
-              />
-            </label>
             <button
               class="btn primary confirm"
               [disabled]="savingId() === c.id_capacitacion_compromiso"
@@ -292,7 +284,6 @@ export class TrainingFollowUpComponent {
   form: any = {};
   selectedStatus: Record<number, CommitmentStatus> = {};
   documentFiles: Record<number, File | undefined> = {};
-  signatureFiles: Record<number, File | undefined> = {};
   constructor() {
     this.load();
   }
@@ -335,9 +326,6 @@ export class TrainingFollowUpComponent {
   setDocument(id: number, event: Event) {
     this.documentFiles[id] = (event.target as HTMLInputElement).files?.[0];
   }
-  setSignature(id: number, event: Event) {
-    this.signatureFiles[id] = (event.target as HTMLInputElement).files?.[0];
-  }
   confirmStatus(c: TrainingCommitment) {
     const id = c.id_capacitacion_compromiso;
     const estado = this.selectedStatus[id] || c.estado;
@@ -348,12 +336,10 @@ export class TrainingFollowUpComponent {
       .updateCommitment(id, {
         estado,
         documento: this.documentFiles[id],
-        firma: this.signatureFiles[id],
       })
       .subscribe({
         next: () => {
           delete this.documentFiles[id];
-          delete this.signatureFiles[id];
           this.savingId.set(null);
           this.message.set(`El compromiso #${id} quedó en estado ${estado.replaceAll('_', ' ')}.`);
           this.loadCommitments();

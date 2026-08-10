@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject, signal } from '@angular/core';
+import { Component, ElementRef, ViewChild, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { forkJoin } from 'rxjs';
@@ -41,7 +41,7 @@ import { TrainingService } from '../../core/services/training.service';
         <div class="notice bad">{{ error() }}</div>
       }
       <nav class="tabs">
-        <button (click)="tab.set('matrix')" [class.on]="tab() === 'matrix'">Matriz semanal</button
+        <button (click)="tab.set('matrix')" [class.on]="tab() === 'matrix'">Matriz de evaluacion</button
         ><button (click)="tab.set('people')" [class.on]="tab() === 'people'">Participantes</button
         ><button (click)="tab.set('import')" [class.on]="tab() === 'import'">Importar XLSX</button>
       </nav>
@@ -117,11 +117,26 @@ import { TrainingService } from '../../core/services/training.service';
       }
       @if (tab() === 'matrix') {
         <article class="matrix-card">
+          @if (saving()) {
+            <div class="saving-overlay" role="status" aria-live="polite">
+              <span class="spinner" aria-hidden="true"></span>
+              <strong>Guardando información...</strong>
+              <small>Espera mientras registramos los valores de la matriz.</small>
+            </div>
+          }
           <p class="hint">
             El acumulado es informativo. El resultado final y su regla se registran por separado.
           </p>
-          <div class="scroll">
-            <table class="matrix">
+          <div
+            #matrixTopScroll
+            class="matrix-top-scroll"
+            aria-label="Desplazamiento horizontal superior de la matriz"
+            (scroll)="syncFromTop()"
+          >
+            <div [style.width.px]="matrixWidth()"></div>
+          </div>
+          <div #matrixScroll class="scroll" (scroll)="syncFromMatrix()">
+            <table class="matrix" [style.min-width.px]="matrixWidth()">
               <thead>
                 <tr>
                   <th>Empleado / labor</th>
@@ -134,7 +149,7 @@ import { TrainingService } from '../../core/services/training.service';
               <tbody>
                 @for (p of detail()!.participants; track p.id_capacitacion_participante) {
                   <tr class="person">
-                    <th colspan="7">{{ name(p) }} · {{ p.estado_asistencia || 'PENDIENTE' }}</th>
+                    <th [attr.colspan]="days().length + 2">{{ name(p) }} · {{ p.estado_asistencia || 'PENDIENTE' }}</th>
                   </tr>
                   @for (task of tasks(); track task.id_capacitacion_labor) {
                     <tr>
@@ -147,7 +162,7 @@ import { TrainingService } from '../../core/services/training.service';
                             [class.attention]="cell(p, task, day).attention"
                             [ngModel]="cell(p, task, day).value"
                             (ngModelChange)="setCell(p, task, day, $event)"
-                            [disabled]="!canEvaluate"
+                            [disabled]="!canEvaluate || saving()"
                           />
                         </td>
                       }
@@ -157,8 +172,8 @@ import { TrainingService } from '../../core/services/training.service';
                     </tr>
                   }
                   <tr class="total">
-                    <th>Acumulado semanal</th>
-                    <td colspan="5">{{ participantTotal(p) }}</td>
+                    <th>Acumulado del periodo</th>
+                    <td [attr.colspan]="days().length">{{ participantTotal(p) }}</td>
                     <td>
                       <button class="btn tiny" (click)="openResult(p)" [disabled]="!canEvaluate">
                         Resultado final
@@ -174,7 +189,12 @@ import { TrainingService } from '../../core/services/training.service';
             (click)="saveMatrix()"
             [disabled]="!canEvaluate || saving()"
           >
-            Guardar cambios de matriz
+            @if (saving()) {
+              <span class="button-spinner" aria-hidden="true"></span>
+              Guardando información...
+            } @else {
+              Guardar cambios de matriz
+            }
           </button>
         </article>
       }
@@ -295,6 +315,55 @@ import { TrainingService } from '../../core/services/training.service';
         border-radius: 14px;
         padding: 18px;
       }
+      .matrix-card {
+        position: relative;
+      }
+      .saving-overlay {
+        position: absolute;
+        inset: 0;
+        z-index: 10;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        min-height: 220px;
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.88);
+        backdrop-filter: blur(2px);
+        color: #183e34;
+      }
+      .saving-overlay small {
+        color: #607068;
+      }
+      .spinner,
+      .button-spinner {
+        display: inline-block;
+        border-radius: 50%;
+        border-style: solid;
+        border-color: #c9ddd6;
+        border-top-color: #08745b;
+        animation: training-spin 0.75s linear infinite;
+      }
+      .spinner {
+        width: 42px;
+        height: 42px;
+        border-width: 4px;
+      }
+      .button-spinner {
+        width: 14px;
+        height: 14px;
+        margin-right: 7px;
+        border-width: 2px;
+        border-color: rgba(255, 255, 255, 0.45);
+        border-top-color: white;
+        vertical-align: -2px;
+      }
+      @keyframes training-spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
       .toolbar {
         display: flex;
         gap: 8px;
@@ -334,9 +403,36 @@ import { TrainingService } from '../../core/services/training.service';
       }
       .scroll {
         overflow: auto;
+        max-width: 100%;
+        scrollbar-gutter: stable;
+      }
+      .matrix-top-scroll {
+        width: 100%;
+        height: 18px;
+        overflow-x: auto;
+        overflow-y: hidden;
+        margin-bottom: 8px;
+        scrollbar-gutter: stable;
+      }
+      .matrix-top-scroll > div {
+        height: 1px;
       }
       .matrix {
         min-width: 850px;
+      }
+      .matrix thead th:first-child,
+      .matrix tbody tr:not(.person) > th:first-child {
+        position: sticky;
+        left: 0;
+        z-index: 2;
+        background: white;
+        box-shadow: 2px 0 0 #e4ebe7;
+      }
+      .matrix thead th:first-child {
+        z-index: 3;
+      }
+      .matrix .total > th:first-child {
+        background: #eef7f3;
       }
       .matrix td input {
         width: 70px;
@@ -403,6 +499,8 @@ import { TrainingService } from '../../core/services/training.service';
   ],
 })
 export class TrainingSessionDetailComponent {
+  @ViewChild('matrixScroll') private matrixScroll?: ElementRef<HTMLDivElement>;
+  @ViewChild('matrixTopScroll') private matrixTopScroll?: ElementRef<HTMLDivElement>;
   private api = inject(TrainingService);
   private employeesApi = inject(EmployeeService);
   private auth = inject(AuthService);
@@ -452,15 +550,36 @@ export class TrainingSessionDetailComponent {
     return p.empleado || p.nombre_completo || `Empleado ${p.id_empleado}`;
   }
   days() {
-    const d = this.detail()!.session.fecha_inicio;
-    return Array.from({ length: 5 }, (_, i) => {
-      const x = new Date(d + 'T12:00:00');
-      x.setDate(x.getDate() + i);
-      return x.toISOString().slice(0, 10);
-    });
+    const session = this.detail()!.session;
+    const start = new Date(session.fecha_inicio + 'T12:00:00');
+    const end = new Date(session.fecha_fin + 'T12:00:00');
+    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || end < start) return [];
+
+    const result: string[] = [];
+    const current = new Date(start);
+    while (current <= end && result.length < 366) {
+      result.push(current.toISOString().slice(0, 10));
+      current.setDate(current.getDate() + 1);
+    }
+    return result;
   }
   dayLabel(d: string) {
-    return ['do', 'lu', 'ma', 'mi', 'ju', 'vi', 'sá'][new Date(d + 'T12:00:00').getDay()];
+    const date = new Date(d + 'T12:00:00');
+    const day = ['DO', 'LU', 'MA', 'MI', 'JU', 'VI', 'SA'][date.getDay()];
+    return `${day} ${String(date.getDate()).padStart(2, '0')}`;
+  }
+  matrixWidth() {
+    return 280 + this.days().length * 90;
+  }
+  syncFromTop() {
+    if (this.matrixScroll && this.matrixTopScroll) {
+      this.matrixScroll.nativeElement.scrollLeft = this.matrixTopScroll.nativeElement.scrollLeft;
+    }
+  }
+  syncFromMatrix() {
+    if (this.matrixScroll && this.matrixTopScroll) {
+      this.matrixTopScroll.nativeElement.scrollLeft = this.matrixScroll.nativeElement.scrollLeft;
+    }
   }
   cell(p: TrainingParticipant, t: TrainingTask, d: string) {
     const c = this.changes.get(`${p.id_capacitacion_participante}-${t.id_capacitacion_labor}-${d}`);
@@ -484,7 +603,6 @@ export class TrainingSessionDetailComponent {
     return this.tasks().reduce((s, t) => s + this.taskTotal(p, t), 0);
   }
   saveMatrix() {
-    this.saving.set(true);
     const calls = [...this.changes.values()].map((x) =>
       this.api.evaluation({
         id_capacitacion_participante: x.p.id_capacitacion_participante,
@@ -494,7 +612,13 @@ export class TrainingSessionDetailComponent {
         requiere_atencion: false,
       }),
     );
-    (calls.length ? forkJoin(calls) : forkJoin([])).subscribe({
+    if (!calls.length) {
+      this.message.set('No hay cambios pendientes por guardar.');
+      return;
+    }
+
+    this.saving.set(true);
+    forkJoin(calls).subscribe({
       next: () => {
         this.saving.set(false);
         this.changes.clear();

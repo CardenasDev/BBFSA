@@ -105,6 +105,17 @@ class ContractingController extends ApiController
         );
     }
 
+    /** Obtener el salario minimo parametrizado vigente para una fecha contractual. */
+    public function minimumSalary(Request $request): JsonResponse
+    {
+        $validated = $request->validate(['fecha' => ['required', 'date']]);
+
+        return $this->success(
+            $this->contracting->minimumSalary($validated['fecha']),
+            'Salario minimo vigente consultado correctamente',
+        );
+    }
+
     /**
      * Guardar ficha de ingreso
      *

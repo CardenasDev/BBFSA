@@ -2,19 +2,18 @@ import { Component, OnInit, inject, signal } from '@angular/core';
 import { NgClass } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { finalize, forkJoin } from 'rxjs';
-import { ApplicantDetail, ContractType, ConvertApplicantToEmployeeRequest, ConvertApplicantToEmployeeResponse } from '../../core/models/api.models';
+import { finalize } from 'rxjs';
+import { ApplicantDetail, ConvertApplicantToEmployeeRequest, ConvertApplicantToEmployeeResponse } from '../../core/models/api.models';
 import { ApplicantService } from '../../core/services/applicant.service';
-import { CatalogService } from '../../core/services/catalog.service';
 import { apiErrorMessage } from '../../shared/api-error';
-import { applicantName, applicantStatusClass, blankToNull, toNullableNumber } from './applicant-utils';
+import { applicantName, applicantStatusClass, blankToNull } from './applicant-utils';
 
 @Component({
   standalone: true,
   imports: [FormsModule, NgClass, RouterLink],
   template: `
     <div class="page-heading">
-      <div><p class="eyebrow">Aspirantes</p><h1>Convertir a empleado</h1><p class="muted">Crea el empleado y continua el flujo de contratacion.</p></div>
+      <div><p class="eyebrow">Aspirantes</p><h1>Convertir a empleado</h1><p class="muted">Crea el empleado. El contrato se asigna posteriormente desde su ficha de contratacion.</p></div>
       <a class="btn ghost" [routerLink]="['/admin/applicants', applicantId]">Volver</a>
     </div>
 
@@ -39,15 +38,8 @@ import { applicantName, applicantStatusClass, blankToNull, toNullableNumber } fr
           <div class="alert error">El aspirante debe estar aprobado para contratacion antes de convertirse en empleado.</div>
         } @else {
           <form class="form-grid" (ngSubmit)="convert()">
-            <label>Tipo de contrato
-              <select name="id_tipo_contrato" [(ngModel)]="form.id_tipo_contrato">
-                <option [ngValue]="null">{{ loadingCatalogs() ? 'Cargando...' : 'Seleccione...' }}</option>
-                @for (item of contractTypes(); track item.id_tipo_contrato) {
-                  <option [ngValue]="item.id_tipo_contrato">{{ item.nombre }}</option>
-                }
-              </select>
-            </label>
             <label>Fecha ingreso<input type="date" name="fecha_ingreso" [(ngModel)]="form.fecha_ingreso" /></label>
+            <div class="alert success">El tipo de contrato se seleccionara despues de crear el empleado, desde el modulo de contratacion.</div>
             <label class="form-wide">Observaciones<textarea rows="4" name="observaciones" [(ngModel)]="form.observaciones"></textarea></label>
             @if (formError()) { <div class="alert error form-wide">{{ formError() }}</div> }
             <div class="form-actions form-wide">
@@ -75,19 +67,15 @@ export class ApplicantConvertComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly service = inject(ApplicantService);
-  private readonly catalogs = inject(CatalogService);
   readonly applicant = signal<ApplicantDetail | null>(null);
-  readonly contractTypes = signal<ContractType[]>([]);
   readonly converted = signal<ConvertApplicantToEmployeeResponse | null>(null);
   readonly loading = signal(false);
-  readonly loadingCatalogs = signal(false);
   readonly saving = signal(false);
   readonly error = signal('');
   readonly formError = signal('');
   readonly success = signal('');
   applicantId = 0;
   form: ConvertApplicantToEmployeeRequest = {
-    id_tipo_contrato: null,
     fecha_ingreso: new Date().toISOString().slice(0, 10),
     observaciones: 'Conversion a empleado',
   };
@@ -99,19 +87,9 @@ export class ApplicantConvertComponent implements OnInit {
 
   load(): void {
     this.loading.set(true);
-    this.loadingCatalogs.set(true);
     this.error.set('');
-    forkJoin({
-      applicant: this.service.getApplicant(this.applicantId),
-      contractTypes: this.catalogs.getContractTypes(),
-    }).pipe(finalize(() => {
-      this.loading.set(false);
-      this.loadingCatalogs.set(false);
-    })).subscribe({
-      next: ({ applicant, contractTypes }) => {
-        this.applicant.set(applicant);
-        this.contractTypes.set(contractTypes);
-      },
+    this.service.getApplicant(this.applicantId).pipe(finalize(() => this.loading.set(false))).subscribe({
+      next: (applicant) => this.applicant.set(applicant),
       error: (error) => this.error.set(apiErrorMessage(error, 'No fue posible cargar el aspirante.')),
     });
   }
@@ -152,7 +130,6 @@ export class ApplicantConvertComponent implements OnInit {
 
   private payload(): ConvertApplicantToEmployeeRequest {
     return {
-      id_tipo_contrato: toNullableNumber(this.form.id_tipo_contrato),
       fecha_ingreso: blankToNull(this.form.fecha_ingreso),
       observaciones: blankToNull(this.form.observaciones),
     };

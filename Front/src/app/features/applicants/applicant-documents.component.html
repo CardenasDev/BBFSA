@@ -75,6 +75,11 @@
               } @else {
                 <span class="muted">Sin archivo</span>
               }
+              @if (auth.hasPermission('ASPIRANTES_DOCUMENTOS_SUBIR')) {
+                <button class="btn small secondary" type="button" (click)="openEdit(document)">
+                  {{ document.archivo_url || document.archivo_ruta ? 'Reemplazar' : 'Cargar archivo' }}
+                </button>
+              }
             </td>
           </tr>
         } @empty {
@@ -93,7 +98,7 @@
     <header class="drawer-header">
       <div>
         <p class="eyebrow">Documento aspirante</p>
-        <h2>Registrar documento</h2>
+        <h2>{{ editingDocumentId() ? 'Cargar o reemplazar documento' : 'Registrar documento' }}</h2>
       </div>
       <button class="icon-btn close-btn" type="button" (click)="closeCreate()" aria-label="Cerrar">x</button>
     </header>
@@ -165,7 +170,7 @@
 
       <div class="form-actions form-wide">
         <button class="btn secondary" type="button" (click)="closeCreate()" [disabled]="saving()">Cancelar</button>
-        <button class="btn primary" type="submit" [disabled]="saving()">{{ saving() ? 'Guardando...' : 'Registrar documento' }}</button>
+        <button class="btn primary" type="submit" [disabled]="saving()">{{ saving() ? 'Guardando...' : (editingDocumentId() ? 'Actualizar documento' : 'Registrar documento') }}</button>
       </div>
     </form>
   </aside>

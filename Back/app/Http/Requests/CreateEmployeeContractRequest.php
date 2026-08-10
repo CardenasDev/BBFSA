@@ -14,7 +14,7 @@ class CreateEmployeeContractRequest extends ApiRequest
             'fecha_inicio' => ['required', 'date'],
             'fecha_fin' => ['nullable', 'date', 'after_or_equal:fecha_inicio'],
             'duracion_meses' => ['nullable', 'integer', 'min:0'],
-            'salario_base' => ['nullable', 'numeric', 'min:0'],
+            'salario_base' => ['required', 'numeric', 'min:0'],
             'auxilio_transporte' => ['nullable', 'boolean'],
             'periodo_pago' => ['nullable', 'string', 'max:100'],
             'lugar_labores' => ['nullable', 'string', 'max:250'],

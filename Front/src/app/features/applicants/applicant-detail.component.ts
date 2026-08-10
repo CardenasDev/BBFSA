@@ -1,7 +1,7 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { NgClass } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { finalize } from 'rxjs';
 import { ApplicantDetail, ApplicantStatus } from '../../core/models/api.models';
 import { ApplicantService } from '../../core/services/applicant.service';
@@ -49,7 +49,7 @@ import {
           @if (auth.hasPermission('ASPIRANTES_VER')) { <a class="btn small ghost" [routerLink]="['/admin/applicants', current.id_aspirante, 'history']">Historial</a> }
           @if (auth.hasPermission('ASPIRANTES_CAMBIAR_ESTADO')) { <button class="btn small tertiary" type="button" (click)="openStatus()">Cambiar estado</button> }
           @if (auth.hasPermission('ASPIRANTES_APROBAR_CONTRATACION') && canApprove(current)) { <button class="btn small secondary" type="button" (click)="openApprove()">Aprobar contratacion</button> }
-          @if (auth.hasPermission('ASPIRANTES_CONVERTIR_EMPLEADO') && canConvert(current)) { <a class="btn small primary" [routerLink]="['/admin/applicants', current.id_aspirante, 'convert']">Convertir a empleado</a> }
+          @if (auth.hasPermission('ASPIRANTES_CONVERTIR_EMPLEADO') && canConvert(current)) { <button class="btn small primary" type="button" (click)="convert(current)" [disabled]="converting()">{{ converting() ? 'Convirtiendo...' : 'Convertir a empleado' }}</button> }
           @if (current.id_empleado_generado) { <a class="btn small ghost" [routerLink]="['/admin/contracting/employees', current.id_empleado_generado, 'profile']">Ir a contratacion</a> }
         </div>
 
@@ -145,6 +145,7 @@ import {
 export class ApplicantDetailComponent implements OnInit {
   readonly auth = inject(AuthService);
   private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
   private readonly service = inject(ApplicantService);
   readonly applicant = signal<ApplicantDetail | null>(null);
   readonly loading = signal(false);
@@ -154,6 +155,7 @@ export class ApplicantDetailComponent implements OnInit {
   readonly approveOpen = signal(false);
   readonly savingStatus = signal(false);
   readonly approving = signal(false);
+  readonly converting = signal(false);
   readonly statusError = signal('');
   readonly approveError = signal('');
   readonly manualStatuses = MANUAL_APPLICANT_STATUSES;
@@ -229,6 +231,24 @@ export class ApplicantDetailComponent implements OnInit {
         },
         error: (error) => this.approveError.set(apiErrorMessage(error, 'No fue posible aprobar para contratacion.')),
       });
+  }
+
+  convert(current: ApplicantDetail): void {
+    if (!confirm(`Se creara el empleado para ${this.name(current)}. El contrato y la fecha de ingreso se asignaran posteriormente. ¿Deseas continuar?`)) return;
+
+    this.converting.set(true);
+    this.error.set('');
+    this.success.set('');
+    this.service.convertToEmployee(this.applicantId, {
+      observaciones: 'Empleado generado desde aspirante; pendiente de asignacion contractual.',
+    }).pipe(finalize(() => this.converting.set(false))).subscribe({
+      next: (result) => {
+        void this.router.navigate(['/admin/contracting/employees', result.id_empleado, 'profile'], {
+          state: { successMessage: 'Aspirante convertido en empleado. Ahora puedes asignar su contrato y fecha de ingreso.' },
+        });
+      },
+      error: (error) => this.error.set(apiErrorMessage(error, 'No fue posible convertir el aspirante en empleado.')),
+    });
   }
 
   name(applicant: ApplicantDetail): string {

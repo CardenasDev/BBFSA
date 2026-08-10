@@ -26,7 +26,7 @@ describe('centralized application version', () => {
   });
 
   it('defines the initial version in one typed source', () => {
-    expect(APP_VERSION).toBe('0.0.1');
+    expect(APP_VERSION).toBe('0.0.2');
     expect(APP_VERSION_LABEL).toBe(`v${APP_VERSION}`);
   });
 

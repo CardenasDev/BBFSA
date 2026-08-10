@@ -119,7 +119,9 @@ class ApplicantService
 
     public function registerDocument(int $applicantId, array $data, int $userId, array $context): array
     {
-        $payload = $this->buildDocumentPayload($applicantId, $this->normalizeData($data));
+        $normalized = $this->normalizeData($data);
+        $normalized['id_tipo_documento_laboral'] = $current['ID_TIPO_DOCUMENTO_LABORAL'] ?? $current['id_tipo_documento_laboral'];
+        $payload = $this->buildDocumentPayload($applicantId, $normalized);
         $storedPath = $payload['archivo_ruta'] ?? null;
 
         try {
@@ -145,6 +147,38 @@ class ApplicantService
         ], $context);
 
         return $registered;
+    }
+
+    public function updateDocument(int $applicantId, int $documentId, array $data, int $userId, array $context): array
+    {
+        $current = $this->applicants->getDocument($applicantId, $documentId);
+        if (! $current) {
+            throw new ApiException('El documento del aspirante no existe.', 404);
+        }
+
+        $payload = $this->buildDocumentPayload($applicantId, $this->normalizeData($data));
+        $newPath = $payload['archivo_ruta'] ?? null;
+        $oldPath = $current['ARCHIVO_RUTA'] ?? $current['archivo_ruta'] ?? null;
+
+        try {
+            $updated = $this->applicants->updateDocument($applicantId, $documentId, $payload, $userId);
+        } catch (Throwable $exception) {
+            $this->deleteApplicantDocument($newPath);
+            throw $exception;
+        }
+
+        if (! $updated) {
+            $this->deleteApplicantDocument($newPath);
+            throw new ApiException('No fue posible actualizar el documento del aspirante.', 422);
+        }
+
+        if ($newPath && $newPath !== $oldPath) {
+            $this->deleteApplicantDocument($oldPath);
+        }
+
+        $this->audit->record($userId, 'ASPIRANTES', 'ASPIRANTE_DOCUMENTO_ACTUALIZAR', 'ASPIRANTE_DOCUMENTO', $documentId, $current, $updated, $context);
+
+        return $updated;
     }
 
     public function listStatusHistory(int $applicantId): array

@@ -22,11 +22,13 @@ import {
   DotationSize,
   DotationType,
   EmployeeDotationHistory,
+  EmployeeDotationArticleSize,
   EmployeeDotationSize,
   MyDotationDelivery,
   MyDotationSize,
   PrepareDotationDeliveryRequest,
   SaveMyDotationSizeRequest,
+  SaveEmployeeDotationArticleSizeRequest,
 } from '../models/api.models';
 
 export function resolveDotationEvidenceUrl(publicUrl?: string | null): string | null {
@@ -100,6 +102,25 @@ export class DotationService {
     return this.http
       .get<ApiResponse<EmployeeDotationSize[]>>(`${this.url}/employees/${employeeId}/sizes`)
       .pipe(map((response) => response.data ?? []));
+  }
+
+  getEmployeeArticleSizes(employeeId: number): Observable<EmployeeDotationArticleSize[]> {
+    return this.http
+      .get<ApiResponse<EmployeeDotationArticleSize[]>>(`${this.url}/employees/${employeeId}/article-sizes`)
+      .pipe(map((response) => response.data ?? []));
+  }
+
+  saveEmployeeArticleSize(
+    employeeId: number,
+    articleId: number,
+    payload: SaveEmployeeDotationArticleSizeRequest,
+  ): Observable<EmployeeDotationArticleSize> {
+    return this.http
+      .put<ApiResponse<EmployeeDotationArticleSize>>(
+        `${this.url}/employees/${employeeId}/article-sizes/${articleId}`,
+        payload,
+      )
+      .pipe(map((response) => response.data));
   }
 
   getEmployeeHistory(employeeId: number): Observable<EmployeeDotationHistory[]> {

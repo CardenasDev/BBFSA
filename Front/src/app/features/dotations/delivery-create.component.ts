@@ -10,6 +10,7 @@ import {
   DotationDeliveryType,
   DotationEmployeeSummary,
   DotationType,
+  EmployeeDotationArticleSize,
   EmployeeDotationSize,
 } from '../../core/models/api.models';
 import { DotationService } from '../../core/services/dotation.service';
@@ -226,7 +227,7 @@ interface DeliveryDetailDraft {
           <div>
             <h2>Articulos</h2>
             <p class="muted">
-              Selecciona cada articulo individual. La familia y la talla se aplican automaticamente.
+              Se muestran los articulos con talla especifica registrada para el empleado y los elementos que no requieren talla.
             </p>
           </div>
           <button class="btn secondary" type="button" (click)="addDetail()">
@@ -260,7 +261,9 @@ interface DeliveryDetailDraft {
                       [name]="'articulo_' + detail.clientId"
                       (ngModelChange)="updateArticle(detail.clientId, $event)"
                     >
-                      <option [ngValue]="null">Selecciona un articulo</option>
+                      <option [ngValue]="null">
+                        {{ filteredArticles(detail).length ? 'Selecciona un articulo' : 'No hay articulos disponibles' }}
+                      </option>
                       @for (
                         article of filteredArticles(detail);
                         track article.id_dotacion_articulo
@@ -352,6 +355,7 @@ export class DotationDeliveryCreateComponent implements OnInit {
   readonly articles = signal<DotationArticle[]>([]);
   readonly combinations = signal<DotationCombination[]>([]);
   readonly employeeSizes = signal<EmployeeDotationSize[]>([]);
+  readonly employeeArticleSizes = signal<EmployeeDotationArticleSize[]>([]);
   readonly details = signal<DeliveryDetailDraft[]>([]);
   readonly loading = signal(false);
   readonly employeeSizesLoading = signal(false);
@@ -529,9 +533,22 @@ export class DotationDeliveryCreateComponent implements OnInit {
   }
 
   filteredArticles(detail: DeliveryDetailDraft): DotationArticle[] {
-    if (!detail.id_tipo_dotacion || detail.id_dotacion_articulo) return this.articles();
-    return this.articles().filter(
+    if (!this.idEmpleado || this.employeeSizesLoading()) return [];
+
+    const eligible = this.articles().filter((article) => this.employeeCanUseArticle(article));
+    if (!detail.id_tipo_dotacion || detail.id_dotacion_articulo) return eligible;
+    return eligible.filter(
       (article) => article.id_tipo_dotacion === detail.id_tipo_dotacion,
+    );
+  }
+
+  private employeeCanUseArticle(article: DotationArticle): boolean {
+    if (!article.requiere_talla) return true;
+
+    return this.employeeArticleSizes().some(
+      (size) =>
+        size.id_dotacion_articulo === article.id_dotacion_articulo &&
+        Boolean(size.id_talla_dotacion),
     );
   }
 
@@ -643,13 +660,16 @@ export class DotationDeliveryCreateComponent implements OnInit {
 
   private loadEmployeeSizes(employeeId: number): void {
     this.employeeSizesLoading.set(true);
-    this.service
-      .getEmployeeSizes(employeeId)
+    forkJoin({
+      family: this.service.getEmployeeSizes(employeeId),
+      article: this.service.getEmployeeArticleSizes(employeeId),
+    })
       .pipe(finalize(() => this.employeeSizesLoading.set(false)))
       .subscribe({
-        next: (sizes) => {
+        next: ({ family, article }) => {
           if (employeeId !== this.idEmpleado) return;
-          this.employeeSizes.set(sizes);
+          this.employeeSizes.set(family);
+          this.employeeArticleSizes.set(article);
           this.details.update((details) => details.map((detail) => this.withEmployeeSize(detail)));
         },
         error: (error) =>
@@ -661,7 +681,10 @@ export class DotationDeliveryCreateComponent implements OnInit {
     if (!detail.id_tipo_dotacion || !detail.requiere_talla) {
       return { ...detail, id_talla_dotacion: null, talla: null };
     }
-    const registered = this.employeeSizes().find(
+    const exact = this.employeeArticleSizes().find(
+      (item) => item.id_dotacion_articulo === detail.id_dotacion_articulo && item.id_talla_dotacion,
+    );
+    const registered = exact ?? this.employeeSizes().find(
       (item) => item.id_tipo_dotacion === detail.id_tipo_dotacion,
     );
     return {

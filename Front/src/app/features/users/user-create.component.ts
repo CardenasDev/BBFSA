@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { finalize } from 'rxjs';
@@ -13,11 +13,25 @@ import { apiErrorMessage } from '../../shared/api-error';
     @if (error()) { <div class="alert error form-wide">{{ error() }}</div> }
     <label>Tipo de usuario<select formControlName="tipo_usuario"><option>EMPLEADO</option><option>PERSONAL_AUTORIZADO</option><option>ADMIN</option></select></label>
     <label>Tipo de autenticacion<select formControlName="tipo_autenticacion"><option>LOCAL</option><option>DOMINIO_EMPRESA</option></select></label>
-    <div class="form-wide employee-lookup">
-      <label>Documento del empleado @if (form.controls.tipo_usuario.value !== 'EMPLEADO') { <span class="optional">Opcional</span> }<input formControlName="numero_documento_empleado" /></label>
-      <button class="btn secondary" type="button" (click)="searchEmployee()" [disabled]="employeeLoading()">{{ employeeLoading() ? 'Buscando...' : 'Buscar empleado' }}</button>
+    <div class="form-wide employee-combobox">
+      <label>Empleado @if (form.controls.tipo_usuario.value !== 'EMPLEADO') { <span class="optional">Opcional</span> }
+        <input type="search" [value]="employeeSearch()" (input)="updateEmployeeSearch($event)" (focus)="employeeDropdownOpen.set(true)"
+          placeholder="Busca por nombre o documento" autocomplete="off" [disabled]="employeeLoading()" />
+      </label>
+      @if (employeeDropdownOpen() && !employeeLoading()) {
+        <div class="employee-options" role="listbox" aria-label="Empleados disponibles">
+          @for (item of filteredEmployees(); track item.id_empleado) {
+            <button type="button" class="employee-option" role="option" [attr.aria-selected]="employee()?.id_empleado === item.id_empleado"
+              (click)="selectEmployee(item)">
+              <strong>{{ employeeName(item) }}</strong><span>{{ item.numero_documento }}</span>
+            </button>
+          } @empty {
+            <p class="employee-option-empty">No se encontraron empleados.</p>
+          }
+        </div>
+      }
     </div>
-    @if (invalid('numero_documento_empleado')) { <small class="field-error form-wide">El documento del empleado es obligatorio.</small> }
+    @if (invalid('numero_documento_empleado')) { <small class="field-error form-wide">Selecciona un empleado.</small> }
     @if (employeeError()) { <div class="alert error form-wide">{{ employeeError() }}</div> }
     @if (employee(); as currentEmployee) {
       <article class="employee-summary form-wide">
@@ -47,6 +61,20 @@ export class UserCreateComponent {
   readonly error = signal('');
   readonly employeeError = signal('');
   readonly employee = signal<Employee | null>(null);
+  readonly employees = signal<Employee[]>([]);
+  readonly employeeSearch = signal('');
+  readonly employeeDropdownOpen = signal(false);
+  readonly filteredEmployees = computed(() => {
+    const term = this.normalize(this.employeeSearch());
+    const sorted = [...this.employees()].sort((a, b) => this.employeeName(a).localeCompare(
+      this.employeeName(b), 'es', { sensitivity: 'base' },
+    ));
+    if (!term) return sorted;
+
+    return sorted.filter((item) => this.normalize(
+      `${this.employeeName(item)} ${item.numero_documento}`,
+    ).includes(term));
+  });
   readonly form = this.fb.nonNullable.group({
     numero_documento_empleado: [''],
     nombre_usuario: ['', Validators.required],
@@ -61,10 +89,7 @@ export class UserCreateComponent {
   constructor() {
     this.applyDocumentValidator();
     this.form.controls.tipo_usuario.valueChanges.subscribe(() => this.applyDocumentValidator());
-    this.form.controls.numero_documento_empleado.valueChanges.subscribe(() => {
-      this.employee.set(null);
-      this.employeeError.set('');
-    });
+    this.loadEmployees();
   }
 
   invalid(name: 'numero_documento_empleado' | 'nombre_usuario' | 'correo' | 'password'): boolean {
@@ -72,21 +97,26 @@ export class UserCreateComponent {
     return control.touched && control.invalid;
   }
 
-  searchEmployee(): void {
-    const document = this.form.controls.numero_documento_empleado.value.trim();
+  updateEmployeeSearch(event: Event): void {
+    this.employeeSearch.set((event.target as HTMLInputElement).value);
+    this.employeeDropdownOpen.set(true);
     this.employee.set(null);
+    this.form.controls.numero_documento_empleado.setValue('');
     this.employeeError.set('');
-    if (!document) {
-      this.form.controls.numero_documento_empleado.markAsTouched();
-      this.employeeError.set('Ingresa el documento del empleado.');
-      return;
-    }
+  }
 
-    this.employeeLoading.set(true);
-    this.employeeService.getEmployeeByDocument(document).pipe(finalize(() => this.employeeLoading.set(false))).subscribe({
-      next: (employee) => this.employee.set(employee),
-      error: (error) => this.employeeError.set(apiErrorMessage(error, 'No se encontro un empleado con ese documento.')),
-    });
+  selectEmployee(selected: Employee): void {
+    this.employee.set(selected);
+    this.employeeError.set('');
+    this.employeeSearch.set(`${this.employeeName(selected)} — ${selected.numero_documento}`);
+    this.employeeDropdownOpen.set(false);
+    this.form.controls.numero_documento_empleado.setValue(selected.numero_documento);
+    this.form.controls.correo.setValue(selected.correo?.trim() ?? '');
+    this.form.controls.numero_documento_empleado.markAsTouched();
+  }
+
+  employeeName(employee: Employee): string {
+    return employee.nombre_completo || `${employee.nombres} ${employee.apellidos}`.trim();
   }
 
   submit(): void {
@@ -118,5 +148,20 @@ export class UserCreateComponent {
     const control = this.form.controls.numero_documento_empleado;
     control.setValidators(this.form.controls.tipo_usuario.value === 'EMPLEADO' ? [Validators.required] : []);
     control.updateValueAndValidity({ emitEvent: false });
+  }
+
+  private loadEmployees(): void {
+    this.employeeLoading.set(true);
+    this.employeeError.set('');
+    this.employeeService.listEmployees({ estado_empleado: 'ACTIVO' })
+      .pipe(finalize(() => this.employeeLoading.set(false)))
+      .subscribe({
+        next: (employees) => this.employees.set(employees),
+        error: (error) => this.employeeError.set(apiErrorMessage(error, 'No fue posible cargar los empleados.')),
+      });
+  }
+
+  private normalize(value: string): string {
+    return value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase();
   }
 }

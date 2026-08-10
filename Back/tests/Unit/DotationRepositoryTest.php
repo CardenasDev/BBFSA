@@ -74,17 +74,17 @@ class DotationRepositoryTest extends TestCase
     {
         DB::shouldReceive('select')
             ->once()
-            ->with('CALL SP_BBF_DOTACION_MI_TALLA_GUARDAR(?,?,?,?)', [
+            ->with('CALL SP_BBF_DOTACION_MI_TALLA_ARTICULO_GUARDAR(?,?,?,?)', [
                 99,
                 1,
                 3,
                 'Talla confirmada',
             ])
-            ->andReturn([(object) ['ID_EMPLEADO_DOTACION_TALLA' => 10]]);
+            ->andReturn([(object) ['ID_EMPLEADO_DOTACION_ARTICULO_TALLA' => 10]]);
 
         $row = app(DotationRepository::class)->saveMySize(99, 1, 3, 'Talla confirmada');
 
-        $this->assertSame(10, $row['id_empleado_dotacion_talla']);
+        $this->assertSame(10, $row['id_empleado_dotacion_articulo_talla']);
     }
 
     public function test_my_deliveries_calls_stored_procedure_with_authenticated_user(): void

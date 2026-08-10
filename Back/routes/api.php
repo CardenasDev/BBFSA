@@ -58,7 +58,7 @@ Route::middleware('auth.jwt')->group(function (): void {
         Route::get('{applicantId}/status-history', [ApplicantController::class, 'statusHistory'])->whereNumber('applicantId')->middleware('permission:ASPIRANTES_VER');
         Route::post('{applicantId}/convert-to-employee', [ApplicantController::class, 'convertToEmployee'])->whereNumber('applicantId')->middleware('permission:ASPIRANTES_CONVERTIR_EMPLEADO');
     });
-    Route::get('employees', [EmployeeController::class, 'index'])->middleware('permission:EMPLEADOS_LISTAR,EMPLEADOS_VER');
+    Route::get('employees', [EmployeeController::class, 'index'])->middleware('permission:EMPLEADOS_LISTAR,EMPLEADOS_VER,USUARIOS_CREAR,USUARIOS_EDITAR');
     Route::get('employees/export', [EmployeeController::class, 'export'])->middleware('permission:EMPLEADOS_LISTAR,EMPLEADOS_VER');
     Route::post('employees', [EmployeeController::class, 'store'])->middleware('permission:EMPLEADOS_CREAR');
     Route::get('employees/by-document/{document}', [EmployeeController::class, 'byDocument'])->middleware('permission:EMPLEADOS_VER,USUARIOS_CREAR,USUARIOS_EDITAR');
@@ -120,6 +120,8 @@ Route::middleware('auth.jwt')->group(function (): void {
         Route::get('purchase-quotation/export', [DotationController::class, 'exportPurchaseQuotation'])->middleware('permission:DOTACIONES_ADMIN_VER');
         Route::get('employees/{employeeId}/history', [DotationController::class, 'employeeHistory'])->whereNumber('employeeId')->middleware('permission:DOTACIONES_EMPLEADO_VER');
         Route::get('employees/{employeeId}/sizes', [DotationController::class, 'employeeSizes'])->whereNumber('employeeId')->middleware('permission:DOTACIONES_EMPLEADO_VER');
+        Route::get('employees/{employeeId}/article-sizes', [DotationController::class, 'employeeArticleSizes'])->whereNumber('employeeId')->middleware('permission:DOTACIONES_EMPLEADO_VER');
+        Route::put('employees/{employeeId}/article-sizes/{articleId}', [DotationController::class, 'saveEmployeeArticleSize'])->whereNumber(['employeeId', 'articleId'])->middleware('permission:DOTACIONES_ADMIN_VER');
         Route::post('deliveries', [DotationController::class, 'createDelivery'])->middleware('permission:DOTACIONES_ENTREGAS_CREAR');
         Route::post('deliveries/{deliveryId}/prepare', [DotationController::class, 'prepareDelivery'])->whereNumber('deliveryId')->middleware('permission:DOTACIONES_ENTREGAS_CREAR');
         Route::get('deliveries', [DotationController::class, 'deliveries'])->middleware('permission:DOTACIONES_ENTREGAS_VER');

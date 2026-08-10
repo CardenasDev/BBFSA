@@ -33,15 +33,18 @@ class DotationQuotationExportTest extends TestCase
             [$sheetName, $rows] = $this->readWorkbook($export['path']);
             $this->assertSame(DotationService::QUOTATION_REPORT_SHEET, $sheetName);
             $this->assertSame(array_keys(DotationService::QUOTATION_REPORT_COLUMNS), $rows[0]);
-            $this->assertSame('001234', $rows[1][0]);
-            $this->assertInstanceOf(DateTimeInterface::class, $rows[1][6]);
-            $this->assertSame(2, $rows[1][8]);
-            $this->assertSame('0000456', $rows[2][0]);
-            $this->assertSame('Sin talla registrada', $rows[2][5]);
-            $this->assertSame('Sin entrega previa', $rows[2][6]);
-            $this->assertSame('', $rows[2][7]);
-            $this->assertSame('', $rows[2][8]);
-            $this->assertSame('', $rows[2][9]);
+            $columns = array_flip(array_values(DotationService::QUOTATION_REPORT_COLUMNS));
+            $this->assertSame('001234', $rows[1][$columns['numero_documento']]);
+            $this->assertSame('Camisa jean bordada', $rows[1][$columns['articulo']]);
+            $this->assertSame('Especifica', $rows[1][$columns['origen_talla']]);
+            $this->assertInstanceOf(DateTimeInterface::class, $rows[1][$columns['fecha_ultima_entrega']]);
+            $this->assertSame(2, $rows[1][$columns['cantidad_ultima_entrega']]);
+            $this->assertSame('0000456', $rows[2][$columns['numero_documento']]);
+            $this->assertSame('Sin talla registrada', $rows[2][$columns['talla_actual']]);
+            $this->assertSame('Sin entrega previa', $rows[2][$columns['fecha_ultima_entrega']]);
+            $this->assertSame('', $rows[2][$columns['talla_ultima_entrega']]);
+            $this->assertSame('', $rows[2][$columns['cantidad_ultima_entrega']]);
+            $this->assertSame('', $rows[2][$columns['tipo_ultima_entrega']]);
         } finally {
             @unlink($export['path']);
         }
@@ -100,8 +103,10 @@ class DotationQuotationExportTest extends TestCase
             'nombre_completo' => 'Ana Pérez',
             'area' => 'Cultivo',
             'cargo' => 'Operaria',
+            'articulo' => 'Camisa jean bordada',
             'tipo_dotacion' => 'Camisa',
             'talla_actual' => 'M',
+            'origen_talla' => 'ESPECIFICA',
             'fecha_ultima_entrega' => '2026-07-15',
             'talla_ultima_entrega' => 'S',
             'cantidad_ultima_entrega' => '2',

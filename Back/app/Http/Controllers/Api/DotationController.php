@@ -8,6 +8,7 @@ use App\Http\Requests\DeleteDotationDeliveryRequest;
 use App\Http\Requests\ExportDotationQuotationRequest;
 use App\Http\Requests\ListDotationDeliveriesRequest;
 use App\Http\Requests\ListDotationEmployeesRequest;
+use App\Http\Requests\SaveEmployeeDotationArticleSizeRequest;
 use App\Http\Requests\PrepareDotationDeliveryRequest;
 use App\Http\Requests\SaveMyDotationSizeRequest;
 use App\Services\DotationService;
@@ -197,6 +198,29 @@ class DotationController extends ApiController
         return $this->success(
             $this->dotations->employeeSizes($employeeId),
             'Tallas del empleado consultadas correctamente',
+        );
+    }
+
+    public function employeeArticleSizes(int $employeeId): JsonResponse
+    {
+        return $this->success(
+            $this->dotations->employeeArticleSizes($employeeId),
+            'Tallas por articulo del empleado consultadas correctamente',
+        );
+    }
+
+    public function saveEmployeeArticleSize(SaveEmployeeDotationArticleSizeRequest $request, int $employeeId, int $articleId): JsonResponse
+    {
+        return $this->success(
+            $this->dotations->saveEmployeeArticleSize(
+                $employeeId,
+                $articleId,
+                $request->integer('id_talla_dotacion'),
+                $request->validated('observaciones'),
+                $this->actorId($request),
+                $this->context($request),
+            ),
+            'Talla del articulo guardada correctamente',
         );
     }
 

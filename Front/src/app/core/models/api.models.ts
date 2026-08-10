@@ -353,23 +353,32 @@ export interface DotationCombinationDetail {
 }
 
 export interface MyDotationSize {
+  id_dotacion_articulo: number;
+  codigo_articulo: string;
+  articulo: string;
+  articulo_descripcion?: string | null;
+  genero: string;
+  unidad_medida: string;
   id_tipo_dotacion: number;
   tipo_dotacion: string;
   tipo_dotacion_descripcion?: string | null;
   requiere_talla: boolean;
-  id_empleado_dotacion_talla?: number | null;
+  id_empleado_dotacion_articulo_talla?: number | null;
+  id_talla_familia_legacy?: number | null;
   id_empleado?: number | null;
   id_talla_dotacion?: number | null;
   talla?: string | null;
   talla_descripcion?: string | null;
+  origen_talla: 'ESPECIFICA' | 'HEREDADA_FAMILIA' | 'SIN_REGISTRAR';
+  requiere_confirmacion: boolean;
   observaciones?: string | null;
   created_at?: string | null;
   updated_at?: string | null;
 }
 
 export interface SaveMyDotationSizeRequest {
-  id_tipo_dotacion: number;
-  id_talla_dotacion?: number | null;
+  id_dotacion_articulo: number;
+  id_talla_dotacion: number;
   observaciones?: string | null;
 }
 
@@ -402,6 +411,31 @@ export interface EmployeeDotationSize {
   observaciones?: string | null;
   created_at?: string | null;
   updated_at?: string | null;
+}
+
+export interface EmployeeDotationArticleSize {
+  id_empleado: number;
+  numero_documento: string;
+  nombre_completo: string;
+  id_dotacion_articulo: number;
+  codigo_articulo: string;
+  articulo: string;
+  genero?: string | null;
+  unidad_medida?: string | null;
+  id_tipo_dotacion: number;
+  tipo_dotacion: string;
+  requiere_talla: boolean;
+  id_empleado_dotacion_articulo_talla?: number | null;
+  id_talla_dotacion?: number | null;
+  talla?: string | null;
+  observaciones?: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+}
+
+export interface SaveEmployeeDotationArticleSizeRequest {
+  id_talla_dotacion: number;
+  observaciones?: string | null;
 }
 
 export interface EmployeeDotationHistory extends DotationEvidence {

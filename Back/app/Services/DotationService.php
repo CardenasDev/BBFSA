@@ -32,8 +32,10 @@ class DotationService
         'Empleado' => 'nombre_completo',
         'Área' => 'area',
         'Cargo' => 'cargo',
-        'Prenda' => 'articulo',
+        'Articulo' => 'articulo',
+        'Familia' => 'tipo_dotacion',
         'Talla actual' => 'talla_actual',
+        'Origen talla' => 'origen_talla',
         'Fecha última entrega' => 'fecha_ultima_entrega',
         'Talla última entrega' => 'talla_ultima_entrega',
         'Cantidad última entrega' => 'cantidad_ultima_entrega',
@@ -93,8 +95,8 @@ class DotationService
     {
         $saved = $this->dotations->saveMySize(
             $userId,
-            (int) $data['id_tipo_dotacion'],
-            $this->nullableInt($data, 'id_talla_dotacion'),
+            (int) $data['id_dotacion_articulo'],
+            (int) $data['id_talla_dotacion'],
             $data['observaciones'] ?? null,
         );
 
@@ -103,7 +105,7 @@ class DotationService
         }
 
         $mapped = $this->mapSavedMySize($saved);
-        $this->audit->record($userId, 'DOTACIONES', 'DOTACIONES_MI_TALLA_GUARDAR', 'DOTACION_TALLA', $mapped['id_empleado_dotacion_talla'], null, $mapped, $context);
+        $this->audit->record($userId, 'DOTACIONES', 'DOTACIONES_MI_TALLA_ARTICULO_GUARDAR', 'EMPLEADO_DOTACION_ARTICULO_TALLA', $mapped['id_empleado_dotacion_articulo_talla'], null, $mapped, $context);
 
         return $mapped;
     }
@@ -167,6 +169,27 @@ class DotationService
     public function employeeSizes(int $employeeId): array
     {
         return array_map(fn (array $row): array => $this->mapEmployeeSize($row), $this->dotations->employeeSizes($employeeId));
+    }
+
+    public function employeeArticleSizes(int $employeeId): array
+    {
+        return array_map(
+            fn (array $row): array => $this->mapEmployeeArticleSize($row),
+            $this->dotations->employeeArticleSizes($employeeId),
+        );
+    }
+
+    public function saveEmployeeArticleSize(int $employeeId, int $articleId, int $sizeId, ?string $observations, int $actorId, array $context): array
+    {
+        $this->dotations->saveEmployeeArticleSize($employeeId, $articleId, $sizeId, $this->blankToNull($observations), $actorId);
+        $saved = collect($this->employeeArticleSizes($employeeId))
+            ->firstWhere('id_dotacion_articulo', $articleId);
+        if (! is_array($saved) || $saved['id_talla_dotacion'] === null) {
+            throw new ApiException('No fue posible guardar la talla del articulo.', 422);
+        }
+        $this->audit->record($actorId, 'DOTACIONES', 'DOTACION_ARTICULO_TALLA_GUARDAR', 'EMPLEADO_DOTACION_ARTICULO_TALLA', $saved['id_empleado_dotacion_articulo_talla'], null, $saved, $context);
+
+        return $saved;
     }
 
     public function employeeHistory(int $employeeId): array
@@ -390,6 +413,12 @@ class DotationService
         foreach ($employeeSizes as $employeeSize) {
             $employeeSizesByType[(int) $employeeSize['id_tipo_dotacion']] = $employeeSize;
         }
+        $employeeSizesByArticle = [];
+        foreach ($this->dotations->employeeArticleSizes($employeeId) as $employeeSize) {
+            if (($employeeSize['id_talla_dotacion'] ?? null) !== null) {
+                $employeeSizesByArticle[(int) $employeeSize['id_dotacion_articulo']] = $employeeSize;
+            }
+        }
 
         if ($deliveryType === 'ORDINARIA' && $combinationId !== null) {
             $combination = $this->dotations->combinationDetails((int) $combinationId);
@@ -440,7 +469,8 @@ class DotationService
             $requiresSize = (bool) ($type['requiere_talla'] ?? false);
 
             if ($requiresSize) {
-                $registeredSizeId = $this->nullableInt($employeeSizesByType[$dotationTypeId] ?? [], 'id_talla_dotacion');
+                $registeredSizeId = $this->nullableInt($employeeSizesByArticle[$dotationArticleId] ?? [], 'id_talla_dotacion')
+                    ?? $this->nullableInt($employeeSizesByType[$dotationTypeId] ?? [], 'id_talla_dotacion');
                 if ($registeredSizeId === null) {
                     throw new ApiException("El empleado no tiene registrada talla para {$typeName}.", 422);
                 }
@@ -677,6 +707,14 @@ class DotationService
             return Cell::fromValue($value === null || $value === '' ? 'Sin talla registrada' : $value);
         }
 
+        if ($alias === 'origen_talla') {
+            return Cell::fromValue(match (strtoupper((string) $value)) {
+                'ESPECIFICA' => 'Especifica',
+                'HEREDADA_FAMILIA' => 'Heredada de familia',
+                default => 'Sin registrar',
+            });
+        }
+
         if ($alias === 'fecha_ultima_entrega') {
             return $value === null || $value === ''
                 ? Cell::fromValue('Sin entrega previa')
@@ -785,15 +823,24 @@ class DotationService
     private function mapMySize(array $row): array
     {
         return [
+            'id_dotacion_articulo' => (int) ($row['id_dotacion_articulo'] ?? 0),
+            'codigo_articulo' => (string) ($row['codigo_articulo'] ?? ''),
+            'articulo' => (string) ($row['articulo'] ?? ''),
+            'articulo_descripcion' => $row['articulo_descripcion'] ?? null,
+            'genero' => (string) ($row['genero'] ?? ''),
+            'unidad_medida' => (string) ($row['unidad_medida'] ?? ''),
             'id_tipo_dotacion' => (int) ($row['id_tipo_dotacion'] ?? 0),
             'tipo_dotacion' => (string) ($row['tipo_dotacion'] ?? ''),
             'tipo_dotacion_descripcion' => $row['tipo_dotacion_descripcion'] ?? null,
             'requiere_talla' => (bool) ($row['requiere_talla'] ?? false),
-            'id_empleado_dotacion_talla' => $this->nullableInt($row, 'id_empleado_dotacion_talla'),
+            'id_empleado_dotacion_articulo_talla' => $this->nullableInt($row, 'id_empleado_dotacion_articulo_talla'),
+            'id_talla_familia_legacy' => $this->nullableInt($row, 'id_talla_familia_legacy'),
             'id_empleado' => $this->nullableInt($row, 'id_empleado'),
             'id_talla_dotacion' => $this->nullableInt($row, 'id_talla_dotacion'),
             'talla' => $row['talla'] ?? null,
             'talla_descripcion' => $row['talla_descripcion'] ?? null,
+            'origen_talla' => (string) ($row['origen_talla'] ?? 'SIN_REGISTRAR'),
+            'requiere_confirmacion' => (bool) ($row['requiere_confirmacion'] ?? false),
             'observaciones' => $row['observaciones'] ?? null,
             'created_at' => $row['created_at'] ?? null,
             'updated_at' => $row['updated_at'] ?? null,
@@ -803,12 +850,20 @@ class DotationService
     private function mapSavedMySize(array $row): array
     {
         return [
-            'id_empleado_dotacion_talla' => $this->nullableInt($row, 'id_empleado_dotacion_talla'),
+            'id_empleado_dotacion_articulo_talla' => $this->nullableInt($row, 'id_empleado_dotacion_articulo_talla'),
             'id_empleado' => $this->nullableInt($row, 'id_empleado'),
+            'id_dotacion_articulo' => (int) ($row['id_dotacion_articulo'] ?? 0),
+            'codigo_articulo' => (string) ($row['codigo_articulo'] ?? ''),
+            'articulo' => (string) ($row['articulo'] ?? ''),
+            'genero' => (string) ($row['genero'] ?? ''),
+            'unidad_medida' => (string) ($row['unidad_medida'] ?? ''),
             'id_tipo_dotacion' => (int) ($row['id_tipo_dotacion'] ?? 0),
             'tipo_dotacion' => (string) ($row['tipo_dotacion'] ?? ''),
             'id_talla_dotacion' => $this->nullableInt($row, 'id_talla_dotacion'),
             'talla' => $row['talla'] ?? null,
+            'talla_descripcion' => $row['talla_descripcion'] ?? null,
+            'origen_talla' => (string) ($row['origen_talla'] ?? 'ESPECIFICA'),
+            'requiere_confirmacion' => (bool) ($row['requiere_confirmacion'] ?? false),
             'observaciones' => $row['observaciones'] ?? null,
         ];
     }
@@ -842,6 +897,29 @@ class DotationService
             'id_tipo_dotacion' => (int) ($row['id_tipo_dotacion'] ?? 0),
             'tipo_dotacion' => (string) ($row['tipo_dotacion'] ?? ''),
             'id_empleado_dotacion_talla' => $this->nullableInt($row, 'id_empleado_dotacion_talla'),
+            'id_talla_dotacion' => $this->nullableInt($row, 'id_talla_dotacion'),
+            'talla' => $row['talla'] ?? null,
+            'observaciones' => $row['observaciones'] ?? null,
+            'created_at' => $row['created_at'] ?? null,
+            'updated_at' => $row['updated_at'] ?? null,
+        ];
+    }
+
+    private function mapEmployeeArticleSize(array $row): array
+    {
+        return [
+            'id_empleado' => (int) ($row['id_empleado'] ?? 0),
+            'numero_documento' => (string) ($row['numero_documento'] ?? ''),
+            'nombre_completo' => (string) ($row['nombre_completo'] ?? ''),
+            'id_dotacion_articulo' => (int) ($row['id_dotacion_articulo'] ?? 0),
+            'codigo_articulo' => (string) ($row['codigo_articulo'] ?? ''),
+            'articulo' => (string) ($row['articulo'] ?? ''),
+            'genero' => $row['genero'] ?? null,
+            'unidad_medida' => $row['unidad_medida'] ?? null,
+            'id_tipo_dotacion' => (int) ($row['id_tipo_dotacion'] ?? 0),
+            'tipo_dotacion' => (string) ($row['tipo_dotacion'] ?? ''),
+            'requiere_talla' => (bool) ($row['requiere_talla'] ?? false),
+            'id_empleado_dotacion_articulo_talla' => $this->nullableInt($row, 'id_empleado_dotacion_articulo_talla'),
             'id_talla_dotacion' => $this->nullableInt($row, 'id_talla_dotacion'),
             'talla' => $row['talla'] ?? null,
             'observaciones' => $row['observaciones'] ?? null,

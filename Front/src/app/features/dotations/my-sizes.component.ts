@@ -11,40 +11,86 @@ import { apiErrorMessage } from '../../shared/api-error';
   imports: [FormsModule],
   template: `
     <div class="page-heading">
-      <div><p class="eyebrow">Dotaciones</p><h1>Mis tallas</h1><p class="muted">Consulta y actualiza tus tallas de dotacion.</p></div>
+      <div>
+        <p class="eyebrow">Dotaciones</p>
+        <h1>Mis tallas</h1>
+        <p class="muted">Consulta y actualiza la talla que utilizas para cada articulo.</p>
+      </div>
     </div>
 
     <section class="panel">
-      @if (!canEdit()) { <div class="alert error">Tienes permiso de consulta, pero no de edicion de tallas.</div> }
+      @if (!canEdit()) {
+        <div class="alert error">Tienes permiso de consulta, pero no de edicion de tallas.</div>
+      }
       @if (success()) { <div class="alert success" role="status">{{ success() }}</div> }
-      @if (error()) { <div class="alert error" role="alert">{{ error() }} <button class="btn small ghost" type="button" (click)="load()" [disabled]="loading()">Reintentar</button></div> }
+      @if (error()) {
+        <div class="alert error" role="alert">
+          {{ error() }}
+          <button class="btn small ghost" type="button" (click)="load()" [disabled]="loading()">Reintentar</button>
+        </div>
+      }
 
-      <div class="dotation-grid">
-        @for (item of mySizes(); track item.id_tipo_dotacion) {
-          <article class="drawer-section dotation-card" [class.missing-required]="isMissingRequired(item)">
-            <div class="section-title">
-              <div>
-                <h3>{{ item.tipo_dotacion }}</h3>
-                <p class="muted">{{ item.tipo_dotacion_descripcion || 'Sin descripcion.' }}</p>
-              </div>
-              @if (item.requiere_talla) { <span class="badge">Requiere talla</span> }
-            </div>
-            <label>Talla
-              <select [disabled]="!canEdit() || saving()" [ngModel]="selectedSize(item)" (ngModelChange)="setSelectedSize(item.id_tipo_dotacion, $event)">
-                <option [ngValue]="null">{{ item.requiere_talla ? 'Selecciona una talla' : 'Sin talla' }}</option>
-                @for (size of sizesByType(item.id_tipo_dotacion); track size.id_talla_dotacion) {
-                  <option [ngValue]="size.id_talla_dotacion">{{ size.talla }} @if (size.descripcion) { - {{ size.descripcion }} }</option>
-                }
-              </select>
-              @if (isMissingRequired(item)) { <small class="field-error">Talla requerida.</small> }
-            </label>
-            <label>Observaciones
-              <textarea rows="3" maxlength="250" [disabled]="!canEdit() || saving()" [ngModel]="observation(item)" (ngModelChange)="setObservation(item.id_tipo_dotacion, $event)"></textarea>
-            </label>
-          </article>
-        } @empty {
-          <div class="empty tall">{{ loading() ? 'Cargando tallas...' : 'No hay tallas de dotacion disponibles para tu usuario.' }}</div>
-        }
+      <p class="muted size-help">
+        Las tallas especificas son las utilizadas actualmente. Una talla heredada proviene de la familia anterior y puedes confirmarla o cambiarla para el articulo.
+      </p>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Articulo</th>
+              <th>Familia</th>
+              <th>Genero / unidad</th>
+              <th>Origen</th>
+              <th>Talla</th>
+              <th>Observaciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (item of mySizes(); track item.id_dotacion_articulo) {
+              <tr [class.size-inherited]="item.origen_talla === 'HEREDADA_FAMILIA'">
+                <td>
+                  <strong>{{ item.articulo }}</strong>
+                  @if (item.articulo_descripcion) { <small class="muted row-detail">{{ item.articulo_descripcion }}</small> }
+                </td>
+                <td>{{ item.tipo_dotacion }}</td>
+                <td>{{ item.genero }} / {{ item.unidad_medida }}</td>
+                <td>
+                  <span class="badge" [class.success]="item.origen_talla === 'ESPECIFICA'">
+                    {{ originLabel(item.origen_talla) }}
+                  </span>
+                </td>
+                <td>
+                  <select
+                    [disabled]="!canEdit() || saving()"
+                    [ngModel]="selectedSize(item)"
+                    (ngModelChange)="setSelectedSize(item.id_dotacion_articulo, $event)"
+                    [attr.aria-label]="'Talla para ' + item.articulo"
+                  >
+                    <option [ngValue]="null">Selecciona una talla</option>
+                    @for (size of sizesByType(item.id_tipo_dotacion); track size.id_talla_dotacion) {
+                      <option [ngValue]="size.id_talla_dotacion">
+                        {{ size.talla }} @if (size.descripcion) { - {{ size.descripcion }} }
+                      </option>
+                    }
+                  </select>
+                </td>
+                <td>
+                  <input
+                    type="text"
+                    maxlength="250"
+                    [disabled]="!canEdit() || saving()"
+                    [ngModel]="observation(item)"
+                    (ngModelChange)="setObservation(item.id_dotacion_articulo, $event)"
+                    [attr.aria-label]="'Observaciones para ' + item.articulo"
+                  />
+                </td>
+              </tr>
+            } @empty {
+              <tr><td colspan="6" class="empty">{{ loading() ? 'Cargando tallas...' : 'No hay articulos con talla disponibles para tu usuario.' }}</td></tr>
+            }
+          </tbody>
+        </table>
       </div>
 
       @if (canEdit() && mySizes().length) {
@@ -56,6 +102,13 @@ import { apiErrorMessage } from '../../shared/api-error';
       }
     </section>
   `,
+  styles: [`
+    .size-help { margin: 0 0 1rem; }
+    .row-detail { display: block; margin-top: .25rem; max-width: 22rem; }
+    .size-inherited { background: #fffbeb; }
+    td select, td input { min-width: 11rem; }
+    td:first-child { min-width: 15rem; }
+  `],
 })
 export class MyDotationSizesComponent implements OnInit {
   readonly auth = inject(AuthService);
@@ -64,7 +117,6 @@ export class MyDotationSizesComponent implements OnInit {
   readonly sizes = signal<DotationSize[]>([]);
   readonly selections = signal<Record<number, number | null>>({});
   readonly observations = signal<Record<number, string>>({});
-  readonly missingRequired = signal<Record<number, boolean>>({});
   readonly loading = signal(false);
   readonly saving = signal(false);
   readonly error = signal('');
@@ -87,73 +139,67 @@ export class MyDotationSizesComponent implements OnInit {
         next: ({ mySizes, sizes }) => {
           this.mySizes.set(mySizes);
           this.sizes.set(sizes);
-          const selections: Record<number, number | null> = {};
-          const observations: Record<number, string> = {};
-          mySizes.forEach((item) => {
-            selections[item.id_tipo_dotacion] = item.id_talla_dotacion ?? null;
-            observations[item.id_tipo_dotacion] = item.observaciones ?? '';
-          });
-          this.selections.set(selections);
-          this.observations.set(observations);
-          this.missingRequired.set({});
+          this.selections.set(Object.fromEntries(mySizes.map((item) => [item.id_dotacion_articulo, item.id_talla_dotacion ?? null])));
+          this.observations.set(Object.fromEntries(mySizes.map((item) => [item.id_dotacion_articulo, item.observaciones ?? ''])));
         },
-        error: (error) => this.error.set(apiErrorMessage(error, 'No fue posible cargar tus tallas. Si tu usuario no tiene empleado asociado, solicita la vinculacion a RRHH.')),
+        error: (error) => this.error.set(apiErrorMessage(error, 'No fue posible cargar tus tallas. Solicita a RRHH que revise la vinculacion de tu usuario.')),
       });
   }
 
   sizesByType(typeId: number): DotationSize[] {
-    return this.sizes().filter((size) => size.id_tipo_dotacion === typeId);
+    return this.sizes().filter((size) => size.id_tipo_dotacion === typeId && size.activo);
   }
 
   selectedSize(item: MyDotationSize): number | null {
-    return this.selections()[item.id_tipo_dotacion] ?? item.id_talla_dotacion ?? null;
+    return this.selections()[item.id_dotacion_articulo] ?? item.id_talla_dotacion ?? null;
   }
 
   observation(item: MyDotationSize): string {
-    return this.observations()[item.id_tipo_dotacion] ?? item.observaciones ?? '';
+    return this.observations()[item.id_dotacion_articulo] ?? item.observaciones ?? '';
   }
 
-  setSelectedSize(typeId: number, sizeId: number | null): void {
-    this.selections.update((current) => ({ ...current, [typeId]: sizeId }));
-    this.missingRequired.update((current) => ({ ...current, [typeId]: false }));
+  setSelectedSize(articleId: number, sizeId: number | null): void {
+    this.selections.update((current) => ({ ...current, [articleId]: sizeId }));
+    this.success.set('');
   }
 
-  setObservation(typeId: number, value: string): void {
-    this.observations.update((current) => ({ ...current, [typeId]: value.slice(0, 250) }));
+  setObservation(articleId: number, value: string): void {
+    this.observations.update((current) => ({ ...current, [articleId]: value.slice(0, 250) }));
+    this.success.set('');
   }
 
-  isMissingRequired(item: MyDotationSize): boolean {
-    return Boolean(this.missingRequired()[item.id_tipo_dotacion]);
+  originLabel(origin: MyDotationSize['origen_talla']): string {
+    if (origin === 'ESPECIFICA') return 'Especifica';
+    if (origin === 'HEREDADA_FAMILIA') return 'Heredada';
+    return 'Sin registrar';
   }
 
   saveAll(): void {
     this.error.set('');
     this.success.set('');
 
-    const missing = this.mySizes().filter((item) => item.requiere_talla && !this.selectedSize(item));
-    if (missing.length) {
-      this.missingRequired.set(Object.fromEntries(missing.map((item) => [item.id_tipo_dotacion, true])));
-      this.error.set('Debes seleccionar todas las tallas requeridas antes de guardar.');
+    const configured = this.mySizes().filter((item) => this.selectedSize(item) !== null);
+    if (!configured.length) {
+      this.error.set('Selecciona al menos una talla antes de guardar.');
       return;
     }
 
-    const payloads: SaveMyDotationSizeRequest[] = this.mySizes().map((item) => ({
-      id_tipo_dotacion: item.id_tipo_dotacion,
-      id_talla_dotacion: this.selectedSize(item),
+    const payloads: SaveMyDotationSizeRequest[] = configured.map((item) => ({
+      id_dotacion_articulo: item.id_dotacion_articulo,
+      id_talla_dotacion: this.selectedSize(item) as number,
       observaciones: this.blankToNull(this.observation(item)),
     }));
 
     this.saving.set(true);
-    this.missingRequired.set({});
     forkJoin(payloads.map((payload) => this.service.saveMySize(payload)))
       .pipe(finalize(() => this.saving.set(false)))
       .subscribe({
-      next: () => {
-        this.success.set('Todas tus tallas fueron guardadas correctamente.');
-        this.load();
-      },
-      error: () => this.error.set('No fue posible guardar todas las tallas. Intenta nuevamente.'),
-    });
+        next: () => {
+          this.success.set('Tus tallas por articulo fueron guardadas correctamente.');
+          this.load();
+        },
+        error: (error) => this.error.set(apiErrorMessage(error, 'No fue posible guardar todas las tallas. Intenta nuevamente.')),
+      });
   }
 
   private blankToNull(value: string): string | null {

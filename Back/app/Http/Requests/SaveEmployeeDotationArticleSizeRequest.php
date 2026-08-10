@@ -2,12 +2,11 @@
 
 namespace App\Http\Requests;
 
-class SaveMyDotationSizeRequest extends ApiRequest
+class SaveEmployeeDotationArticleSizeRequest extends ApiRequest
 {
     public function rules(): array
     {
         return [
-            'id_dotacion_articulo' => ['required', 'integer', 'min:1'],
             'id_talla_dotacion' => ['required', 'integer', 'min:1'],
             'observaciones' => ['nullable', 'string', 'max:250'],
         ];

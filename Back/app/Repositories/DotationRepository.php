@@ -2,6 +2,8 @@
 
 namespace App\Repositories;
 
+use Illuminate\Support\Facades\DB;
+
 class DotationRepository extends StoredProcedureRepository
 {
     public function types(bool $onlyActive): array
@@ -43,11 +45,11 @@ class DotationRepository extends StoredProcedureRepository
         return $this->call('SP_BBF_DOTACION_MIS_ENTREGAS_LISTAR', [$userId]);
     }
 
-    public function saveMySize(int $userId, int $dotationTypeId, ?int $dotationSizeId, ?string $observations): ?array
+    public function saveMySize(int $userId, int $articleId, int $dotationSizeId, ?string $observations): ?array
     {
-        return $this->first('SP_BBF_DOTACION_MI_TALLA_GUARDAR', [
+        return $this->first('SP_BBF_DOTACION_MI_TALLA_ARTICULO_GUARDAR', [
             $userId,
-            $dotationTypeId,
+            $articleId,
             $dotationSizeId,
             $observations,
         ]);
@@ -71,6 +73,41 @@ class DotationRepository extends StoredProcedureRepository
     public function employeeSizes(int $employeeId): array
     {
         return $this->call('SP_BBF_DOTACION_TALLAS_EMPLEADO_LISTAR', [$employeeId]);
+    }
+
+    public function employeeArticleSizes(int $employeeId): array
+    {
+        return DB::table('bbf_dotacion_articulos as a')
+            ->join('bbf_tipos_dotacion as t', 't.ID_TIPO_DOTACION', '=', 'a.ID_TIPO_DOTACION')
+            ->join('bbf_empleados as e', function ($join) use ($employeeId): void {
+                $join->where('e.ID_EMPLEADO', '=', $employeeId)
+                    ->where('e.ELIMINADO', '=', 0);
+            })
+            ->leftJoin('bbf_empleado_dotacion_articulo_tallas as et', function ($join): void {
+                $join->on('et.ID_DOTACION_ARTICULO', '=', 'a.ID_DOTACION_ARTICULO')
+                    ->on('et.ID_EMPLEADO', '=', 'e.ID_EMPLEADO');
+            })
+            ->leftJoin('bbf_tallas_dotacion as s', 's.ID_TALLA_DOTACION', '=', 'et.ID_TALLA_DOTACION')
+            ->where('a.ACTIVO', 1)->where('a.ES_LEGACY', 0)->where('t.ACTIVO', 1)
+            ->orderBy('t.NOMBRE')->orderBy('a.NOMBRE')
+            ->get([
+                'e.ID_EMPLEADO as id_empleado', 'e.NUMERO_DOCUMENTO as numero_documento',
+                DB::raw("CONCAT_WS(' ', e.NOMBRES, e.APELLIDOS) as nombre_completo"),
+                'a.ID_DOTACION_ARTICULO as id_dotacion_articulo', 'a.CODIGO as codigo_articulo',
+                'a.NOMBRE as articulo', 'a.GENERO as genero', 'a.UNIDAD_MEDIDA as unidad_medida',
+                't.ID_TIPO_DOTACION as id_tipo_dotacion', 't.NOMBRE as tipo_dotacion',
+                't.REQUIERE_TALLA as requiere_talla',
+                'et.ID_EMPLEADO_DOTACION_ARTICULO_TALLA as id_empleado_dotacion_articulo_talla',
+                'et.ID_TALLA_DOTACION as id_talla_dotacion', 's.TALLA as talla',
+                'et.OBSERVACIONES as observaciones', 'et.CREATED_AT as created_at', 'et.UPDATED_AT as updated_at',
+            ])->map(fn ($row) => (array) $row)->all();
+    }
+
+    public function saveEmployeeArticleSize(int $employeeId, int $articleId, int $sizeId, ?string $observations, int $actorId): void
+    {
+        $this->call('SP_BBF_DOTACION_ARTICULO_TALLA_GUARDAR', [
+            $employeeId, $articleId, $sizeId, $observations, $actorId ?: null,
+        ]);
     }
 
     public function employeeHistory(int $employeeId): array

@@ -243,6 +243,7 @@ class DotationServiceTest extends TestCase
             ['id_tipo_dotacion' => 2, 'id_talla_dotacion' => 15],
             ['id_tipo_dotacion' => 3, 'id_talla_dotacion' => 25],
         ]);
+        $repository->shouldReceive('employeeArticleSizes')->once()->with(5)->andReturn([]);
         $repository->shouldReceive('types')->once()->with(true)->andReturn([
             ['id_tipo_dotacion' => 7, 'nombre' => 'Chaqueta', 'requiere_talla' => 1],
             ['id_tipo_dotacion' => 2, 'nombre' => 'Pantalón', 'requiere_talla' => 1],

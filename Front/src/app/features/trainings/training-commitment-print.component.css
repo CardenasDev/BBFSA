@@ -1,0 +1,257 @@
+:host {
+  display: block;
+  font-family: Arial, Helvetica, sans-serif;
+  color: #111;
+}
+.print-view {
+  min-height: 100vh;
+  background: #eef1f2;
+  padding-bottom: 20px;
+}
+.print-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 12px 18px;
+  background: #fff;
+  border-bottom: 1px solid #d7dfdc;
+}
+.btn {
+  padding: 9px 14px;
+  border: 1px solid #bdcbc5;
+  border-radius: 8px;
+  background: #fff;
+  font-weight: 700;
+  cursor: pointer;
+}
+.btn.primary {
+  color: #fff;
+  background: #08745b;
+  border-color: #08745b;
+}
+.message {
+  width: min(900px, calc(100% - 30px));
+  margin: 18px auto;
+  padding: 14px;
+  background: #fff;
+  border: 1px solid #d7dfdc;
+  border-radius: 8px;
+}
+.message.error {
+  color: #a12424;
+  border-color: #e3aaaa;
+  background: #fff4f4;
+}
+.commitment-sheet {
+  box-sizing: border-box;
+  position: relative;
+  width: 215.9mm;
+  min-height: 279.4mm;
+  margin: 16px auto;
+  padding: 14mm 15mm 11mm;
+  background: #fff;
+  box-shadow: 0 3px 18px #0002;
+  font-size: 10.7pt;
+  line-height: 1.17;
+}
+.document-header {
+  width: 100%;
+  height: 31mm;
+  border-collapse: collapse;
+  table-layout: fixed;
+  border: 1px solid #111;
+  font-size: 8.6pt;
+  line-height: 1.08;
+}
+.document-header th,
+.document-header td {
+  box-sizing: border-box;
+  border: 1px solid #111;
+  padding: 1mm;
+  vertical-align: middle;
+}
+.logo-cell {
+  width: 28%;
+  padding: 2mm !important;
+  text-align: center;
+}
+.logo-cell img {
+  display: block;
+  width: 43mm;
+  max-width: 100%;
+  max-height: 25mm;
+  margin: 0 auto;
+  object-fit: contain;
+}
+.header-title {
+  width: 56%;
+  padding: 2mm !important;
+  text-align: center;
+  font-size: 9.5pt;
+  font-weight: 700;
+}
+.header-meta {
+  width: 16%;
+  height: 7.75mm;
+  font-size: 7.2pt;
+  overflow-wrap: normal;
+  word-break: normal;
+}
+.header-meta.validity {
+  font-size: 6.9pt;
+}
+.letter-body {
+  position: relative;
+  padding: 5mm 16mm 24mm;
+  z-index: 1;
+  font-size: 9.4pt;
+  line-height: 1.13;
+}
+.letter-body > *:not(.watermark) {
+  position: relative;
+  z-index: 1;
+}
+.watermark {
+  position: absolute;
+  z-index: 0;
+  top: 72mm;
+  left: 50%;
+  width: 92mm;
+  transform: translateX(-50%);
+  opacity: 0.115;
+  filter: grayscale(0.15);
+}
+.letter-body p {
+  margin: 0 0 3.2mm;
+}
+.recipient {
+  margin: 9mm 0 4mm;
+}
+.recipient p {
+  margin: 0;
+}
+h1 {
+  margin: 0 0 4mm;
+  text-align: right;
+  font-size: 10.5pt;
+}
+.justify {
+  text-align: justify;
+}
+.commitment-list {
+  margin: 0 0 3.5mm 8mm;
+  padding-left: 5mm;
+  font-weight: 700;
+}
+.commitment-list li {
+  padding-left: 2mm;
+  margin-bottom: 1.5mm;
+}
+.signatures {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18mm;
+  margin-top: 5mm;
+  font-size: 8.8pt;
+}
+.signature-line {
+  display: block;
+  width: 100%;
+  height: 5mm;
+  border-bottom: 1px solid #111;
+  margin-bottom: 1.5mm;
+}
+footer {
+  position: absolute;
+  left: 15mm;
+  right: 15mm;
+  bottom: 8mm;
+  z-index: 3;
+  background: #fff;
+}
+footer table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: 5.8pt;
+  line-height: 1.15;
+}
+footer th,
+footer td {
+  border: 0.5px solid #111;
+  padding: 1mm 0.8mm;
+  text-align: left;
+  vertical-align: top;
+  overflow-wrap: anywhere;
+}
+footer th {
+  font-weight: 700;
+  white-space: normal;
+}
+footer td {
+  min-height: 8mm;
+}
+footer th:nth-child(1),
+footer td:nth-child(1) {
+  width: 8%;
+}
+footer th:nth-child(2),
+footer td:nth-child(2) {
+  width: 10%;
+}
+footer th:nth-child(3),
+footer td:nth-child(3) {
+  width: 18%;
+}
+footer th:nth-child(4),
+footer td:nth-child(4) {
+  width: 13%;
+}
+footer th:nth-child(5),
+footer td:nth-child(5) {
+  width: 11%;
+}
+footer th:nth-child(6),
+footer td:nth-child(6) {
+  width: 18%;
+}
+footer th:nth-child(7),
+footer td:nth-child(7) {
+  width: 17%;
+}
+@page {
+  size: Letter portrait;
+  margin: 0;
+}
+@media print {
+  :host {
+    width: 215.9mm;
+  }
+  .print-view {
+    min-height: 0;
+    padding: 0;
+    background: #fff;
+  }
+  .print-toolbar,
+  .message {
+    display: none !important;
+  }
+  .commitment-sheet {
+    width: 215.9mm;
+    height: 279.4mm;
+    min-height: 279.4mm;
+    margin: 0;
+    box-shadow: none;
+    break-after: avoid;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+}
+@media screen and (max-width: 900px) {
+  .commitment-sheet {
+    transform-origin: top left;
+  }
+}

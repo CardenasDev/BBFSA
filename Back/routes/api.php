@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\MyToolDeliveryController;
 use App\Http\Controllers\Api\ReturnController;
 use App\Http\Controllers\Api\RoleController;
 use App\Http\Controllers\Api\ToolController;
+use App\Http\Controllers\Api\TrainingController;
 use App\Http\Controllers\Api\UserController;
 use Illuminate\Support\Facades\Route;
 
@@ -126,6 +127,31 @@ Route::middleware('auth.jwt')->group(function (): void {
         Route::post('deliveries/{deliveryId}/confirm', [DotationController::class, 'confirmDeliveryReceived'])->whereNumber('deliveryId')->middleware('permission:DOTACIONES_MIS_ENTREGAS_CONFIRMAR');
         Route::post('deliveries/{deliveryId}/confirm-by-hr', [DotationController::class, 'confirmDeliveryByHr'])->whereNumber('deliveryId')->middleware('permission:DOTACIONES_ENTREGAS_CREAR');
         Route::get('deliveries/{deliveryId}/details', [DotationController::class, 'deliveryDetails'])->whereNumber('deliveryId')->middleware('permission:DOTACIONES_ENTREGAS_VER');
+    });
+    Route::prefix('trainings')->group(function (): void {
+        Route::get('tasks', [TrainingController::class, 'tasks'])->middleware('permission:CAPACITACIONES_VER');
+        Route::post('tasks', [TrainingController::class, 'saveTask'])->middleware('permission:CAPACITACIONES_ADMINISTRAR');
+        Route::get('/', [TrainingController::class, 'index'])->middleware('permission:CAPACITACIONES_VER');
+        Route::post('/', [TrainingController::class, 'save'])->middleware('permission:CAPACITACIONES_ADMINISTRAR');
+        Route::get('{trainingId}/tasks', [TrainingController::class, 'attachedTasks'])->whereNumber('trainingId')->middleware('permission:CAPACITACIONES_VER');
+        Route::post('tasks/attach', [TrainingController::class, 'attachTask'])->middleware('permission:CAPACITACIONES_ADMINISTRAR');
+        Route::get('sessions', [TrainingController::class, 'sessions'])->middleware('permission:CAPACITACIONES_VER');
+        Route::post('sessions', [TrainingController::class, 'createSession'])->middleware('permission:CAPACITACIONES_ADMINISTRAR');
+        Route::get('sessions/{sessionId}', [TrainingController::class, 'session'])->whereNumber('sessionId')->middleware('permission:CAPACITACIONES_VER');
+        Route::patch('sessions/{sessionId}/status', [TrainingController::class, 'changeStatus'])->whereNumber('sessionId')->middleware('permission:CAPACITACIONES_ADMINISTRAR');
+        Route::post('sessions/{sessionId}/participants', [TrainingController::class, 'participant'])->whereNumber('sessionId')->middleware('permission:CAPACITACIONES_ADMINISTRAR');
+        Route::post('sessions/{sessionId}/import', [TrainingController::class, 'import'])->whereNumber('sessionId')->middleware('permission:CAPACITACIONES_IMPORTAR');
+        Route::patch('participants/{participantId}/attendance', [TrainingController::class, 'attendance'])->whereNumber('participantId')->middleware('permission:CAPACITACIONES_ADMINISTRAR');
+        Route::post('evaluations', [TrainingController::class, 'evaluation'])->middleware('permission:CAPACITACIONES_EVALUAR');
+        Route::post('results', [TrainingController::class, 'result'])->middleware('permission:CAPACITACIONES_EVALUAR');
+        Route::post('participants/{participantId}/confirm', [TrainingController::class, 'confirm'])->whereNumber('participantId')->middleware('permission:CAPACITACIONES_CONFIRMAR');
+        Route::post('participants/{participantId}/confirm-by-hr', [TrainingController::class, 'confirmHr'])->whereNumber('participantId')->middleware('permission:CAPACITACIONES_ADMINISTRAR');
+        Route::get('my/records', [TrainingController::class, 'mine'])->middleware('permission:CAPACITACIONES_MIS_REGISTROS_VER');
+        Route::get('alerts', [TrainingController::class, 'alerts'])->middleware('permission:CAPACITACIONES_VER');
+        Route::get('commitments', [TrainingController::class, 'commitments'])->middleware('permission:CAPACITACIONES_COMPROMISOS');
+        Route::get('commitments/{commitmentId}', [TrainingController::class, 'commitment'])->whereNumber('commitmentId')->middleware('permission:CAPACITACIONES_COMPROMISOS');
+        Route::post('commitments', [TrainingController::class, 'createCommitment'])->middleware('permission:CAPACITACIONES_COMPROMISOS');
+        Route::patch('commitments/{commitmentId}', [TrainingController::class, 'updateCommitment'])->whereNumber('commitmentId')->middleware('permission:CAPACITACIONES_COMPROMISOS');
     });
     Route::prefix('returns')->group(function (): void {
         Route::get('available', [ReturnController::class, 'available'])->middleware('permission:DEVOLUCIONES_CREAR');

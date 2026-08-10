@@ -1,0 +1,78 @@
+-- Datos completos para generar la carta BBTH-F-013 desde el sistema.
+-- Ejecutar una sola vez despues de los scripts de capacitaciones del 03/08/2026.
+USE `bbf_administrativo`;
+
+DELIMITER $$
+
+DROP PROCEDURE IF EXISTS `SP_BBF_CAPACITACION_COMPROMISO_OBTENER`$$
+CREATE PROCEDURE `SP_BBF_CAPACITACION_COMPROMISO_OBTENER`(IN P_ID_COMPROMISO INT)
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM bbf_capacitacion_compromisos
+        WHERE ID_CAPACITACION_COMPROMISO = P_ID_COMPROMISO
+    ) THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'El compromiso de capacitacion no existe.';
+    END IF;
+
+    SELECT
+        CO.ID_CAPACITACION_COMPROMISO,
+        CO.ID_CAPACITACION_RESULTADO,
+        CO.FECHA_COMPROMISO,
+        CO.FECHA_LIMITE,
+        CO.MOTIVO,
+        CO.COMPROMISOS_EMPLEADO,
+        CO.ESTADO,
+        CO.DOCUMENTO_URL,
+        CO.DOCUMENTO_RUTA,
+        CO.FIRMA_URL,
+        CO.FECHA_FIRMA,
+        CO.OBSERVACIONES,
+        CO.CREATED_AT,
+        CO.UPDATED_AT,
+        R.RESULTADO,
+        R.TOTAL_ACUMULADO,
+        R.PUNTAJE_FINAL,
+        R.PUNTAJE_MINIMO_APLICADO,
+        R.FECHA_RESULTADO,
+        R.REGLA_APLICADA,
+        E.ID_EMPLEADO,
+        E.NUMERO_DOCUMENTO,
+        CONCAT_WS(' ', E.NOMBRES, E.APELLIDOS) AS EMPLEADO,
+        CARGO.NOMBRE AS CARGO,
+        AREA.NOMBRE AS AREA,
+        CAP.ID_CAPACITACION,
+        CAP.CODIGO AS CODIGO_CAPACITACION,
+        CAP.NOMBRE AS CAPACITACION,
+        CAP.TIPO AS TIPO_CAPACITACION,
+        S.ID_CAPACITACION_SESION,
+        S.FECHA_INICIO,
+        S.FECHA_FIN,
+        S.SEMANA_ISO AS NUMERO_SEMANA,
+        S.LUGAR,
+        U.NOMBRE_USUARIO AS CREADO_POR
+    FROM bbf_capacitacion_compromisos CO
+    INNER JOIN bbf_capacitacion_resultados R
+        ON R.ID_CAPACITACION_RESULTADO = CO.ID_CAPACITACION_RESULTADO
+    INNER JOIN bbf_capacitacion_participantes P
+        ON P.ID_CAPACITACION_PARTICIPANTE = R.ID_CAPACITACION_PARTICIPANTE
+    INNER JOIN bbf_empleados E
+        ON E.ID_EMPLEADO = P.ID_EMPLEADO
+    LEFT JOIN bbf_cargos CARGO
+        ON CARGO.ID_CARGO = E.ID_CARGO
+    LEFT JOIN bbf_areas AREA
+        ON AREA.ID_AREA = E.ID_AREA
+    INNER JOIN bbf_capacitacion_sesiones S
+        ON S.ID_CAPACITACION_SESION = P.ID_CAPACITACION_SESION
+    INNER JOIN bbf_capacitaciones CAP
+        ON CAP.ID_CAPACITACION = S.ID_CAPACITACION
+    LEFT JOIN bbf_usuarios U
+        ON U.ID_USUARIO = CO.ID_CREADO_POR
+    WHERE CO.ID_CAPACITACION_COMPROMISO = P_ID_COMPROMISO;
+END$$
+
+DELIMITER ;
+
+-- Validacion opcional:
+-- CALL SP_BBF_CAPACITACION_COMPROMISO_OBTENER(1);

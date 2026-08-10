@@ -7660,6 +7660,13 @@
                                         "data": {
                                             "type": "object",
                                             "properties": {
+                                                "format": {
+                                                    "type": "string",
+                                                    "enum": [
+                                                        "OFICIAL_51",
+                                                        "CLIENTE_72"
+                                                    ]
+                                                },
                                                 "total": {
                                                     "type": "integer"
                                                 },
@@ -7672,6 +7679,9 @@
                                                 "invalid": {
                                                     "type": "integer"
                                                 },
+                                                "article_sizes": {
+                                                    "type": "integer"
+                                                },
                                                 "warnings": {
                                                     "type": "array",
                                                     "items": {}
@@ -7682,9 +7692,11 @@
                                                 }
                                             },
                                             "required": [
+                                                "format",
                                                 "total",
                                                 "valid",
                                                 "invalid",
+                                                "article_sizes",
                                                 "warnings",
                                                 "errors"
                                             ]

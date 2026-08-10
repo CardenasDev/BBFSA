@@ -11,9 +11,11 @@ export interface BulkLoadError {
 }
 
 export interface BulkLoadValidation {
+  format: 'OFICIAL_51' | 'CLIENTE_72';
   total: number;
   valid: number;
   invalid: number;
+  article_sizes: number;
   warnings: BulkLoadError[];
   errors: BulkLoadError[];
 }

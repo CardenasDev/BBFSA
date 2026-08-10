@@ -345,6 +345,81 @@ class BulkLoadEmployeeServiceTest extends TestCase
         }
     }
 
+    public function test_client_72_column_file_combines_names_derives_month_and_maps_article_sizes(): void
+    {
+        [$service, $repository] = $this->service();
+        $repository->shouldReceive('catalogs')->once()->andReturn($this->catalogs());
+        $repository->shouldReceive('existingDocuments')->once()->with(['00123'])->andReturn([]);
+
+        $values = array_fill_keys(array_values(BulkLoadEmployeeService::CLIENT_COLUMNS), null);
+        $values = array_replace($values, [
+            'tipo_documento' => 'Cédula de ciudadanía',
+            'numero_documento' => '00123',
+            'primer_nombre' => 'ANA',
+            'segundo_nombre' => 'MARÍA',
+            'primer_apellido' => 'PÉREZ',
+            'segundo_apellido' => 'GÓMEZ',
+            'fecha_ingreso' => '01/08/2026',
+            'estado_empleado' => 'ACTIVO',
+            'article_size::BOTA PVC MACHITA' => '37',
+        ]);
+        $file = $this->workbook(
+            [array_values($values)],
+            array_keys(BulkLoadEmployeeService::CLIENT_COLUMNS),
+            false,
+        );
+
+        try {
+            $result = $service->validate($file);
+            $this->assertSame('CLIENTE_72', $result['format']);
+            $this->assertSame(0, $result['invalid'], json_encode($result['errors'], JSON_UNESCAPED_UNICODE));
+            $this->assertSame(1, $result['article_sizes']);
+            $this->assertSame('ANA MARÍA', $result['_rows'][0]['nombres']);
+            $this->assertSame('PÉREZ GÓMEZ', $result['_rows'][0]['apellidos']);
+            $this->assertSame('AGOSTO', $result['_rows'][0]['mes']);
+            $this->assertSame(20, $result['_rows'][0]['_article_sizes'][0]['article_id']);
+            $this->assertSame(7, $result['_rows'][0]['_article_sizes'][0]['id']);
+        } finally {
+            @unlink($file->getRealPath());
+        }
+    }
+
+    public function test_client_import_persists_the_article_specific_size(): void
+    {
+        [$service, $repository, $audit] = $this->service();
+        $repository->shouldReceive('catalogs')->once()->andReturn($this->catalogs());
+        $repository->shouldReceive('existingDocuments')->once()->andReturn([]);
+        $repository->shouldReceive('createEmployee')->once()->andReturn(80);
+        $repository->shouldReceive('saveProfile')->once();
+        $repository->shouldNotReceive('saveSocialSecurity');
+        $repository->shouldNotReceive('saveSize');
+        $repository->shouldReceive('saveArticleSize')->once()->with(80, 20, 7, 9);
+        $audit->shouldReceive('record')->once();
+        DB::shouldReceive('transaction')->once()->andReturnUsing(fn ($callback) => $callback());
+
+        $values = array_fill_keys(array_values(BulkLoadEmployeeService::CLIENT_COLUMNS), null);
+        $values = array_replace($values, [
+            'genero' => 'F',
+            'tipo_documento' => 'Cédula de ciudadanía',
+            'numero_documento' => '00123',
+            'primer_nombre' => 'ANA',
+            'primer_apellido' => 'PÉREZ',
+            'estado_empleado' => 'ACTIVO',
+            'article_size::BOTA PVC MACHITA' => '37',
+        ]);
+        $file = $this->workbook(
+            [array_values($values)],
+            array_keys(BulkLoadEmployeeService::CLIENT_COLUMNS),
+            false,
+        );
+
+        try {
+            $this->assertSame(1, $service->import($file, 9, [])['created']);
+        } finally {
+            @unlink($file->getRealPath());
+        }
+    }
+
     private function service(): array
     {
         $repository = Mockery::mock(BulkLoadEmployeeRepository::class);
@@ -373,7 +448,7 @@ class BulkLoadEmployeeServiceTest extends TestCase
         }
     }
 
-    private function workbook(array $rows, ?array $headers = null): UploadedFile
+    private function workbook(array $rows, ?array $headers = null, bool $withInstructions = true): UploadedFile
     {
         $path = tempnam(sys_get_temp_dir(), 'bulk_test_');
         $writer = new Writer;
@@ -383,8 +458,10 @@ class BulkLoadEmployeeServiceTest extends TestCase
         foreach ($rows as $row) {
             $writer->addRow(Row::fromValues($row));
         }
-        $writer->addNewSheetAndMakeItCurrent()->setName(BulkLoadEmployeeService::INSTRUCTIONS_SHEET);
-        $writer->addRow(Row::fromValues(['INSTRUCCIONES']));
+        if ($withInstructions) {
+            $writer->addNewSheetAndMakeItCurrent()->setName(BulkLoadEmployeeService::INSTRUCTIONS_SHEET);
+            $writer->addRow(Row::fromValues(['INSTRUCCIONES']));
+        }
         $writer->close();
 
         return $this->uploaded($path);
@@ -448,6 +525,13 @@ class BulkLoadEmployeeServiceTest extends TestCase
                 ['id' => 6, 'type_id' => 2, 'type' => 'Pantalón', 'name' => '30'],
                 ['id' => 7, 'type_id' => 3, 'type' => 'Calzado', 'name' => '37'],
                 ['id' => 8, 'type_id' => 4, 'type' => 'Overol', 'name' => 'M'],
+            ],
+            'dotation_article_aliases' => [
+                [
+                    'header' => 'BOTA PVC MACHITA', 'article_id' => 20,
+                    'code' => 'BOTA_PVC_MACHITA', 'article' => 'Bota PVC machita',
+                    'type_id' => 3, 'type' => 'Calzado',
+                ],
             ],
         ];
     }

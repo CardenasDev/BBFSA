@@ -89,6 +89,82 @@ class BulkLoadEmployeeService
         'ESTADO' => 'estado_empleado',
     ];
 
+    /** Exact contract of the 72-column source workbook delivered on 2026-08-10. */
+    public const CLIENT_COLUMNS = [
+        'N. CARPETA' => 'numero_carpeta',
+        'GENERO' => 'genero',
+        'TIPO DE DOCUMENTO' => 'tipo_documento',
+        'DOCUMENTO' => 'numero_documento',
+        'FECHA DE EXPEDICION DEL DOCUMENTO' => 'fecha_expedicion_documento',
+        'LUGAR DE EXPEDICION' => 'lugar_expedicion_documento',
+        'PRIMER APELLIDO' => 'primer_apellido',
+        'SEGUNDO APELLIDO' => 'segundo_apellido',
+        'PRIMER NOMBRE' => 'primer_nombre',
+        'SEGUNDO NOMBRE' => 'segundo_nombre',
+        'AREA' => 'area',
+        'CARGO' => 'cargo',
+        'FECHA DE INGRESO' => 'fecha_ingreso',
+        'COPIA DOCUMENTO - SI' => 'copia_documento_si',
+        'COPIA DOCUMENTO - NO' => 'copia_documento_no',
+        'FECHA DE NACIMIENTO' => 'fecha_nacimiento',
+        'CELULAR' => 'telefono',
+        'CORREO ELECTRONICO' => 'correo',
+        'CONTRATO FIRMADO - SI' => 'contrato_firmado_si',
+        'CONTRATO FIRMADO - NO' => 'contrato_firmado_no',
+        'TIPO ULTIMO CONTRATO' => 'tipo_contrato',
+        'FECHA FINALIZACION CONTRATO' => 'fecha_finalizacion_contrato',
+        'OTROS SI' => 'otros_si',
+        'FECHA DEL ULTIMO  OTRO SI' => 'fecha_ultimo_otrosi',
+        'SALARIO' => 'salario',
+        'FECHA ULTIMA DE VACACIONES' => 'fecha_ultima_vacaciones',
+        'ULTIMO EXAMEN MEDICO' => 'ultimo_examen_medico',
+        'ULTIMO EXAMEN MEDICO POSINCAPACIDAD' => 'ultimo_examen_medico_posincapacidad',
+        'CONTRATO DE ARRENDAMIENTO' => 'contrato_arrendamiento',
+        'DIRECCION VIVIENDA' => 'direccion_residencia',
+        'CUANTAS PERSONAS VIVEN VIVIENTES' => 'personas_vivienda',
+        'LOS MENORES DE EDAD ESTUDIAN' => 'menores_estudian',
+        'EPS - SI' => 'eps_si',
+        'EPS - NO' => 'eps_no',
+        'EPS - CUAL' => 'eps',
+        'PENSION - SI' => 'pension_si',
+        'PENSION - NO' => 'pension_no',
+        'PENSION - CUAL' => 'pension',
+        'ARL - SI' => 'arl_si',
+        'ARL - NO' => 'arl_no',
+        'ARL - CUAL' => 'arl',
+        'CAJA DE COMPENSACION - SI' => 'caja_si',
+        'CAJA DE COMPENSACION - NO' => 'caja_no',
+        'CAJA DE COMPENSACION - CUAL' => 'caja',
+        'CESANTIAS - SI' => 'cesantias_si',
+        'CESANTIAS - NO' => 'cesantias_no',
+        'CESANTIAS - CUAL' => 'cesantias',
+        'BATERIA RIESGO PSICOSOCIAL' => 'bateria_riesgo_psicosocial',
+        'ULTIMA ENTREGA DOTACIONES' => 'ultima_entrega_dotaciones',
+        'UNIFORME 2 P S. GENERAL BLUSA PANTALON' => 'article_size::UNIFORME 2 P S. GENERAL BLUSA PANTALON',
+        'PANTALON  JEAN ESTAMPADO BARRO B' => 'article_size::PANTALON  JEAN estampado Barro B',
+        'PANTALON DRIL HOMBRE ESTAMPADO BARRO B' => 'article_size::Pantalon Dril Hombre Estampado Barro B',
+        'PANTALON DRIL MUJER ESTAMPADO BARRO B' => 'article_size::Pantalon Dril Mujer Estampado Barro B',
+        'CAMISA MANGA LARGA  BORDADO BB' => 'article_size::CAMISA MANGA LARGA  BORDADO BB',
+        'CAMISA JEAN  BORDADO BB' => 'article_size::CAMISA JEAN  BORDADO BB',
+        'CCAMISETA TIPO POLO  BOR BARRO B' => 'article_size::CCamiseta Tipo Polo  Bor Barro B',
+        'BATA MUJER TIPO LABO DRIL BOR BARRO B' => 'article_size::Bata Mujer Tipo Labo Dril Bor BARRO B',
+        'BATA HOMBRE TIPO LABO DRIL BOR BARRO B' => 'article_size::Bata Hombre Tipo Labo Dril Bor BARRO B',
+        'OVEROL DOS PIEZAS ESTAMPAD HOMBR BARRO' => 'article_size::Overol dos piezas Estampad Hombr BARRO',
+        'OVEROL DOS PIEZAS ESTAMPAD MUJER BARRO B' => 'article_size::Overol dos piezas Estampad Mujer BARRO B',
+        'OVEROL 1P  ESTAMPADO  BARRO B' => 'article_size::Overol 1P  Estampado  BARRO B',
+        'OVEROL 1P C/REFLE ESTAMPADO BRIG BARRO B' => 'article_size::Overol 1P C/Refle Estampado Brig BARRO B',
+        'OVEROL TIPO TYVEK COLTEJER BARRO B' => 'article_size::Overol Tipo Tyvek Coltejer BARRO B',
+        'TRAJE DE CUARTO FRIO' => 'article_size::TRAJE DE CUARTO FRIO',
+        'BOTA PVC MACHA ALTA' => 'article_size::BOTA PVC MACHA ALTA',
+        'BOTA PVC MACHITA' => 'article_size::BOTA PVC MACHITA',
+        'BOTA CUERO LISO SP' => 'article_size::BOTA CUERO LISO SP',
+        'ZUECO' => 'article_size::Zueco',
+        'BOTA CUERO MICROPIEL RH-PP-DE' => 'article_size::Bota Cuero Micropiel RH-PP-DE',
+        'OBSERVACIONES' => 'observaciones_empleado',
+        'FINALIZACION CONTRATO' => 'finalizacion_contrato',
+        'ESTADO' => 'estado_empleado',
+    ];
+
     public const LEGACY_COLUMNS = [
         'N. CARPETA', 'GENERO', 'TIPO DE DOCUMENTO', 'DOCUMENTO',
         'FECHA DE EXPEDICION DEL DOCUMENTO', 'APELLIDO Y NOMBRE COMPLETO', 'AREA',
@@ -124,12 +200,49 @@ class BulkLoadEmployeeService
         'fecha_finalizacion_contrato', 'salario', 'ultimo_examen_medico',
         'contrato_arrendamiento', 'arl_carnet', 'bateria_riesgo_psicosocial',
         'ultima_entrega_dotaciones', 'finalizacion_contrato',
+        'lugar_expedicion_documento', 'otros_si', 'fecha_ultimo_otrosi',
+        'fecha_ultima_vacaciones', 'ultimo_examen_medico_posincapacidad',
     ];
 
     private const MONTHS = [
         1 => 'ENERO', 2 => 'FEBRERO', 3 => 'MARZO', 4 => 'ABRIL',
         5 => 'MAYO', 6 => 'JUNIO', 7 => 'JULIO', 8 => 'AGOSTO',
         9 => 'SEPTIEMBRE', 10 => 'OCTUBRE', 11 => 'NOVIEMBRE', 12 => 'DICIEMBRE',
+    ];
+
+    private const CATALOG_ALIASES = [
+        'tipo_documento' => [
+            'PERMISO DE PROTECCION DE PERMANENCIA' => 'PERMISO POR PROTECCION TEMPORAL - PPT',
+        ],
+        'tipo_contrato' => [
+            'CONTRATO A TERMINO INDEFINIDO' => 'INDEFINIDO',
+            'CONTRATO A TERMINO FIJO INFERIOR A UN ANO' => 'FIJO',
+        ],
+        'cargo' => [
+            'SERVICIOS GENERAL' => 'SERVICIOS GENERALES',
+        ],
+        'eps' => [
+            'ASOCIACION MUTUAL SER EMPRESA SOLIDARIA DE SALUD, ENTIDAD PROMOTORA DE SALUD. MU' => 'MUTUAL SER EPS',
+            'COMPENSAR ENTIDAD PROMOTORA DE SALUD' => 'COMPENSAR EPS',
+            'COOSALUD ENTIDAD PROMOTORA DE SALUD SA' => 'COOSALUD EPS',
+            'E.P.S. SANITAS' => 'SANITAS EPS',
+            'E.P.S. SURA' => 'SURA EPS',
+            'FAMISANAR' => 'FAMISANAR EPS',
+            'SALUD TOTAL S.A.' => 'SALUD TOTAL EPS',
+        ],
+        'pension' => [
+            'PROTECCCION' => 'PROTECCION',
+        ],
+        'arl' => [
+            'POSITIVA -ARL' => 'ARL POSITIVA',
+            'POSITIVA- ARL' => 'ARL POSITIVA',
+        ],
+        'caja' => [
+            'CAJA COLOMBIANA DE SUBCIDIO FAMILIAR COLSUBSIDIO' => 'COLSUBSIDIO',
+        ],
+        'cesantias' => [
+            'PORVENIR' => 'PORVENIR CESANTIAS',
+        ],
     ];
 
     public function __construct(
@@ -200,6 +313,14 @@ class BulkLoadEmployeeService
                     foreach ($row['_sizes'] as $size) {
                         $this->repository->saveSize($employeeId, $size['type_id'], $size['id'], $actorId);
                     }
+                    foreach ($row['_article_sizes'] as $size) {
+                        $this->repository->saveArticleSize(
+                            $employeeId,
+                            $size['article_id'],
+                            $size['id'],
+                            $actorId,
+                        );
+                    }
                 }
 
                 return count($result['_rows']);
@@ -229,6 +350,7 @@ class BulkLoadEmployeeService
         $warnings = [];
         $validRows = [];
         $documents = [];
+        $clientInformationalWarningAdded = false;
 
         foreach ($source['rows'] as $entry) {
             $rowNumber = $entry['row'];
@@ -310,6 +432,53 @@ class BulkLoadEmployeeService
                 }
             }
 
+            $row['_article_sizes'] = [];
+            $articleIds = [];
+            foreach ($row as $field => $value) {
+                if (! str_starts_with($field, 'article_size::') || $value === null) {
+                    continue;
+                }
+
+                $header = substr($field, strlen('article_size::'));
+                $aliases = $lookups['article_aliases'][$this->key($header)] ?? [];
+                if (count($aliases) !== 1) {
+                    $rowErrors[] = $this->issue(
+                        $rowNumber,
+                        $header,
+                        count($aliases) ? 'La equivalencia del artículo es ambigua.' : 'El encabezado no tiene un artículo activo configurado para el cargue.'
+                    );
+                    continue;
+                }
+
+                $article = $aliases[0];
+                if (isset($articleIds[$article['article_id']])) {
+                    $rowErrors[] = $this->issue(
+                        $rowNumber,
+                        $header,
+                        'El mismo artículo tiene más de una talla diligenciada en esta fila.'
+                    );
+                    continue;
+                }
+
+                $matches = $lookups['sizes'][$article['type']][$this->key($value)] ?? [];
+                if (count($matches) !== 1) {
+                    $rowErrors[] = $this->issue(
+                        $rowNumber,
+                        $header,
+                        count($matches) ? 'La talla es ambigua para la familia del artículo.' : 'La talla no existe o no está activa para la familia del artículo.'
+                    );
+                    continue;
+                }
+
+                $articleIds[$article['article_id']] = true;
+                $row['_article_sizes'][] = array_merge($matches[0], [
+                    'article_id' => $article['article_id'],
+                    'article_code' => $article['code'],
+                    'article' => $article['article'],
+                    'header' => $header,
+                ]);
+            }
+
             foreach (self::DATES as $field) {
                 if ($row[$field] !== null && ! $this->parseDate($row[$field], $parsed)) {
                     $rowErrors[] = $this->issue(
@@ -320,6 +489,9 @@ class BulkLoadEmployeeService
                 } elseif ($row[$field] !== null) {
                     $row[$field] = $parsed;
                 }
+            }
+            if ($row['mes'] === null && $row['fecha_ingreso'] !== null && $this->validDateString($row['fecha_ingreso'])) {
+                $row['mes'] = self::MONTHS[(int) substr($row['fecha_ingreso'], 5, 2)];
             }
             if ($row['mes'] !== null && $row['fecha_ingreso'] !== null && $this->validDateString($row['fecha_ingreso'])) {
                 $month = (int) substr($row['fecha_ingreso'], 5, 2);
@@ -341,7 +513,18 @@ class BulkLoadEmployeeService
             }
 
             foreach (self::INFORMATIONAL as $field) {
-                if ($row[$field] !== null) {
+                if (($row[$field] ?? null) !== null) {
+                    if ($source['format'] === 'CLIENTE_72') {
+                        if (! $clientInformationalWarningAdded) {
+                            $warnings[] = $this->issue(
+                                1,
+                                '_archivo',
+                                'El formato ampliado contiene datos contractuales e históricos informativos. Se importarán empleados, perfil, seguridad social y tallas; no se crearán contratos, documentos, exámenes, vacaciones ni entregas históricas.'
+                            );
+                            $clientInformationalWarningAdded = true;
+                        }
+                        continue;
+                    }
                     $rowWarnings[] = $this->issue(
                         $rowNumber,
                         $field,
@@ -407,9 +590,14 @@ class BulkLoadEmployeeService
         $total = count($source['rows']);
 
         return [
+            'format' => $source['format'],
             'total' => $total,
             'valid' => max(0, $total - count($invalidRows)),
             'invalid' => count($invalidRows),
+            'article_sizes' => array_sum(array_map(
+                fn (array $row) => count($row['_article_sizes'] ?? []),
+                $validRows,
+            )),
             'warnings' => array_values($warnings),
             'errors' => array_values($errors),
             '_rows' => array_values($validRows),
@@ -423,6 +611,7 @@ class BulkLoadEmployeeService
         $rows = [];
         $errors = [];
         $found = [];
+        $format = null;
 
         try {
             foreach ($reader->getSheetIterator() as $sheet) {
@@ -437,7 +626,7 @@ class BulkLoadEmployeeService
                     $cells = $excelRow->getCells();
                     if ($header === null) {
                         $header = array_map(fn (Cell $cell) => strtoupper(trim((string) $cell->getValue())), $cells);
-                        $this->assertHeaders($header);
+                        $format = $this->assertHeaders($header);
                         continue;
                     }
                     if ($index > config('bulk_load.max_rows', 1000) + 1) {
@@ -449,16 +638,21 @@ class BulkLoadEmployeeService
 
                     $values = [];
                     $formulaFields = [];
-                    foreach (array_keys(self::COLUMNS) as $position => $heading) {
+                    $columns = $format === 'CLIENTE_72' ? self::CLIENT_COLUMNS : self::COLUMNS;
+                    foreach ($columns as $heading => $field) {
+                        $position = array_search($heading, array_keys($columns), true);
                         $cell = $cells[$position] ?? null;
-                        $field = self::COLUMNS[$heading];
                         if ($cell && str_contains($cell::class, 'FormulaCell')) {
                             $formulaFields[] = $field;
                         }
                         $values[$field] = $cell?->getValue();
                     }
                     $numericIdentifiers = [];
-                    foreach ([0 => 'numero_carpeta', 3 => 'numero_documento', 14 => 'telefono'] as $position => $field) {
+                    foreach ($columns as $positionHeading => $field) {
+                        if (! in_array($field, ['numero_carpeta', 'numero_documento', 'telefono'], true)) {
+                            continue;
+                        }
+                        $position = array_search($positionHeading, array_keys($columns), true);
                         $identifierCell = $cells[$position] ?? null;
                         if ($identifierCell instanceof NumericCell) {
                             $numericIdentifiers[$field] = $identifierCell->getValue();
@@ -476,10 +670,14 @@ class BulkLoadEmployeeService
             $reader->close();
         }
 
-        if (array_diff($found, [self::DATA_SHEET, self::INSTRUCTIONS_SHEET, self::CATALOGS_SHEET]) !== []) {
+        $allowedSheets = $format === 'CLIENTE_72'
+            ? [self::DATA_SHEET]
+            : [self::DATA_SHEET, self::INSTRUCTIONS_SHEET, self::CATALOGS_SHEET];
+        if (array_diff($found, $allowedSheets) !== []) {
             throw new ApiException('El XLSX contiene hojas desconocidas. Usa la plantilla oficial sin agregar hojas.', 422);
         }
-        if (! in_array(self::DATA_SHEET, $found, true) || ! in_array(self::INSTRUCTIONS_SHEET, $found, true)) {
+        if (! in_array(self::DATA_SHEET, $found, true)
+            || ($format !== 'CLIENTE_72' && ! in_array(self::INSTRUCTIONS_SHEET, $found, true))) {
             throw new ApiException(
                 'El XLSX debe contener las hojas PERSONAL EMPRESA ACTIVOS e INSTRUCCIONES.',
                 422
@@ -489,10 +687,10 @@ class BulkLoadEmployeeService
             $errors[] = $this->issue(2, '_archivo', 'El archivo no contiene filas de empleados.');
         }
 
-        return ['rows' => $rows, 'errors' => $errors];
+        return ['format' => $format ?? 'OFICIAL_51', 'rows' => $rows, 'errors' => $errors];
     }
 
-    private function assertHeaders(array $headers): void
+    private function assertHeaders(array $headers): string
     {
         $headers = array_values(array_filter($headers, fn ($value) => $value !== ''));
         if ($headers === self::LEGACY_COLUMNS) {
@@ -500,6 +698,10 @@ class BulkLoadEmployeeService
                 'El archivo corresponde al formato anterior de 50 columnas. Separa únicamente “APELLIDO Y NOMBRE COMPLETO” en las columnas consecutivas NOMBRES y APELLIDOS; no reordenes ni cambies las demás columnas.',
                 422
             );
+        }
+
+        if ($headers === array_keys(self::CLIENT_COLUMNS)) {
+            return 'CLIENTE_72';
         }
 
         $duplicates = array_diff_assoc($headers, array_unique($headers));
@@ -517,6 +719,8 @@ class BulkLoadEmployeeService
                 ]
             );
         }
+
+        return 'OFICIAL_51';
     }
 
     private function assertSafeWorkbook(UploadedFile $file): void
@@ -598,6 +802,7 @@ class BulkLoadEmployeeService
 
     private function normalizeRow(array $row): array
     {
+        $row = array_replace(array_fill_keys(array_values(self::COLUMNS), null), $row);
         foreach ($row as $field => $value) {
             if ($value instanceof DateTimeInterface) {
                 continue;
@@ -608,11 +813,34 @@ class BulkLoadEmployeeService
             $value = preg_replace('/\s+/u', ' ', trim((string) $value));
             $row[$field] = $value === '' ? null : $value;
         }
+
+        if (($row['primer_nombre'] ?? null) !== null || ($row['primer_apellido'] ?? null) !== null) {
+            $row['nombres'] = $this->joinNameParts([
+                $row['primer_nombre'] ?? null,
+                $row['segundo_nombre'] ?? null,
+            ]);
+            $row['apellidos'] = $this->joinNameParts([
+                $row['primer_apellido'] ?? null,
+                $row['segundo_apellido'] ?? null,
+            ]);
+        }
         foreach (['genero', 'estado_empleado'] as $field) {
             $row[$field] = $row[$field] === null ? null : $this->key($row[$field]);
         }
+        foreach (['eps', 'pension', 'arl', 'caja', 'cesantias'] as $field) {
+            if (($row[$field] ?? null) !== null && $this->key($row[$field]) === 'NO APLICA') {
+                $row[$field] = null;
+            }
+        }
 
         return $row;
+    }
+
+    private function joinNameParts(array $parts): ?string
+    {
+        $value = implode(' ', array_filter($parts, fn ($part) => $part !== null && $part !== ''));
+
+        return $value === '' ? null : $value;
     }
 
     private function lookups(array $catalogs): array
@@ -628,6 +856,9 @@ class BulkLoadEmployeeService
         }
         foreach ($catalogs['dotation_sizes'] as $row) {
             $result['sizes'][$row['type']][$this->key($row['name'])][] = $row;
+        }
+        foreach ($catalogs['dotation_article_aliases'] ?? [] as $row) {
+            $result['article_aliases'][$this->key($row['header'])][] = $row;
         }
 
         return $result;
@@ -645,7 +876,9 @@ class BulkLoadEmployeeService
         if ($row[$field] === null) {
             return;
         }
-        $matches = $lookup[$this->key($row[$field])] ?? [];
+        $key = $this->key($row[$field]);
+        $key = self::CATALOG_ALIASES[$field][$key] ?? $key;
+        $matches = $lookup[$key] ?? [];
         if (count($matches) !== 1) {
             $errors[] = $this->issue(
                 $rowNumber,
@@ -667,7 +900,9 @@ class BulkLoadEmployeeService
         array &$warnings
     ): void {
         $yes = $this->indicatorMarked($row[$field.'_si']);
-        $no = $this->indicatorMarked($row[$field.'_no']);
+        $noValue = $row[$field.'_no'];
+        $no = $this->indicatorMarked($noValue)
+            || in_array($this->key($noValue), ['NO', 'NO APLICA'], true);
         if ($yes && $no) {
             $errors[] = $this->issue($rowNumber, $field, 'Las columnas SI y NO no pueden estar marcadas al mismo tiempo.');
         }

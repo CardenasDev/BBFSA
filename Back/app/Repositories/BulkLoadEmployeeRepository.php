@@ -20,10 +20,21 @@ class BulkLoadEmployeeRepository extends StoredProcedureRepository
             'dotation_sizes' => DB::table('bbf_tallas_dotacion as s')
                 ->join('bbf_tipos_dotacion as t', 't.ID_TIPO_DOTACION', '=', 's.ID_TIPO_DOTACION')
                 ->where('s.ACTIVO', 1)->where('t.ACTIVO', 1)
-                ->whereIn('t.NOMBRE', ['Camisa', 'Pantalón', 'Calzado', 'Overol'])
+                ->where('t.REQUIERE_TALLA', 1)
                 ->orderBy('t.NOMBRE')->orderBy('s.ORDEN')
                 ->get(['s.ID_TALLA_DOTACION as id', 's.ID_TIPO_DOTACION as type_id', 't.NOMBRE as type', 's.TALLA as name'])
                 ->map(fn ($row) => (array) $row)->all(),
+            'dotation_article_aliases' => DB::table('bbf_dotacion_articulo_alias_cargue as a')
+                ->join('bbf_dotacion_articulos as d', 'd.ID_DOTACION_ARTICULO', '=', 'a.ID_DOTACION_ARTICULO')
+                ->join('bbf_tipos_dotacion as t', 't.ID_TIPO_DOTACION', '=', 'd.ID_TIPO_DOTACION')
+                ->where('a.ACTIVO', 1)->where('d.ACTIVO', 1)->where('d.ES_LEGACY', 0)
+                ->where('t.ACTIVO', 1)->where('t.REQUIERE_TALLA', 1)
+                ->orderBy('a.ID_DOTACION_ARTICULO_ALIAS')
+                ->get([
+                    'a.ENCABEZADO_XLSX as header', 'd.ID_DOTACION_ARTICULO as article_id',
+                    'd.CODIGO as code', 'd.NOMBRE as article', 'd.ID_TIPO_DOTACION as type_id',
+                    't.NOMBRE as type',
+                ])->map(fn ($row) => (array) $row)->all(),
         ];
     }
 
@@ -93,6 +104,13 @@ class BulkLoadEmployeeRepository extends StoredProcedureRepository
         DB::table('bbf_empleado_dotacion_tallas')->insert([
             'ID_EMPLEADO' => $employeeId, 'ID_TIPO_DOTACION' => $typeId,
             'ID_TALLA_DOTACION' => $sizeId, 'ACTUALIZADO_POR_USUARIO' => $actorId ?: null,
+        ]);
+    }
+
+    public function saveArticleSize(int $employeeId, int $articleId, int $sizeId, int $actorId): void
+    {
+        $this->call('SP_BBF_DOTACION_ARTICULO_TALLA_GUARDAR', [
+            $employeeId, $articleId, $sizeId, null, $actorId ?: null,
         ]);
     }
 

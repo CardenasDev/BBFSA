@@ -14,7 +14,9 @@ describe('EmployeeBulkLoadComponent', () => {
     importEmployees: ReturnType<typeof vi.fn>;
   };
 
-  const valid: BulkLoadValidation = { total: 2, valid: 2, invalid: 0, warnings: [], errors: [] };
+  const valid: BulkLoadValidation = {
+    format: 'OFICIAL_51', total: 2, valid: 2, invalid: 0, article_sizes: 0, warnings: [], errors: [],
+  };
 
   beforeEach(async () => {
     service = {
@@ -53,11 +55,14 @@ describe('EmployeeBulkLoadComponent', () => {
       total: 1,
       valid: 1,
       invalid: 0,
+      format: 'CLIENTE_72',
+      article_sizes: 3,
       errors: [],
       warnings: [{ row: 2, field: 'salario', message: 'Dato informativo; no se persiste.' }],
     });
     fixture.detectChanges();
-    expect(fixture.nativeElement.textContent).toContain('único cambio es separar NOMBRES y APELLIDOS');
+    expect(fixture.nativeElement.textContent).toContain('base ampliada del cliente');
+    expect(fixture.nativeElement.textContent).toContain('Base cliente · 72 columnas');
     expect(fixture.nativeElement.textContent).toContain('Advertencias informativas');
     expect(fixture.nativeElement.textContent).toContain('no se persiste');
   });
@@ -69,6 +74,8 @@ describe('EmployeeBulkLoadComponent', () => {
       total: 1,
       valid: 1,
       invalid: 0,
+      format: 'OFICIAL_51',
+      article_sizes: 0,
       errors: [],
       warnings: [{ row: 3, field: 'numero_documento', message: conversionMessage }],
     });

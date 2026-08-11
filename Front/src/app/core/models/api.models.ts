@@ -947,6 +947,70 @@ export interface SocialSecurityEntity {
   codigo?: string | null;
 }
 
+export interface ParametersSocialSecurityEntity {
+  id_entidad: number;
+  tipo: SocialSecurityType;
+  nombre: string;
+  nit?: string | null;
+  activo: boolean;
+}
+
+export interface SaveSocialSecurityEntityPayload {
+  tipo_entidad: SocialSecurityType;
+  nombre: string;
+  nit?: string | null;
+  activo?: boolean;
+}
+
+export interface UniformItemFamily {
+  id_tipo_dotacion: number;
+  nombre: string;
+  descripcion?: string | null;
+  requiere_talla: boolean;
+}
+
+export interface SaveDotationArticleRequest {
+  codigo?: string | null;
+  id_tipo_dotacion: number;
+  nombre: string;
+  descripcion?: string | null;
+  genero?: DotationArticleGender | null;
+  unidad_medida?: DotationArticleUnit | null;
+  requiere_talla?: boolean;
+  activo?: boolean;
+}
+
+export type SystemParameterDataType = 'TEXTO' | 'NUMERICO' | 'FECHA' | 'BOOLEANO' | 'JSON';
+
+export interface SystemParameter {
+  id_parametro: number;
+  codigo: string;
+  nombre: string;
+  grupo?: string | null;
+  descripcion?: string | null;
+  tipo_dato: SystemParameterDataType;
+  valor?: string | null;
+  unidad_medida?: string | null;
+  vigencia_desde?: string | null;
+  vigencia_hasta?: string | null;
+  activo: boolean;
+  editable: boolean;
+}
+
+export interface SaveSystemParameterPayload {
+  codigo: string;
+  nombre: string;
+  grupo?: string | null;
+  descripcion?: string | null;
+  tipo_dato: SystemParameterDataType;
+  valor?: string | null;
+  unidad_medida?: string | null;
+  vigencia_desde?: string | null;
+  vigencia_hasta?: string | null;
+  activo?: boolean;
+  editable?: boolean;
+}
+
 export interface EmployeeMedicalExam {
   id_examen_medico?: number | null;
   id_empleado: number;

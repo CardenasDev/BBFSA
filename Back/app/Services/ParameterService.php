@@ -1,0 +1,462 @@
+<?php
+
+namespace App\Services;
+
+use App\Repositories\ParametersRepository;
+
+class ParameterService
+{
+    public function __construct(private readonly ParametersRepository $repo, private readonly AuditService $audit) {}
+
+    public function areas(bool $onlyActive = true): array
+    {
+        return array_map(static fn (array $row): array => [
+            'id_area' => (int) ($row['id_area'] ?? 0),
+            'nombre' => (string) ($row['nombre'] ?? ''),
+            'descripcion' => $row['descripcion'] ?? null,
+            'activo' => (bool) ($row['activo'] ?? false),
+        ], $this->repo->areasList($onlyActive));
+    }
+
+    public function saveArea(array $data, ?int $userId, array $context): array
+    {
+        $before = null;
+        if (! empty($data['id_area'])) {
+            $existing = array_filter($this->areas(true), fn($r) => $r['id_area'] === (int) $data['id_area']);
+            $before = $existing ? array_values($existing)[0] : null;
+        }
+
+        $result = $this->repo->saveArea($data['id_area'] ?? null, $data['nombre'], $data['descripcion'] ?? null, $data['activo'] ?? true);
+
+        $after = null;
+        $id = $result['id_area'] ?? null;
+        if ($id) {
+            $found = array_filter($this->areas(true), fn($r) => $r['id_area'] === (int) $id);
+            $after = $found ? array_values($found)[0] : null;
+        }
+
+        $action = 'CREAR';
+        if (! empty($data['id_area'])) {
+            if (is_array($before) && is_array($after)) {
+                if (($before['activo'] ?? false) === true && ($after['activo'] ?? false) === false) {
+                    $action = 'INACTIVAR';
+                } elseif (($before['activo'] ?? false) === false && ($after['activo'] ?? false) === true) {
+                    $action = 'ACTIVAR';
+                } else {
+                    $action = 'ACTUALIZAR';
+                }
+            } else {
+                $action = 'ACTUALIZAR';
+            }
+        }
+
+        $this->audit->record($userId, 'PARAMETROS', $action, 'AREA', $id ?? null, $before, $after ?? $data, $context);
+
+        return $result;
+    }
+
+    public function positions(bool $onlyActive = true): array
+    {
+        return array_map(static fn (array $row): array => [
+            'id_cargo' => (int) ($row['id_cargo'] ?? 0),
+            'nombre' => (string) ($row['nombre'] ?? ''),
+            'descripcion' => $row['descripcion'] ?? null,
+            'activo' => (bool) ($row['activo'] ?? false),
+        ], $this->repo->positionsList($onlyActive));
+    }
+
+    public function savePosition(array $data, ?int $userId, array $context): array
+    {
+        $before = null;
+        if (! empty($data['id_cargo'])) {
+            $existing = array_filter($this->positions(true), fn($r) => $r['id_cargo'] === (int) $data['id_cargo']);
+            $before = $existing ? array_values($existing)[0] : null;
+        }
+
+        $result = $this->repo->savePosition($data['id_cargo'] ?? null, $data['nombre'], $data['descripcion'] ?? null, $data['activo'] ?? true);
+
+        $after = null;
+        $id = $result['id_cargo'] ?? null;
+        if ($id) {
+            $found = array_filter($this->positions(true), fn($r) => $r['id_cargo'] === (int) $id);
+            $after = $found ? array_values($found)[0] : null;
+        }
+
+        $action = 'CREAR';
+        if (! empty($data['id_cargo'])) {
+            if (is_array($before) && is_array($after)) {
+                if (($before['activo'] ?? false) === true && ($after['activo'] ?? false) === false) {
+                    $action = 'INACTIVAR';
+                } elseif (($before['activo'] ?? false) === false && ($after['activo'] ?? false) === true) {
+                    $action = 'ACTIVAR';
+                } else {
+                    $action = 'ACTUALIZAR';
+                }
+            } else {
+                $action = 'ACTUALIZAR';
+            }
+        }
+
+        $this->audit->record($userId, 'PARAMETROS', $action, 'CARGO', $id ?? null, $before, $after ?? $data, $context);
+
+        return $result;
+    }
+
+    public function contractTypes(bool $onlyActive = true): array
+    {
+        return array_map(static fn (array $row): array => [
+            'id_tipo_contrato' => (int) ($row['id_tipo_contrato'] ?? 0),
+            'nombre' => (string) ($row['nombre'] ?? ''),
+            'descripcion' => $row['descripcion'] ?? null,
+            'activo' => (bool) ($row['activo'] ?? false),
+        ], $this->repo->contractTypesList($onlyActive));
+    }
+
+    public function saveContractType(array $data, ?int $userId, array $context): array
+    {
+        $before = null;
+        if (! empty($data['id_tipo_contrato'])) {
+            $existing = array_filter($this->contractTypes(true), fn($r) => $r['id_tipo_contrato'] === (int) $data['id_tipo_contrato']);
+            $before = $existing ? array_values($existing)[0] : null;
+        }
+
+        $result = $this->repo->saveContractType($data['id_tipo_contrato'] ?? null, $data['nombre'], $data['descripcion'] ?? null, $data['activo'] ?? true);
+
+        $after = null;
+        $id = $result['id_tipo_contrato'] ?? null;
+        if ($id) {
+            $found = array_filter($this->contractTypes(true), fn($r) => $r['id_tipo_contrato'] === (int) $id);
+            $after = $found ? array_values($found)[0] : null;
+        }
+
+        $action = 'CREAR';
+        if (! empty($data['id_tipo_contrato'])) {
+            if (is_array($before) && is_array($after)) {
+                if (($before['activo'] ?? false) === true && ($after['activo'] ?? false) === false) {
+                    $action = 'INACTIVAR';
+                } elseif (($before['activo'] ?? false) === false && ($after['activo'] ?? false) === true) {
+                    $action = 'ACTIVAR';
+                } else {
+                    $action = 'ACTUALIZAR';
+                }
+            } else {
+                $action = 'ACTUALIZAR';
+            }
+        }
+
+        $this->audit->record($userId, 'PARAMETROS', $action, 'TIPO_CONTRATO', $id ?? null, $before, $after ?? $data, $context);
+
+        return $result;
+    }
+
+    public function documentTypes(bool $onlyActive = true): array
+    {
+        return array_map(static fn (array $row): array => [
+            'id_tipo_documento' => (int) ($row['id_tipo_documento'] ?? 0),
+            'nombre' => (string) ($row['nombre'] ?? ''),
+            'activo' => (bool) ($row['activo'] ?? false),
+        ], $this->repo->documentTypesList($onlyActive));
+    }
+
+    public function saveDocumentType(array $data, ?int $userId, array $context): array
+    {
+        $before = null;
+        if (! empty($data['id_tipo_documento'])) {
+            $existing = array_filter($this->documentTypes(true), fn($r) => $r['id_tipo_documento'] === (int) $data['id_tipo_documento']);
+            $before = $existing ? array_values($existing)[0] : null;
+        }
+
+        $result = $this->repo->saveDocumentType($data['id_tipo_documento'] ?? null, $data['nombre'], $data['activo'] ?? true);
+
+        $after = null;
+        $id = $result['id_tipo_documento'] ?? null;
+        if ($id) {
+            $found = array_filter($this->documentTypes(true), fn($r) => $r['id_tipo_documento'] === (int) $id);
+            $after = $found ? array_values($found)[0] : null;
+        }
+
+        $action = 'CREAR';
+        if (! empty($data['id_tipo_documento'])) {
+            if (is_array($before) && is_array($after)) {
+                if (($before['activo'] ?? false) === true && ($after['activo'] ?? false) === false) {
+                    $action = 'INACTIVAR';
+                } elseif (($before['activo'] ?? false) === false && ($after['activo'] ?? false) === true) {
+                    $action = 'ACTIVAR';
+                } else {
+                    $action = 'ACTUALIZAR';
+                }
+            } else {
+                $action = 'ACTUALIZAR';
+            }
+        }
+
+        $this->audit->record($userId, 'PARAMETROS', $action, 'TIPO_DOCUMENTO', $id ?? null, $before, $after ?? $data, $context);
+
+        return $result;
+    }
+
+    public function laborDocuments(bool $onlyActive = true): array
+    {
+        return array_map(static fn (array $row): array => [
+            'id_tipo_documento_laboral' => (int) ($row['id_tipo_documento_laboral'] ?? 0),
+            'nombre' => (string) ($row['nombre'] ?? ''),
+            'descripcion' => $row['descripcion'] ?? null,
+            'obligatorio' => (bool) ($row['obligatorio'] ?? false),
+            'requiere_vencimiento' => (bool) ($row['requiere_vencimiento'] ?? false),
+            'aplica_aspirante' => (bool) ($row['aplica_aspirante'] ?? false),
+            'aplica_contratacion' => (bool) ($row['aplica_contratacion'] ?? false),
+            'aplica_retiro' => (bool) ($row['aplica_retiro'] ?? false),
+            'activo' => (bool) ($row['activo'] ?? false),
+        ], $this->repo->laborDocumentsList($onlyActive));
+    }
+
+    public function saveLaborDocument(array $data, ?int $userId, array $context): array
+    {
+        $before = null;
+        if (! empty($data['id_tipo_documento_laboral'])) {
+            $existing = array_filter($this->laborDocuments(true), fn($r) => $r['id_tipo_documento_laboral'] === (int) $data['id_tipo_documento_laboral']);
+            $before = $existing ? array_values($existing)[0] : null;
+        }
+        $result = $this->repo->saveLaborDocument(
+            $data['id_tipo_documento_laboral'] ?? null,
+            $data['nombre'],
+            $data['descripcion'] ?? null,
+            $data['obligatorio'] ?? false,
+            $data['requiere_vencimiento'] ?? false,
+            $data['aplica_aspirante'] ?? false,
+            $data['aplica_contratacion'] ?? false,
+            $data['aplica_retiro'] ?? false,
+            $data['activo'] ?? true,
+        );
+
+        $after = null;
+        $id = $result['id_tipo_documento_laboral'] ?? null;
+        if ($id) {
+            $found = array_filter($this->laborDocuments(true), fn($r) => $r['id_tipo_documento_laboral'] === (int) $id);
+            $after = $found ? array_values($found)[0] : null;
+        }
+
+        $action = 'CREAR';
+        if (! empty($data['id_tipo_documento_laboral'])) {
+            if (is_array($before) && is_array($after)) {
+                if (($before['activo'] ?? false) === true && ($after['activo'] ?? false) === false) {
+                    $action = 'INACTIVAR';
+                } elseif (($before['activo'] ?? false) === false && ($after['activo'] ?? false) === true) {
+                    $action = 'ACTIVAR';
+                } else {
+                    $action = 'ACTUALIZAR';
+                }
+            } else {
+                $action = 'ACTUALIZAR';
+            }
+        }
+
+        $this->audit->record($userId, 'PARAMETROS', $action, 'DOCUMENTO_LABORAL', $id ?? null, $before, $after ?? $data, $context);
+
+        return $result;
+    }
+
+    public function socialSecurityEntities(string $type, bool $onlyActive = true): array
+    {
+        return $this->repo->socialSecurityList($type, $onlyActive);
+    }
+
+    public function saveSocialSecurityEntity(array $data, ?int $userId, array $context): array
+    {
+        $before = null;
+        if (! empty($data['id_entidad'])) {
+            $existing = array_filter($this->socialSecurityEntities($data['tipo_entidad'], true), fn($r) => (int) ($r['id_entidad'] ?? 0) === (int) $data['id_entidad']);
+            $before = $existing ? array_values($existing)[0] : null;
+        }
+
+        $result = $this->repo->saveSocialSecurityEntity($data['id_entidad'] ?? null, $data['tipo_entidad'], $data['nombre'], $data['nit'] ?? null, $data['activo'] ?? true);
+
+        $after = null;
+        $id = $result['id_entidad'] ?? null;
+        if ($id) {
+            $found = array_filter($this->socialSecurityEntities($data['tipo_entidad'], true), fn($r) => (int) ($r['id_entidad'] ?? 0) === (int) $id);
+            $after = $found ? array_values($found)[0] : null;
+        }
+
+        $action = 'CREAR';
+        if (! empty($data['id_entidad'])) {
+            if (is_array($before) && is_array($after)) {
+                if (($before['activo'] ?? false) === true && ($after['activo'] ?? false) === false) {
+                    $action = 'INACTIVAR';
+                } elseif (($before['activo'] ?? false) === false && ($after['activo'] ?? false) === true) {
+                    $action = 'ACTIVAR';
+                } else {
+                    $action = 'ACTUALIZAR';
+                }
+            } else {
+                $action = 'ACTUALIZAR';
+            }
+        }
+
+        $this->audit->record($userId, 'PARAMETROS', $action, 'ENTIDAD_SEGURIDAD_SOCIAL', $id ?? null, $before, $after ?? $data, $context);
+
+        return $result;
+    }
+
+    public function medicalExamTypes(bool $onlyActive = true): array
+    {
+        return array_map(static fn (array $row): array => [
+            'id_tipo_examen' => (int) ($row['id_tipo_examen'] ?? 0),
+            'nombre' => (string) ($row['nombre'] ?? ''),
+            'descripcion' => $row['descripcion'] ?? null,
+            'activo' => (bool) ($row['activo'] ?? false),
+        ], $this->repo->medicalExamTypesList($onlyActive));
+    }
+
+    public function saveMedicalExamType(array $data, ?int $userId, array $context): array
+    {
+        $before = null;
+        if (! empty($data['id_tipo_examen'])) {
+            $existing = array_filter($this->medicalExamTypes(true), fn($r) => $r['id_tipo_examen'] === (int) $data['id_tipo_examen']);
+            $before = $existing ? array_values($existing)[0] : null;
+        }
+
+        $result = $this->repo->saveMedicalExamType($data['id_tipo_examen'] ?? null, $data['nombre'], $data['descripcion'] ?? null, $data['activo'] ?? true);
+
+        $after = null;
+        $id = $result['id_tipo_examen'] ?? null;
+        if ($id) {
+            $found = array_filter($this->medicalExamTypes(true), fn($r) => $r['id_tipo_examen'] === (int) $id);
+            $after = $found ? array_values($found)[0] : null;
+        }
+
+        $action = 'CREAR';
+        if (! empty($data['id_tipo_examen'])) {
+            if (is_array($before) && is_array($after)) {
+                if (($before['activo'] ?? false) === true && ($after['activo'] ?? false) === false) {
+                    $action = 'INACTIVAR';
+                } elseif (($before['activo'] ?? false) === false && ($after['activo'] ?? false) === true) {
+                    $action = 'ACTIVAR';
+                } else {
+                    $action = 'ACTUALIZAR';
+                }
+            } else {
+                $action = 'ACTUALIZAR';
+            }
+        }
+
+        $this->audit->record($userId, 'PARAMETROS', $action, 'TIPO_EXAMEN_MEDICO', $id ?? null, $before, $after ?? $data, $context);
+
+        return $result;
+    }
+
+    public function dotationArticles(bool $onlyActive = true): array
+    {
+        return array_map(static fn (array $row): array => [
+            'id_dotacion_articulo' => (int) ($row['id_dotacion_articulo'] ?? 0),
+            'codigo' => $row['codigo'] ?? null,
+            'id_tipo_dotacion' => (int) ($row['id_tipo_dotacion'] ?? 0),
+            'nombre' => (string) ($row['articulo'] ?? $row['nombre'] ?? ''),
+            'descripcion' => $row['descripcion'] ?? null,
+            'genero' => $row['genero'] ?? null,
+            'unidad_medida' => $row['unidad_medida'] ?? null,
+            'activo' => (bool) ($row['activo'] ?? false),
+        ], $this->repo->dotationArticlesList($onlyActive));
+    }
+
+    public function saveDotationArticle(array $data, ?int $userId, array $context): array
+    {
+        $before = null;
+        if (! empty($data['id_dotacion_articulo'])) {
+            $existing = array_filter($this->dotationArticles(true), fn($r) => $r['id_dotacion_articulo'] === (int) $data['id_dotacion_articulo']);
+            $before = $existing ? array_values($existing)[0] : null;
+        }
+        $result = $this->repo->saveDotationArticle(
+            $data['id_dotacion_articulo'] ?? null,
+            $data['codigo'] ?? null,
+            $data['id_tipo_dotacion'],
+            $data['nombre'],
+            $data['descripcion'] ?? null,
+            $data['genero'] ?? 'NO_APLICA',
+            $data['unidad_medida'] ?? 'UNIDAD',
+            $data['activo'] ?? true,
+        );
+
+        $after = null;
+        $id = $result['id_dotacion_articulo'] ?? null;
+        if ($id) {
+            $found = array_filter($this->dotationArticles(true), fn($r) => $r['id_dotacion_articulo'] === (int) $id);
+            $after = $found ? array_values($found)[0] : null;
+        }
+
+        $action = 'CREAR';
+        if (! empty($data['id_dotacion_articulo'])) {
+            if (is_array($before) && is_array($after)) {
+                if (($before['activo'] ?? false) === true && ($after['activo'] ?? false) === false) {
+                    $action = 'INACTIVAR';
+                } elseif (($before['activo'] ?? false) === false && ($after['activo'] ?? false) === true) {
+                    $action = 'ACTIVAR';
+                } else {
+                    $action = 'ACTUALIZAR';
+                }
+            } else {
+                $action = 'ACTUALIZAR';
+            }
+        }
+
+        $this->audit->record($userId, 'PARAMETROS', $action, 'DOTACION_ARTICULO', $id ?? null, $before, $after ?? $data, $context);
+
+        return $result;
+    }
+
+    public function systemParameters(): array
+    {
+        return $this->repo->systemParametersList();
+    }
+
+    public function saveSystemParameter(array $data, ?int $userId, array $context): array
+    {
+        $before = null;
+        if (! empty($data['id_parametro'])) {
+            $existing = array_filter($this->systemParameters(), fn($r) => (int) ($r['id_parametro'] ?? 0) === (int) $data['id_parametro']);
+            $before = $existing ? array_values($existing)[0] : null;
+        }
+
+        $result = $this->repo->saveSystemParameter(
+            $data['id_parametro'] ?? null,
+            $data['codigo'],
+            $data['nombre'],
+            $data['grupo'] ?? '',
+            $data['descripcion'] ?? null,
+            $data['tipo_dato'],
+            $data['valor'] ?? null,
+            $data['unidad_medida'] ?? null,
+            $data['vigencia_desde'] ?? null,
+            $data['vigencia_hasta'] ?? null,
+            $data['activo'] ?? true,
+            $data['editable'] ?? true,
+            $userId ?? 0,
+        );
+
+        $after = null;
+        $id = $result['id_parametro'] ?? null;
+        if ($id) {
+            $found = array_filter($this->systemParameters(), fn($r) => (int) ($r['id_parametro'] ?? 0) === (int) $id);
+            $after = $found ? array_values($found)[0] : null;
+        }
+
+        $action = 'CREAR';
+        if (! empty($data['id_parametro'])) {
+            if (is_array($before) && is_array($after)) {
+                if (($before['activo'] ?? false) === true && ($after['activo'] ?? false) === false) {
+                    $action = 'INACTIVAR';
+                } elseif (($before['activo'] ?? false) === false && ($after['activo'] ?? false) === true) {
+                    $action = 'ACTIVAR';
+                } else {
+                    $action = 'ACTUALIZAR';
+                }
+            } else {
+                $action = 'ACTUALIZAR';
+            }
+        }
+
+        $this->audit->record($userId, 'PARAMETROS', $action, 'PARAMETRO_SISTEMA', $id ?? null, $before, $after ?? $data, $context);
+
+        return $result;
+    }
+}

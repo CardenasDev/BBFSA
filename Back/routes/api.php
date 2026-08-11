@@ -46,6 +46,45 @@ Route::middleware('auth.jwt')->group(function (): void {
     Route::get('catalogs/social-security-entities', [CatalogController::class, 'socialSecurityEntities'])->middleware('permission:CONTRATACION_SEGURIDAD_SOCIAL_VER,CONTRATACION_SEGURIDAD_SOCIAL_EDITAR');
     Route::get('catalogs/medical-exam-types', [CatalogController::class, 'medicalExamTypes'])->middleware('permission:CONTRATACION_EXAMENES_VER,CONTRATACION_EXAMENES_CREAR');
     Route::get('catalogs/labor-document-types', [CatalogController::class, 'laborDocumentTypes'])->middleware('permission:ASPIRANTES_DOCUMENTOS_VER,CONTRATACION_DOCUMENTOS_VER');
+    // Parámetros administrativos centralizados
+    Route::prefix('parameters')->group(function (): void {
+        Route::get('areas', [\App\Http\Controllers\Api\ParametersController::class, 'areas'])->middleware('permission:PARAMETROS_VER');
+        Route::post('areas', [\App\Http\Controllers\Api\ParametersController::class, 'storeArea'])->middleware('permission:PARAMETROS_ADMINISTRAR');
+        Route::put('areas/{id}', [\App\Http\Controllers\Api\ParametersController::class, 'updateArea'])->whereNumber('id')->middleware('permission:PARAMETROS_ADMINISTRAR');
+
+        Route::get('positions', [\App\Http\Controllers\Api\ParametersController::class, 'positions'])->middleware('permission:PARAMETROS_VER');
+        Route::post('positions', [\App\Http\Controllers\Api\ParametersController::class, 'storePosition'])->middleware('permission:PARAMETROS_ADMINISTRAR');
+        Route::put('positions/{id}', [\App\Http\Controllers\Api\ParametersController::class, 'updatePosition'])->whereNumber('id')->middleware('permission:PARAMETROS_ADMINISTRAR');
+
+        Route::get('contract-types', [\App\Http\Controllers\Api\ParametersController::class, 'contractTypes'])->middleware('permission:PARAMETROS_VER');
+        Route::post('contract-types', [\App\Http\Controllers\Api\ParametersController::class, 'storeContractType'])->middleware('permission:PARAMETROS_ADMINISTRAR');
+        Route::put('contract-types/{id}', [\App\Http\Controllers\Api\ParametersController::class, 'updateContractType'])->whereNumber('id')->middleware('permission:PARAMETROS_ADMINISTRAR');
+
+        Route::get('document-types', [\App\Http\Controllers\Api\ParametersController::class, 'documentTypes'])->middleware('permission:PARAMETROS_VER');
+        Route::post('document-types', [\App\Http\Controllers\Api\ParametersController::class, 'storeDocumentType'])->middleware('permission:PARAMETROS_ADMINISTRAR');
+        Route::put('document-types/{id}', [\App\Http\Controllers\Api\ParametersController::class, 'updateDocumentType'])->whereNumber('id')->middleware('permission:PARAMETROS_ADMINISTRAR');
+
+        Route::get('labor-document-types', [\App\Http\Controllers\Api\ParametersController::class, 'laborDocumentTypes'])->middleware('permission:PARAMETROS_VER');
+        Route::post('labor-document-types', [\App\Http\Controllers\Api\ParametersController::class, 'storeLaborDocument'])->middleware('permission:PARAMETROS_ADMINISTRAR');
+        Route::put('labor-document-types/{id}', [\App\Http\Controllers\Api\ParametersController::class, 'updateLaborDocument'])->whereNumber('id')->middleware('permission:PARAMETROS_ADMINISTRAR');
+
+        Route::get('social-security-entities', [\App\Http\Controllers\Api\ParametersController::class, 'socialSecurityEntities'])->middleware('permission:PARAMETROS_VER');
+        Route::post('social-security-entities', [\App\Http\Controllers\Api\ParametersController::class, 'storeSocialSecurityEntity'])->middleware('permission:PARAMETROS_ADMINISTRAR');
+        Route::put('social-security-entities/{id}', [\App\Http\Controllers\Api\ParametersController::class, 'updateSocialSecurityEntity'])->whereNumber('id')->middleware('permission:PARAMETROS_ADMINISTRAR');
+
+        Route::get('medical-exam-types', [\App\Http\Controllers\Api\ParametersController::class, 'medicalExamTypes'])->middleware('permission:PARAMETROS_VER');
+        Route::post('medical-exam-types', [\App\Http\Controllers\Api\ParametersController::class, 'storeMedicalExamType'])->middleware('permission:PARAMETROS_ADMINISTRAR');
+        Route::put('medical-exam-types/{id}', [\App\Http\Controllers\Api\ParametersController::class, 'updateMedicalExamType'])->whereNumber('id')->middleware('permission:PARAMETROS_ADMINISTRAR');
+
+        Route::get('uniform-items', [\App\Http\Controllers\Api\ParametersController::class, 'uniformItems'])->middleware('permission:PARAMETROS_VER');
+        Route::get('uniform-item-families', [\App\Http\Controllers\Api\ParametersController::class, 'uniformItemFamilies'])->middleware('permission:PARAMETROS_VER');
+        Route::post('uniform-items', [\App\Http\Controllers\Api\ParametersController::class, 'storeUniformItem'])->middleware('permission:PARAMETROS_ADMINISTRAR');
+        Route::put('uniform-items/{id}', [\App\Http\Controllers\Api\ParametersController::class, 'updateUniformItem'])->whereNumber('id')->middleware('permission:PARAMETROS_ADMINISTRAR');
+
+        Route::get('system', [\App\Http\Controllers\Api\ParametersController::class, 'systemParametersList'])->middleware('permission:PARAMETROS_VER');
+        Route::post('system', [\App\Http\Controllers\Api\ParametersController::class, 'storeSystemParameter'])->middleware('permission:PARAMETROS_ADMINISTRAR');
+        Route::put('system/{id}', [\App\Http\Controllers\Api\ParametersController::class, 'updateSystemParameter'])->whereNumber('id')->middleware('permission:PARAMETROS_ADMINISTRAR');
+    });
     Route::prefix('applicants')->group(function (): void {
         Route::get('/', [ApplicantController::class, 'index'])->middleware('permission:ASPIRANTES_VER');
         Route::post('/', [ApplicantController::class, 'store'])->middleware('permission:ASPIRANTES_CREAR');

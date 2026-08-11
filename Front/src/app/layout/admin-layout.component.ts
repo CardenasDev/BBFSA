@@ -258,6 +258,24 @@ export class AdminLayoutComponent {
       route: '/admin/permissions',
       permissions: ['PERMISOS_LISTAR', 'PERMISOS_VER'],
     },
+    {
+      label: 'Parámetros',
+      icon: '⚙',
+      route: '/admin/parameters',
+      menuKey: 'parameters',
+      permissions: ['PARAMETROS_VER'],
+      children: [
+        { label: 'Áreas', icon: 'A', route: '/admin/parameters/areas', permissions: ['PARAMETROS_VER'] },
+        { label: 'Cargos', icon: 'C', route: '/admin/parameters/positions', permissions: ['PARAMETROS_VER'] },
+        { label: 'Tipos de contrato', icon: 'T', route: '/admin/parameters/contract-types', permissions: ['PARAMETROS_VER'] },
+        { label: 'Tipos de documento', icon: 'D', route: '/admin/parameters/document-types', permissions: ['PARAMETROS_VER'] },
+        { label: 'Documentos laborales', icon: 'L', route: '/admin/parameters/labor-document-types', permissions: ['PARAMETROS_VER'] },
+        { label: 'Seguridad social', icon: 'S', route: '/admin/parameters/social-security-entities', permissions: ['PARAMETROS_VER'] },
+        { label: 'Exámenes médicos', icon: 'E', route: '/admin/parameters/medical-exam-types', permissions: ['PARAMETROS_VER'] },
+        { label: 'Artículos de dotación', icon: 'D', route: '/admin/parameters/uniform-items', permissions: ['PARAMETROS_VER'] },
+        { label: 'Parámetros sistema', icon: 'P', route: '/admin/parameters/system', permissions: ['PARAMETROS_VER'] },
+      ],
+    },
     { label: 'Mi perfil', icon: 'M', route: '/admin/profile', permissions: ['MI_PERFIL_VER'] },
   ];
 

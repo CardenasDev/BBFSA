@@ -436,6 +436,66 @@ export const routes: Routes = [
           import('./features/catalogs/permissions.component').then((m) => m.PermissionsComponent),
       },
       {
+        path: 'parameters',
+        canActivate: [permissionGuard],
+        data: { permissions: ['PARAMETROS_VER'] },
+        loadComponent: () => import('./features/parameters/parameters.component').then((m) => m.ParametersComponent),
+      },
+      {
+        path: 'parameters/areas',
+        canActivate: [permissionGuard],
+        data: { permissions: ['PARAMETROS_VER'] },
+        loadComponent: () => import('./features/parameters/areas.component').then((m) => m.ParametersAreasComponent),
+      },
+      {
+        path: 'parameters/positions',
+        canActivate: [permissionGuard],
+        data: { permissions: ['PARAMETROS_VER'] },
+        loadComponent: () => import('./features/parameters/positions.component').then((m) => m.ParametersPositionsComponent),
+      },
+      {
+        path: 'parameters/contract-types',
+        canActivate: [permissionGuard],
+        data: { permissions: ['PARAMETROS_VER'] },
+        loadComponent: () => import('./features/parameters/contract-types.component').then((m) => m.ParametersContractTypesComponent),
+      },
+      {
+        path: 'parameters/document-types',
+        canActivate: [permissionGuard],
+        data: { permissions: ['PARAMETROS_VER'] },
+        loadComponent: () => import('./features/parameters/document-types.component').then((m) => m.ParametersDocumentTypesComponent),
+      },
+      {
+        path: 'parameters/labor-document-types',
+        canActivate: [permissionGuard],
+        data: { permissions: ['PARAMETROS_VER'] },
+        loadComponent: () => import('./features/parameters/labor-document-types.component').then((m) => m.ParametersLaborDocumentTypesComponent),
+      },
+      {
+        path: 'parameters/social-security-entities',
+        canActivate: [permissionGuard],
+        data: { permissions: ['PARAMETROS_VER'] },
+        loadComponent: () => import('./features/parameters/social-security-entities.component').then((m) => m.ParametersSocialSecurityEntitiesComponent),
+      },
+      {
+        path: 'parameters/medical-exam-types',
+        canActivate: [permissionGuard],
+        data: { permissions: ['PARAMETROS_VER'] },
+        loadComponent: () => import('./features/parameters/medical-exam-types.component').then((m) => m.ParametersMedicalExamTypesComponent),
+      },
+      {
+        path: 'parameters/uniform-items',
+        canActivate: [permissionGuard],
+        data: { permissions: ['PARAMETROS_VER'] },
+        loadComponent: () => import('./features/parameters/uniform-items.component').then((m) => m.ParametersUniformItemsComponent),
+      },
+      {
+        path: 'parameters/system',
+        canActivate: [permissionGuard],
+        data: { permissions: ['PARAMETROS_VER'] },
+        loadComponent: () => import('./features/parameters/system-parameters.component').then((m) => m.ParametersSystemParametersComponent),
+      },
+      {
         path: 'profile',
         loadComponent: () =>
           import('./features/profile/profile.component').then((m) => m.ProfileComponent),

@@ -10,7 +10,6 @@ class SaveDotationArticleRequest extends ApiRequest
     {
         return [
             'id_dotacion_articulo' => ['nullable', 'integer', 'min:1'],
-            'codigo' => ['nullable', 'string', 'max:100'],
             'id_tipo_dotacion' => ['required', 'integer', 'min:1'],
             'nombre' => ['required', 'string', 'max:200'],
             'descripcion' => ['nullable', 'string'],

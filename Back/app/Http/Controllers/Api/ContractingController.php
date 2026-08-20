@@ -158,6 +158,14 @@ class ContractingController extends ApiController
         );
     }
 
+    public function updateContract(CreateEmployeeContractRequest $request, int $employeeId, int $employeeContractId): JsonResponse
+    {
+        return $this->success(
+            $this->contracting->updateContract($employeeId, $employeeContractId, $this->actorId($request), $request->validated(), $this->context($request)),
+            'Contrato del empleado actualizado correctamente',
+        );
+    }
+
     /**
      * Obtener datos para generacion de contrato
      *

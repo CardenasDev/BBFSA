@@ -215,6 +215,7 @@ Route::middleware('auth.jwt')->group(function (): void {
         Route::post('employees/{employeeId}/profile', [ContractingController::class, 'saveProfile'])->whereNumber('employeeId')->middleware('permission:CONTRATACION_CREAR,CONTRATACION_EDITAR');
         Route::get('employees/{employeeId}/contracts', [ContractingController::class, 'listContracts'])->whereNumber('employeeId')->middleware('permission:CONTRATACION_HISTORIAL_VER');
         Route::post('employees/{employeeId}/contracts', [ContractingController::class, 'createContract'])->whereNumber('employeeId')->middleware('permission:CONTRATACION_CREAR');
+        Route::put('employees/{employeeId}/contracts/{employeeContractId}', [ContractingController::class, 'updateContract'])->whereNumber(['employeeId', 'employeeContractId'])->middleware('permission:CONTRATACION_EDITAR');
         Route::get('employees/{employeeId}/social-security', [ContractingController::class, 'getSocialSecurity'])->whereNumber('employeeId')->middleware('permission:CONTRATACION_SEGURIDAD_SOCIAL_VER');
         Route::post('employees/{employeeId}/social-security', [ContractingController::class, 'saveSocialSecurity'])->whereNumber('employeeId')->middleware('permission:CONTRATACION_SEGURIDAD_SOCIAL_EDITAR');
         Route::get('employees/{employeeId}/medical-exams', [ContractingController::class, 'listMedicalExams'])->whereNumber('employeeId')->middleware('permission:CONTRATACION_EXAMENES_VER');

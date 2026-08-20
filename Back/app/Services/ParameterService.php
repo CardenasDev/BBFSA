@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use Illuminate\Support\Str;
+
 use App\Repositories\ParametersRepository;
 
 class ParameterService
@@ -366,9 +368,16 @@ class ParameterService
             $existing = array_filter($this->dotationArticles(true), fn($r) => $r['id_dotacion_articulo'] === (int) $data['id_dotacion_articulo']);
             $before = $existing ? array_values($existing)[0] : null;
         }
+
+        // El código es una clave técnica: se conserva al editar y se genera al crear.
+        // De esta forma nunca depende de que el usuario conozca o diligencie el código interno.
+        $codigo = is_array($before)
+            ? ($before['codigo'] ?? null)
+            : $this->nextDotationArticleCode($data['nombre']);
+
         $result = $this->repo->saveDotationArticle(
             $data['id_dotacion_articulo'] ?? null,
-            $data['codigo'] ?? null,
+            $codigo,
             $data['id_tipo_dotacion'],
             $data['nombre'],
             $data['descripcion'] ?? null,
@@ -402,6 +411,31 @@ class ParameterService
         $this->audit->record($userId, 'PARAMETROS', $action, 'DOTACION_ARTICULO', $id ?? null, $before, $after ?? $data, $context);
 
         return $result;
+    }
+
+    private function nextDotationArticleCode(string $name): string
+    {
+        $base = strtoupper((string) Str::of(Str::ascii($name))
+            ->replaceMatches('/[^A-Za-z0-9]+/', '_')
+            ->trim('_'));
+        $base = substr($base !== '' ? $base : 'ARTICULO', 0, 50);
+
+        $usedCodes = array_fill_keys(array_filter(array_map(
+            static fn (array $article): string => strtoupper((string) ($article['codigo'] ?? '')),
+            $this->dotationArticles(true)
+        )), true);
+
+        if (! isset($usedCodes[$base])) {
+            return $base;
+        }
+
+        for ($suffix = 2; ; $suffix++) {
+            $tail = '_'.$suffix;
+            $candidate = substr($base, 0, 50 - strlen($tail)).$tail;
+            if (! isset($usedCodes[$candidate])) {
+                return $candidate;
+            }
+        }
     }
 
     public function systemParameters(): array

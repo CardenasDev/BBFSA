@@ -84,6 +84,7 @@ const BASE_FIELDS = [
                   }
                 </td>
                 <td class="actions-cell">
+                  @if (auth.hasPermission('CONTRATACION_EDITAR')) { <button class="btn small secondary" type="button" (click)="openEdit(contract)">Editar</button> }
                   <button class="btn small ghost" type="button" (click)="toggleDetail(contract)">{{ isExpanded(contract) ? 'Ocultar' : 'Ver detalle' }}</button>
                   <button class="btn small secondary" type="button" (click)="openGenerationData(contract)" [disabled]="generationLoading()">Datos generacion</button>
                   @if (contractId(contract); as printableContractId) {
@@ -132,15 +133,15 @@ const BASE_FIELDS = [
 
     @if (createOpen()) {
       <button class="drawer-backdrop" type="button" aria-label="Cerrar contrato" (click)="closeCreate()"></button>
-      <aside class="role-drawer" aria-label="Crear contrato" aria-modal="true">
+      <aside class="role-drawer" [attr.aria-label]="editingContractId ? 'Editar contrato' : 'Crear contrato'" aria-modal="true">
         <header class="drawer-header">
-          <div><p class="eyebrow">Nuevo contrato</p><h2>Contrato del empleado</h2></div>
+          <div><p class="eyebrow">{{ editingContractId ? 'Editar contrato' : 'Nuevo contrato' }}</p><h2>Contrato del empleado</h2></div>
           <button class="icon-btn close-btn" type="button" (click)="closeCreate()" aria-label="Cerrar">x</button>
         </header>
 
         @if (formError()) { <div class="alert error">{{ formError() }}</div> }
         @if (templateMessage()) { <div class="alert success">{{ templateMessage() }}</div> }
-        <form class="form-grid" (ngSubmit)="createContract()">
+        <form class="form-grid" (ngSubmit)="saveContract()">
           <label>Tipo contrato
             <select name="id_tipo_contrato" [(ngModel)]="form.id_tipo_contrato" (ngModelChange)="onContractTypeChange($event)" required>
               <option [ngValue]="null">Seleccione...</option>
@@ -241,7 +242,7 @@ const BASE_FIELDS = [
           <label class="form-wide">Observaciones<textarea rows="3" name="observaciones" [(ngModel)]="form.observaciones"></textarea></label>
           <div class="form-actions form-wide">
             <button class="btn secondary" type="button" (click)="closeCreate()" [disabled]="saving()">Cancelar</button>
-            <button class="btn primary" type="submit" [disabled]="saving() || salaryLoading()">{{ saving() ? 'Guardando...' : (salaryLoading() ? 'Consultando salario...' : 'Registrar contrato') }}</button>
+            <button class="btn primary" type="submit" [disabled]="saving() || salaryLoading()">{{ saving() ? 'Guardando...' : (salaryLoading() ? 'Consultando salario...' : (editingContractId ? 'Guardar cambios' : 'Registrar contrato')) }}</button>
           </div>
         </form>
       </aside>
@@ -332,6 +333,7 @@ export class ContractingContractsComponent implements OnInit {
   readonly chargeTypes = CONTRACT_CHARGE_TYPES;
   readonly paymentPeriods = PAYMENT_PERIODS;
   employeeId = 0;
+  editingContractId: number | null = null;
   form: CreateEmployeeContractRequest = this.emptyForm();
 
   ngOnInit(): void {
@@ -365,6 +367,7 @@ export class ContractingContractsComponent implements OnInit {
   }
 
   openCreate(): void {
+    this.editingContractId = null;
     this.form = this.emptyForm();
     this.form.numero_contrato = this.nextContractNumber();
     this.loadMinimumSalary(this.form.fecha_inicio ?? '', true);
@@ -374,6 +377,29 @@ export class ContractingContractsComponent implements OnInit {
     this.templateMessage.set('');
     this.success.set('');
     this.createOpen.set(true);
+  }
+
+  openEdit(contract: EmployeeContract): void {
+    const contractId = this.contractId(contract);
+    if (!contractId) { this.error.set('No fue posible identificar el contrato que deseas editar.'); return; }
+    this.editingContractId = contractId;
+    this.form = {
+      id_tipo_contrato: this.numberOrNull(contract.id_tipo_contrato), id_plantilla_contrato: this.numberOrNull(contract.id_plantilla_contrato),
+      id_area: this.numberOrNull(contract.id_area), id_cargo: this.numberOrNull(contract.id_cargo), fecha_inicio: contract.fecha_inicio,
+      fecha_fin: contract.fecha_fin ?? null, duracion_meses: this.numberOrNull(contract.duracion_meses),
+      salario_base: contract.salario_base == null ? null : Number(contract.salario_base),
+      auxilio_transporte: contract.auxilio_transporte == null ? null : this.booleanOrNull(contract.auxilio_transporte),
+      periodo_pago: contract.periodo_pago ?? null, lugar_labores: contract.lugar_labores ?? null, numero_contrato: contract.numero_contrato ?? null,
+      tipo_cargo_contrato: contract.tipo_cargo_contrato ?? null, objeto_obra_labor: contract.objeto_obra_labor ?? null,
+      prorroga_dias: this.numberOrNull(contract.prorroga_dias), clausula_funciones: contract.clausula_funciones ?? null,
+      jornada_laboral: contract.jornada_laboral ?? null, periodo_prueba_dias: this.numberOrNull(contract.periodo_prueba_dias),
+      estado_contrato: contract.estado_contrato ?? 'ACTIVO', archivo_contrato_url: contract.archivo_contrato_url ?? null,
+      observaciones: contract.observaciones ?? null,
+    };
+    this.formError.set(''); this.templateMessage.set(''); this.success.set(''); this.selectedTemplate.set(null);
+    this.createOpen.set(true);
+    this.loadMinimumSalary(this.form.fecha_inicio, false);
+    this.loadTemplatesForCurrentSelection();
   }
 
   closeCreate(): void {
@@ -409,7 +435,7 @@ export class ContractingContractsComponent implements OnInit {
     this.templateMessage.set('Se cargaron valores sugeridos por la plantilla. Puedes ajustarlos antes de guardar.');
   }
 
-  createContract(): void {
+  saveContract(): void {
     const validation = this.validate();
     if (validation) {
       this.formError.set(validation);
@@ -417,16 +443,20 @@ export class ContractingContractsComponent implements OnInit {
     }
     this.saving.set(true);
     this.formError.set('');
-    this.service.createEmployeeContract(this.employeeId, this.normalize()).pipe(finalize(() => this.saving.set(false))).subscribe({
+    const operation = this.editingContractId
+      ? this.service.updateEmployeeContract(this.employeeId, this.editingContractId, this.normalize())
+      : this.service.createEmployeeContract(this.employeeId, this.normalize());
+    operation.pipe(finalize(() => this.saving.set(false))).subscribe({
       next: () => {
-        this.success.set('Contrato registrado correctamente.');
+        this.success.set(this.editingContractId ? 'Contrato actualizado correctamente.' : 'Contrato registrado correctamente.');
+        this.editingContractId = null;
         this.form = this.emptyForm();
         this.contractTemplates.set([]);
         this.selectedTemplate.set(null);
         this.createOpen.set(false);
         this.load();
       },
-      error: (error) => this.formError.set(apiErrorMessage(error, 'No fue posible registrar el contrato.')),
+      error: (error) => this.formError.set(apiErrorMessage(error, this.editingContractId ? 'No fue posible actualizar el contrato.' : 'No fue posible registrar el contrato.')),
     });
   }
 
@@ -603,6 +633,8 @@ export class ContractingContractsComponent implements OnInit {
     }).pipe(finalize(() => this.templatesLoading.set(false))).subscribe({
       next: (templates) => {
         this.contractTemplates.set(templates);
+        const selectedId = this.numberOrNull(this.form.id_plantilla_contrato);
+        this.selectedTemplate.set(templates.find((template) => template.id_plantilla_contrato === selectedId) ?? null);
         if (templates.length === 0) this.templateMessage.set('');
       },
       error: (error) => this.formError.set(apiErrorMessage(error, 'No fue posible cargar las plantillas de contrato.')),
@@ -646,7 +678,7 @@ export class ContractingContractsComponent implements OnInit {
     if (Number(this.form.periodo_prueba_dias ?? 0) < 0) return 'El periodo de prueba debe ser mayor o igual a cero.';
     if (Number(this.form.prorroga_dias ?? 0) < 0) return 'La prorroga en dias debe ser mayor o igual a cero.';
     if ((this.form.numero_contrato ?? '').length > 100) return 'El numero de contrato no puede superar 100 caracteres.';
-    if (this.form.numero_contrato && this.contracts().some((contract) => contract.numero_contrato?.trim().toLocaleLowerCase() === this.form.numero_contrato?.trim().toLocaleLowerCase())) {
+    if (this.form.numero_contrato && this.contracts().some((contract) => this.contractId(contract) !== this.editingContractId && contract.numero_contrato?.trim().toLocaleLowerCase() === this.form.numero_contrato?.trim().toLocaleLowerCase())) {
       return 'El numero de contrato ya existe para este empleado.';
     }
     if ((this.form.periodo_pago ?? '').length > 100) return 'El periodo de pago no puede superar 100 caracteres.';
@@ -699,7 +731,9 @@ export class ContractingContractsComponent implements OnInit {
       jornada_laboral: this.visibleStringOrNull('jornada_laboral', this.form.jornada_laboral),
       periodo_prueba_dias: this.visibleNumberOrNull('periodo_prueba_dias', this.form.periodo_prueba_dias),
       estado_contrato: this.visibleStringOrNull('estado_contrato', this.form.estado_contrato),
-      archivo_contrato_url: this.visibleStringOrNull('archivo_contrato_url', this.form.archivo_contrato_url),
+      archivo_contrato_url: this.editingContractId
+        ? this.stringOrNull(this.form.archivo_contrato_url)
+        : this.visibleStringOrNull('archivo_contrato_url', this.form.archivo_contrato_url),
       observaciones: this.stringOrNull(this.form.observaciones),
     };
   }

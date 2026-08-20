@@ -148,6 +148,11 @@ export class ContractingService {
     return this.createContract(employeeId, payload);
   }
 
+  updateEmployeeContract(employeeId: number, employeeContractId: number, payload: CreateEmployeeContractRequest): Observable<EmployeeContract> {
+    return this.http.put<ApiResponse<EmployeeContract>>(`${this.url}/employees/${employeeId}/contracts/${employeeContractId}`, payload)
+      .pipe(map((response) => response.data));
+  }
+
   signContract(
     employeeContractId: number,
     payload: SignEmployeeContractRequest,

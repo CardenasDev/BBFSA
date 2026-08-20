@@ -970,7 +970,6 @@ export interface UniformItemFamily {
 }
 
 export interface SaveDotationArticleRequest {
-  codigo?: string | null;
   id_tipo_dotacion: number;
   nombre: string;
   descripcion?: string | null;

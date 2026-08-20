@@ -82,13 +82,41 @@ class ContractingRepository extends StoredProcedureRepository
         return array_map(fn (array $row): array => $this->normalizeTemplateJson($row), $this->call('SP_BBF_CONTRATACION_CONTRATOS_LISTAR', [$employeeId]));
     }
 
-    public function contractNumberExists(int $employeeId, string $contractNumber): bool
+    public function contractNumberExists(int $employeeId, string $contractNumber, ?int $excludeContractId = null): bool
     {
         return DB::table('bbf_empleado_contratos')
             ->where('ID_EMPLEADO', $employeeId)
             ->where('NUMERO_CONTRATO', trim($contractNumber))
             ->where('ELIMINADO', 0)
+            ->when($excludeContractId, fn ($query) => $query->where('ID_EMPLEADO_CONTRATO', '<>', $excludeContractId))
             ->exists();
+    }
+
+    public function findContract(int $employeeId, int $employeeContractId): ?array
+    {
+        $row = DB::table('bbf_empleado_contratos')->where('ID_EMPLEADO', $employeeId)
+            ->where('ID_EMPLEADO_CONTRATO', $employeeContractId)->where('ELIMINADO', 0)->first();
+
+        return $row ? (array) $row : null;
+    }
+
+    public function updateContract(int $employeeId, int $employeeContractId, array $data): void
+    {
+        DB::table('bbf_empleado_contratos')->where('ID_EMPLEADO', $employeeId)
+            ->where('ID_EMPLEADO_CONTRATO', $employeeContractId)->where('ELIMINADO', 0)->update([
+                'ID_TIPO_CONTRATO' => $data['id_tipo_contrato'] ?? null, 'ID_PLANTILLA_CONTRATO' => $data['id_plantilla_contrato'] ?? null,
+                'ID_AREA' => $data['id_area'] ?? null, 'ID_CARGO' => $data['id_cargo'] ?? null,
+                'FECHA_INICIO' => $data['fecha_inicio'], 'FECHA_FIN' => $data['fecha_fin'] ?? null,
+                'DURACION_MESES' => $data['duracion_meses'] ?? null, 'SALARIO_BASE' => $data['salario_base'] ?? null,
+                'AUXILIO_TRANSPORTE' => $this->booleanToDatabase($data['auxilio_transporte'] ?? null),
+                'PERIODO_PAGO' => $data['periodo_pago'] ?? null, 'LUGAR_LABORES' => $data['lugar_labores'] ?? null,
+                'NUMERO_CONTRATO' => $data['numero_contrato'] ?? null, 'TIPO_CARGO_CONTRATO' => $data['tipo_cargo_contrato'] ?? null,
+                'OBJETO_OBRA_LABOR' => $data['objeto_obra_labor'] ?? null, 'PRORROGA_DIAS' => $data['prorroga_dias'] ?? null,
+                'CLAUSULA_FUNCIONES' => $data['clausula_funciones'] ?? null, 'JORNADA_LABORAL' => $data['jornada_laboral'] ?? null,
+                'PERIODO_PRUEBA_DIAS' => $data['periodo_prueba_dias'] ?? null, 'ESTADO_CONTRATO' => $data['estado_contrato'] ?? 'ACTIVO',
+                'ARCHIVO_CONTRATO_URL' => $data['archivo_contrato_url'] ?? null, 'OBSERVACIONES' => $data['observaciones'] ?? null,
+                'UPDATED_AT' => now(),
+            ]);
     }
 
     public function createContract(int $employeeId, int $userId, array $data): array

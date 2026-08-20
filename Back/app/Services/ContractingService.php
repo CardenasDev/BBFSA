@@ -116,6 +116,30 @@ class ContractingService
         return $created;
     }
 
+    public function updateContract(int $employeeId, int $employeeContractId, int $userId, array $data, array $context): array
+    {
+        $before = $this->contracting->findContract($employeeId, $employeeContractId)
+            ?? throw new ApiException('El contrato no existe o no pertenece al empleado.', 404);
+        $payload = $this->normalizeData($data);
+        $minimumSalary = $this->minimumSalary($payload['fecha_inicio'])['valor_numerico'];
+        $salary = $payload['salario_base'] ?? null;
+        if (! is_numeric($salary) || (float) $salary < $minimumSalary) {
+            throw new ApiException('El salario base no puede ser inferior al salario minimo vigente de $'.number_format($minimumSalary, 0, ',', '.').'.', 422);
+        }
+        $contractNumber = $payload['numero_contrato'] ?? null;
+        if ($contractNumber && $this->contracting->contractNumberExists($employeeId, $contractNumber, $employeeContractId)) {
+            throw new ApiException('El numero de contrato ya existe para este empleado.', 422);
+        }
+
+        $this->contracting->updateContract($employeeId, $employeeContractId, $payload);
+        $updated = collect($this->contracting->listContracts($employeeId))->first(fn (array $row): bool => $this->contractId($row) === $employeeContractId);
+        if (! $updated) throw new ApiException('No fue posible consultar el contrato actualizado.', 422);
+
+        $this->audit->record($userId, 'CONTRATACION', 'CONTRATACION_CONTRATO_ACTUALIZAR', 'CONTRATO_EMPLEADO', $employeeContractId, $before, $payload, $context);
+
+        return $updated;
+    }
+
     public function signContract(int $employeeContractId, int $userId, array $data, array $context): array
     {
         $payload = $this->buildSignedContractPayload($employeeContractId, $this->normalizeData($data));

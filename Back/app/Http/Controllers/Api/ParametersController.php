@@ -8,9 +8,12 @@ use App\Http\Requests\SaveDocumentTypeRequest;
 use App\Http\Requests\SaveDotationArticleRequest;
 use App\Http\Requests\SaveLaborDocumentRequest;
 use App\Http\Requests\SaveMedicalExamTypeRequest;
+use App\Http\Requests\SaveNoveltyTypeRequest;
 use App\Http\Requests\SavePositionRequest;
 use App\Http\Requests\SaveSocialSecurityEntityRequest;
 use App\Http\Requests\SaveSystemParameterRequest;
+use App\Http\Requests\SaveDepartmentRequest;
+use App\Http\Requests\SaveMunicipalityRequest;
 use App\Services\ParameterService;
 use Dedoc\Scramble\Attributes\Group;
 use Illuminate\Http\JsonResponse;
@@ -21,6 +24,13 @@ use App\Services\DotationService;
 class ParametersController extends ApiController
 {
     public function __construct(private readonly ParameterService $params) {}
+
+    public function departments(Request $request): JsonResponse { return $this->success($this->params->departments($request->boolean('includeInactive'))); }
+    public function storeDepartment(SaveDepartmentRequest $request): JsonResponse { return $this->success($this->params->saveDepartment($request->validated(),$this->actorId($request),$this->context($request)),'Departamento guardado correctamente.',201); }
+    public function updateDepartment(SaveDepartmentRequest $request,int $id): JsonResponse { $data=$request->validated(); $data['id_departamento']=$id; return $this->success($this->params->saveDepartment($data,$this->actorId($request),$this->context($request)),'Departamento actualizado correctamente.'); }
+    public function municipalities(Request $request): JsonResponse { $id=$request->integer('departmentId')?:null; return $this->success($this->params->municipalities($id,$request->boolean('includeInactive'))); }
+    public function storeMunicipality(SaveMunicipalityRequest $request): JsonResponse { return $this->success($this->params->saveMunicipality($request->validated(),$this->actorId($request),$this->context($request)),'Municipio guardado correctamente.',201); }
+    public function updateMunicipality(SaveMunicipalityRequest $request,int $id): JsonResponse { $data=$request->validated(); $data['id_municipio']=$id; return $this->success($this->params->saveMunicipality($data,$this->actorId($request),$this->context($request)),'Municipio actualizado correctamente.'); }
 
     /**
      * Listar familias técnicas de artículos (solo datos técnicos)
@@ -264,6 +274,25 @@ class ParametersController extends ApiController
         $result = $this->params->saveMedicalExamType($data, $this->actorId($request), $this->context($request));
 
         return $this->success($result, 'Tipo de examen actualizado correctamente.');
+    }
+
+    public function noveltyTypes(Request $request): JsonResponse
+    {
+        return $this->success($this->params->noveltyTypes($request->boolean('includeInactive', false)));
+    }
+
+    public function storeNoveltyType(SaveNoveltyTypeRequest $request): JsonResponse
+    {
+        $result = $this->params->saveNoveltyType($request->validated(), $this->actorId($request), $this->context($request));
+        return $this->success($result, 'Tipo de novedad guardado correctamente.', 201);
+    }
+
+    public function updateNoveltyType(SaveNoveltyTypeRequest $request, int $id): JsonResponse
+    {
+        $data = $request->validated();
+        $data['id_tipo_novedad'] = $id;
+        $result = $this->params->saveNoveltyType($data, $this->actorId($request), $this->context($request));
+        return $this->success($result, 'Tipo de novedad actualizado correctamente.');
     }
 
     /**

@@ -11,6 +11,7 @@ use App\Http\Requests\ListDotationEmployeesRequest;
 use App\Http\Requests\SaveEmployeeDotationArticleSizeRequest;
 use App\Http\Requests\PrepareDotationDeliveryRequest;
 use App\Http\Requests\SaveMyDotationSizeRequest;
+use App\Http\Requests\UpdateDotationEvidenceRequest;
 use App\Services\DotationService;
 use Dedoc\Scramble\Attributes\Group;
 use Illuminate\Http\JsonResponse;
@@ -293,6 +294,24 @@ class DotationController extends ApiController
         return $this->success(
             $this->dotations->deliveryDetails($deliveryId),
             'Detalle de entrega consultado correctamente',
+        );
+    }
+
+    /** Reemplazar la evidencia de una entrega mediante archivo o URL. */
+    public function replaceDeliveryEvidence(UpdateDotationEvidenceRequest $request, int $deliveryId): JsonResponse
+    {
+        return $this->success(
+            $this->dotations->replaceDeliveryEvidence($deliveryId, $request->validated(), $this->actorId($request), $this->context($request)),
+            'Evidencia de la entrega reemplazada correctamente',
+        );
+    }
+
+    /** Eliminar la evidencia actual sin eliminar la entrega. */
+    public function deleteDeliveryEvidence(Request $request, int $deliveryId): JsonResponse
+    {
+        return $this->success(
+            $this->dotations->deleteDeliveryEvidence($deliveryId, $this->actorId($request), $this->context($request)),
+            'Evidencia de la entrega eliminada correctamente',
         );
     }
 

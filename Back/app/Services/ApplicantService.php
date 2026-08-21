@@ -120,7 +120,6 @@ class ApplicantService
     public function registerDocument(int $applicantId, array $data, int $userId, array $context): array
     {
         $normalized = $this->normalizeData($data);
-        $normalized['id_tipo_documento_laboral'] = $current['ID_TIPO_DOCUMENTO_LABORAL'] ?? $current['id_tipo_documento_laboral'];
         $payload = $this->buildDocumentPayload($applicantId, $normalized);
         $storedPath = $payload['archivo_ruta'] ?? null;
 

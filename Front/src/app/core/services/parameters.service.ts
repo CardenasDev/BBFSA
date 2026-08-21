@@ -10,6 +10,8 @@ import {
   DocumentType,
   LaborDocumentType,
   MedicalExamType,
+  NoveltyTypeParameter,
+  SaveNoveltyTypePayload,
   DotationArticle,
   SocialSecurityType,
   ParametersSocialSecurityEntity,
@@ -18,12 +20,21 @@ import {
   SaveDotationArticleRequest,
   SystemParameter,
   SaveSystemParameterPayload,
+  DepartmentParameter,
+  MunicipalityParameter,
 } from '../models/api.models';
 
 @Injectable({ providedIn: 'root' })
 export class ParametersService {
   private readonly http = inject(HttpClient);
   private readonly base = `${environment.apiUrl}/parameters`;
+
+  listDepartments(): Observable<DepartmentParameter[]> { return this.http.get<ApiResponse<DepartmentParameter[]>>(`${this.base}/departments`, {params:new HttpParams().set('includeInactive','true')}).pipe(map(r=>r.data??[])); }
+  createDepartment(payload: Partial<DepartmentParameter>): Observable<DepartmentParameter> { return this.http.post<ApiResponse<DepartmentParameter>>(`${this.base}/departments`,payload).pipe(map(r=>r.data)); }
+  updateDepartment(id:number,payload:Partial<DepartmentParameter>): Observable<DepartmentParameter> { return this.http.put<ApiResponse<DepartmentParameter>>(`${this.base}/departments/${id}`,payload).pipe(map(r=>r.data)); }
+  listMunicipalities(departmentId?:number): Observable<MunicipalityParameter[]> { let params=new HttpParams().set('includeInactive','true'); if(departmentId) params=params.set('departmentId',departmentId); return this.http.get<ApiResponse<MunicipalityParameter[]>>(`${this.base}/municipalities`,{params}).pipe(map(r=>r.data??[])); }
+  createMunicipality(payload: Partial<MunicipalityParameter>): Observable<MunicipalityParameter> { return this.http.post<ApiResponse<MunicipalityParameter>>(`${this.base}/municipalities`,payload).pipe(map(r=>r.data)); }
+  updateMunicipality(id:number,payload:Partial<MunicipalityParameter>): Observable<MunicipalityParameter> { return this.http.put<ApiResponse<MunicipalityParameter>>(`${this.base}/municipalities/${id}`,payload).pipe(map(r=>r.data)); }
 
   listAreas(): Observable<Area[]> {
     return this.http.get<ApiResponse<Area[]>>(`${this.base}/areas`).pipe(map((r) => r.data ?? []));
@@ -117,6 +128,19 @@ export class ParametersService {
 
   updateMedicalExamType(id: number, payload: { nombre: string; descripcion?: string | null; activo?: boolean }): Observable<any> {
     return this.http.put<ApiResponse<any>>(`${this.base}/medical-exam-types/${id}`, payload).pipe(map((r) => r.data));
+  }
+
+  listNoveltyTypes(): Observable<NoveltyTypeParameter[]> {
+    const params = new HttpParams().set('includeInactive', 'true');
+    return this.http.get<ApiResponse<NoveltyTypeParameter[]>>(`${this.base}/novelty-types`, { params }).pipe(map((r) => r.data ?? []));
+  }
+
+  createNoveltyType(payload: SaveNoveltyTypePayload): Observable<NoveltyTypeParameter> {
+    return this.http.post<ApiResponse<NoveltyTypeParameter>>(`${this.base}/novelty-types`, payload).pipe(map((r) => r.data));
+  }
+
+  updateNoveltyType(id: number, payload: SaveNoveltyTypePayload): Observable<NoveltyTypeParameter> {
+    return this.http.put<ApiResponse<NoveltyTypeParameter>>(`${this.base}/novelty-types/${id}`, payload).pipe(map((r) => r.data));
   }
 
   /* Uniform items */

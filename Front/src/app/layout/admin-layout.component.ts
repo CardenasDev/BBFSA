@@ -186,6 +186,12 @@ export class AdminLayoutComponent {
       ],
     },
     {
+      label: 'Novedades',
+      icon: 'N',
+      route: '/admin/novelties',
+      permissions: ['NOVEDADES_VER'],
+    },
+    {
       label: 'Capacitaciones',
       icon: 'CA',
       route: '/admin/trainings',
@@ -272,6 +278,8 @@ export class AdminLayoutComponent {
         { label: 'Documentos laborales', icon: 'L', route: '/admin/parameters/labor-document-types', permissions: ['PARAMETROS_VER'] },
         { label: 'Seguridad social', icon: 'S', route: '/admin/parameters/social-security-entities', permissions: ['PARAMETROS_VER'] },
         { label: 'Exámenes médicos', icon: 'E', route: '/admin/parameters/medical-exam-types', permissions: ['PARAMETROS_VER'] },
+        { label: 'Tipos de novedad', icon: 'N', route: '/admin/parameters/novelty-types', permissions: ['PARAMETROS_VER'] },
+        { label: 'Departamentos y municipios', icon: 'G', route: '/admin/parameters/geography', permissions: ['PARAMETROS_VER'] },
         { label: 'Artículos de dotación', icon: 'D', route: '/admin/parameters/uniform-items', permissions: ['PARAMETROS_VER'] },
         { label: 'Parámetros sistema', icon: 'P', route: '/admin/parameters/system', permissions: ['PARAMETROS_VER'] },
       ],

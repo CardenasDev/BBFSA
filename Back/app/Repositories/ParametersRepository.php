@@ -4,6 +4,11 @@ namespace App\Repositories;
 
 class ParametersRepository extends StoredProcedureRepository
 {
+    public function departmentsList(bool $includeInactive): array { return $this->call('SP_BBF_PARAM_DEPARTAMENTOS_LISTAR', [(int) $includeInactive]); }
+    public function saveDepartment(?int $id, string $code, string $name, bool $active): array { return $this->first('SP_BBF_PARAM_DEPARTAMENTO_GUARDAR', [$id, $code, $name, (int) $active]); }
+    public function municipalitiesList(?int $departmentId, bool $includeInactive): array { return $this->call('SP_BBF_PARAM_MUNICIPIOS_LISTAR', [$departmentId, (int) $includeInactive]); }
+    public function saveMunicipality(?int $id, int $departmentId, string $code, string $name, bool $active): array { return $this->first('SP_BBF_PARAM_MUNICIPIO_GUARDAR', [$id, $departmentId, $code, $name, (int) $active]); }
+
     public function areasList(bool $includeInactive): array
     {
         return $this->call('SP_BBF_PARAM_AREAS_LISTAR', [(int) $includeInactive]);
@@ -82,6 +87,20 @@ class ParametersRepository extends StoredProcedureRepository
     public function saveMedicalExamType(?int $id, string $nombre, ?string $descripcion, bool $activo): array
     {
         return $this->first('SP_BBF_PARAM_TIPO_EXAMEN_GUARDAR', [$id ?: null, $nombre, $descripcion, (int) $activo]);
+    }
+
+    public function noveltyTypesList(bool $includeInactive): array
+    {
+        return $this->call('SP_BBF_PARAM_TIPOS_NOVEDAD_LISTAR', [(int) $includeInactive]);
+    }
+
+    public function saveNoveltyType(?int $id, ?string $codigo, string $nombre, ?string $descripcion, bool $requiereFechaFin, bool $requiereSoporte, bool $esIncapacidad, bool $activo): array
+    {
+        return $this->first('SP_BBF_PARAM_TIPO_NOVEDAD_GUARDAR', [
+            $id ?: null, $codigo, $nombre, $descripcion,
+            (int) $requiereFechaFin, (int) $requiereSoporte,
+            (int) $esIncapacidad, (int) $activo,
+        ]);
     }
 
     public function dotationArticlesList(bool $includeInactive): array

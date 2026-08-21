@@ -29,6 +29,7 @@ import {
   PrepareDotationDeliveryRequest,
   SaveMyDotationSizeRequest,
   SaveEmployeeDotationArticleSizeRequest,
+  UpdateDotationEvidenceRequest,
 } from '../models/api.models';
 
 export function resolveDotationEvidenceUrl(publicUrl?: string | null): string | null {
@@ -271,6 +272,19 @@ export class DotationService {
         },
       )
       .pipe(map((response) => response.data));
+  }
+
+  replaceDeliveryEvidence(deliveryId: number, payload: UpdateDotationEvidenceRequest): Observable<DotationDelivery> {
+    const form = new FormData();
+    form.append('origen_evidencia', payload.origen_evidencia);
+    if (payload.evidencia_nombre_archivo) form.append('evidencia_nombre_archivo', payload.evidencia_nombre_archivo);
+    if (payload.origen_evidencia === 'ARCHIVO' && payload.evidencia_archivo) form.append('evidencia_archivo', payload.evidencia_archivo);
+    if (payload.origen_evidencia === 'URL' && payload.evidencia_url) form.append('evidencia_url', payload.evidencia_url);
+    return this.http.post<ApiResponse<DotationDelivery>>(`${this.url}/deliveries/${deliveryId}/evidence`, form).pipe(map((response) => response.data));
+  }
+
+  deleteDeliveryEvidence(deliveryId: number): Observable<DotationDelivery> {
+    return this.http.delete<ApiResponse<DotationDelivery>>(`${this.url}/deliveries/${deliveryId}/evidence`).pipe(map((response) => response.data));
   }
 
   private params(filters: object): HttpParams {

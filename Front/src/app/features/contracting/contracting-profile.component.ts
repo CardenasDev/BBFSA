@@ -14,6 +14,7 @@ import { AuthService } from '../../core/services/auth.service';
 import { ContractingService } from '../../core/services/contracting.service';
 import { CatalogService } from '../../core/services/catalog.service';
 import { apiErrorMessage } from '../../shared/api-error';
+import { SearchableSelectComponent } from '../../shared/searchable-select.component';
 
 const CIVIL_STATES = [
   'SOLTERO',
@@ -63,7 +64,7 @@ interface ContractingProfileForm extends SaveContractingProfileRequest {
 
 @Component({
   standalone: true,
-  imports: [FormsModule, RouterLink],
+  imports: [FormsModule, RouterLink, SearchableSelectComponent],
   template: `
     <div class="page-heading">
       <div>
@@ -220,6 +221,15 @@ interface ContractingProfileForm extends SaveContractingProfileRequest {
             [disabled]="!canEdit() || saving()"
         /></label>
         <label
+          >Lugar de expedición<input
+            type="text"
+            name="lugar_expedicion_documento"
+            [(ngModel)]="form.lugar_expedicion_documento"
+            [disabled]="!canEdit() || saving()"
+            maxlength="150"
+            placeholder="Ej. Bogotá D.C."
+        /></label>
+        <label
           >Fecha nacimiento<input
             type="date"
             name="fecha_nacimiento"
@@ -228,17 +238,13 @@ interface ContractingProfileForm extends SaveContractingProfileRequest {
         /></label>
         <label
           >Departamento nacimiento
-          <select
+          <app-searchable-select
             name="id_departamento_nacimiento"
             [(ngModel)]="form.id_departamento_nacimiento"
             (ngModelChange)="onBirthDepartmentChange($event)"
             [disabled]="!canEdit() || saving() || isLoadingDepartments()"
-          >
-            <option [ngValue]="null">Seleccione departamento</option>
-            @for (department of departments(); track department.id_departamento) {
-              <option [ngValue]="department.id_departamento">{{ department.nombre }}</option>
-            }
-          </select>
+            [options]="departmentOptions()" placeholder="Escriba para buscar departamento"
+          />
           @if (!form.id_departamento_nacimiento && profile()?.departamento_nacimiento) {
             <small class="muted"
               >Valor registrado anteriormente: {{ profile()?.departamento_nacimiento }}</small
@@ -247,7 +253,7 @@ interface ContractingProfileForm extends SaveContractingProfileRequest {
         </label>
         <label
           >Lugar/Ciudad nacimiento
-          <select
+          <app-searchable-select
             name="id_municipio_nacimiento"
             [(ngModel)]="form.id_municipio_nacimiento"
             [disabled]="
@@ -256,12 +262,8 @@ interface ContractingProfileForm extends SaveContractingProfileRequest {
               !form.id_departamento_nacimiento ||
               isLoadingBirthMunicipalities()
             "
-          >
-            <option [ngValue]="null">Seleccione municipio</option>
-            @for (municipality of birthMunicipalities(); track municipality.id_municipio) {
-              <option [ngValue]="municipality.id_municipio">{{ municipality.nombre }}</option>
-            }
-          </select>
+            [options]="birthMunicipalityOptions()" placeholder="Escriba para buscar municipio"
+          />
           @if (!form.id_municipio_nacimiento && profile()?.lugar_nacimiento) {
             <small class="muted"
               >Valor registrado anteriormente: {{ profile()?.lugar_nacimiento }}</small
@@ -278,17 +280,13 @@ interface ContractingProfileForm extends SaveContractingProfileRequest {
         /></label>
         <label
           >Departamento residencia
-          <select
+          <app-searchable-select
             name="id_departamento_residencia"
             [(ngModel)]="form.id_departamento_residencia"
             (ngModelChange)="onResidenceDepartmentChange($event)"
             [disabled]="!canEdit() || saving() || isLoadingDepartments()"
-          >
-            <option [ngValue]="null">Seleccione departamento</option>
-            @for (department of departments(); track department.id_departamento) {
-              <option [ngValue]="department.id_departamento">{{ department.nombre }}</option>
-            }
-          </select>
+            [options]="departmentOptions()" placeholder="Escriba para buscar departamento"
+          />
           @if (!form.id_departamento_residencia && profile()?.departamento_residencia) {
             <small class="muted"
               >Valor registrado anteriormente: {{ profile()?.departamento_residencia }}</small
@@ -297,7 +295,7 @@ interface ContractingProfileForm extends SaveContractingProfileRequest {
         </label>
         <label
           >Ciudad residencia
-          <select
+          <app-searchable-select
             name="id_municipio_residencia"
             [(ngModel)]="form.id_municipio_residencia"
             [disabled]="
@@ -306,12 +304,8 @@ interface ContractingProfileForm extends SaveContractingProfileRequest {
               !form.id_departamento_residencia ||
               isLoadingResidenceMunicipalities()
             "
-          >
-            <option [ngValue]="null">Seleccione municipio</option>
-            @for (municipality of residenceMunicipalities(); track municipality.id_municipio) {
-              <option [ngValue]="municipality.id_municipio">{{ municipality.nombre }}</option>
-            }
-          </select>
+            [options]="residenceMunicipalityOptions()" placeholder="Escriba para buscar municipio"
+          />
           @if (!form.id_municipio_residencia && profile()?.ciudad_residencia) {
             <small class="muted"
               >Valor registrado anteriormente: {{ profile()?.ciudad_residencia }}</small
@@ -614,6 +608,9 @@ interface ContractingProfileForm extends SaveContractingProfileRequest {
   `,
 })
 export class ContractingProfileComponent implements OnInit {
+  departmentOptions() { return this.departments().map((item) => ({ value: item.id_departamento, label: item.nombre })); }
+  birthMunicipalityOptions() { return this.birthMunicipalities().map((item) => ({ value: item.id_municipio, label: item.nombre })); }
+  residenceMunicipalityOptions() { return this.residenceMunicipalities().map((item) => ({ value: item.id_municipio, label: item.nombre })); }
   readonly auth = inject(AuthService);
   private readonly route = inject(ActivatedRoute);
   private readonly service = inject(ContractingService);
@@ -905,6 +902,7 @@ export class ContractingProfileComponent implements OnInit {
       numero_carpeta: this.blankToNull(this.form.numero_carpeta),
       genero: this.blankToNull(this.form.genero),
       fecha_expedicion_documento: this.blankToNull(this.form.fecha_expedicion_documento),
+      lugar_expedicion_documento: this.blankToNull(this.form.lugar_expedicion_documento),
       id_departamento_nacimiento: this.nullableNumber(this.form.id_departamento_nacimiento),
       id_municipio_nacimiento: this.nullableNumber(this.form.id_municipio_nacimiento),
       id_departamento_residencia: this.nullableNumber(this.form.id_departamento_residencia),
@@ -922,6 +920,7 @@ export class ContractingProfileComponent implements OnInit {
       numero_carpeta: profile?.numero_carpeta ?? null,
       genero: profile?.genero ?? null,
       fecha_expedicion_documento: profile?.fecha_expedicion_documento ?? null,
+      lugar_expedicion_documento: profile?.lugar_expedicion_documento ?? null,
       id_departamento_nacimiento: profile?.id_departamento_nacimiento ?? null,
       id_municipio_nacimiento: profile?.id_municipio_nacimiento ?? null,
       fecha_nacimiento: profile?.fecha_nacimiento ?? null,

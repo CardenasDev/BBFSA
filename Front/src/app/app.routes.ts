@@ -270,6 +270,18 @@ export const routes: Routes = [
           import('./features/returns/return-detail.component').then((m) => m.ReturnDetailComponent),
       },
       {
+        path: 'novelties', canActivate: [permissionGuard], data: { permissions: ['NOVEDADES_VER'] },
+        loadComponent: () => import('./features/novelties/novelties.component').then((m) => m.NoveltiesComponent),
+      },
+      {
+        path: 'novelties/create', canActivate: [permissionGuard], data: { permissions: ['NOVEDADES_CREAR'] },
+        loadComponent: () => import('./features/novelties/novelty-form.component').then((m) => m.NoveltyFormComponent),
+      },
+      {
+        path: 'novelties/:id', canActivate: [permissionGuard], data: { permissions: ['NOVEDADES_VER'] },
+        loadComponent: () => import('./features/novelties/novelty-detail.component').then((m) => m.NoveltyDetailComponent),
+      },
+      {
         path: 'trainings',
         canActivate: [permissionGuard],
         data: { permissions: ['CAPACITACIONES_VER'] },
@@ -483,6 +495,13 @@ export const routes: Routes = [
         data: { permissions: ['PARAMETROS_VER'] },
         loadComponent: () => import('./features/parameters/medical-exam-types.component').then((m) => m.ParametersMedicalExamTypesComponent),
       },
+      {
+        path: 'parameters/novelty-types',
+        canActivate: [permissionGuard],
+        data: { permissions: ['PARAMETROS_VER'] },
+        loadComponent: () => import('./features/parameters/novelty-types.component').then((m) => m.ParametersNoveltyTypesComponent),
+      },
+      { path: 'parameters/geography', canActivate:[permissionGuard], data:{permissions:['PARAMETROS_VER']}, loadComponent:()=>import('./features/parameters/geography.component').then(m=>m.ParametersGeographyComponent) },
       {
         path: 'parameters/uniform-items',
         canActivate: [permissionGuard],

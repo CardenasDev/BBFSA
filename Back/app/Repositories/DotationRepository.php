@@ -189,6 +189,53 @@ class DotationRepository extends StoredProcedureRepository
         return $this->call('SP_BBF_DOTACION_ENTREGAS_LISTAR', [$employeeId, $startDate, $endDate]);
     }
 
+    public function deliveryEvidence(int $deliveryId): ?array
+    {
+        $row = DB::table('bbf_dotacion_entregas')
+            ->where('ID_DOTACION_ENTREGA', $deliveryId)
+            ->first([
+                'ID_DOTACION_ENTREGA as id_dotacion_entrega', 'ESTADO as estado',
+                'ELIMINADO as eliminado', 'EVIDENCIA_NOMBRE_ARCHIVO as evidencia_nombre_archivo',
+                'EVIDENCIA_NOMBRE_ORIGINAL as evidencia_nombre_original', 'EVIDENCIA_URL as evidencia_url',
+                'EVIDENCIA_RUTA as evidencia_ruta', 'EVIDENCIA_MIME_TYPE as evidencia_mime_type',
+                'EVIDENCIA_PESO_BYTES as evidencia_peso_bytes', 'EVIDENCIA_FECHA_CARGA as evidencia_fecha_carga',
+            ]);
+
+        return $row ? (array) $row : null;
+    }
+
+    public function updateDeliveryEvidence(int $deliveryId, array $evidence): bool
+    {
+        return DB::table('bbf_dotacion_entregas')
+            ->where('ID_DOTACION_ENTREGA', $deliveryId)
+            ->where('ELIMINADO', 0)
+            ->where('ESTADO', '<>', 'ANULADA')
+            ->update([
+                'EVIDENCIA_NOMBRE_ARCHIVO' => $evidence['evidencia_nombre_archivo'],
+                'EVIDENCIA_NOMBRE_ORIGINAL' => $evidence['evidencia_nombre_original'],
+                'EVIDENCIA_URL' => $evidence['evidencia_url'],
+                'EVIDENCIA_RUTA' => $evidence['evidencia_ruta'],
+                'EVIDENCIA_MIME_TYPE' => $evidence['evidencia_mime_type'],
+                'EVIDENCIA_PESO_BYTES' => $evidence['evidencia_peso_bytes'],
+                'EVIDENCIA_FECHA_CARGA' => $evidence['evidencia_fecha_carga'],
+                'UPDATED_AT' => now(),
+            ]) > 0;
+    }
+
+    public function deleteDeliveryEvidence(int $deliveryId): bool
+    {
+        return DB::table('bbf_dotacion_entregas')
+            ->where('ID_DOTACION_ENTREGA', $deliveryId)
+            ->where('ELIMINADO', 0)
+            ->where('ESTADO', '<>', 'ANULADA')
+            ->update([
+                'EVIDENCIA_NOMBRE_ARCHIVO' => null, 'EVIDENCIA_NOMBRE_ORIGINAL' => null,
+                'EVIDENCIA_URL' => null, 'EVIDENCIA_RUTA' => null,
+                'EVIDENCIA_MIME_TYPE' => null, 'EVIDENCIA_PESO_BYTES' => null,
+                'EVIDENCIA_FECHA_CARGA' => null, 'UPDATED_AT' => now(),
+            ]) > 0;
+    }
+
     public function deleteDelivery(int $deliveryId, int $userId, ?string $deletionReason): array
     {
         return $this->first('SP_BBF_DOTACION_ENTREGA_ELIMINAR_LOGICO', [

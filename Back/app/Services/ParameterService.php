@@ -10,6 +10,29 @@ class ParameterService
 {
     public function __construct(private readonly ParametersRepository $repo, private readonly AuditService $audit) {}
 
+    public function departments(bool $includeInactive = false): array
+    {
+        return array_map(static fn(array $r) => ['id_departamento'=>(int)$r['id_departamento'],'codigo_dane'=>(string)$r['codigo_dane'],'nombre'=>(string)$r['nombre'],'activo'=>(bool)$r['activo'],'total_municipios'=>(int)($r['total_municipios']??0),'municipios_activos'=>(int)($r['municipios_activos']??0)], $this->repo->departmentsList($includeInactive));
+    }
+    public function saveDepartment(array $data, ?int $userId, array $context): array
+    {
+        $id=$data['id_departamento']??null; $before=$id?collect($this->departments(true))->firstWhere('id_departamento',(int)$id):null;
+        $result=$this->repo->saveDepartment($id,$data['codigo_dane'],$data['nombre'],(bool)($data['activo']??true));
+        $saved=(int)($result['id_departamento']??$id); $after=collect($this->departments(true))->firstWhere('id_departamento',$saved)??$result;
+        $this->audit->record($userId,'PARAMETROS',$id?'ACTUALIZAR':'CREAR','DEPARTAMENTO',$saved,$before,$after,$context); return $after;
+    }
+    public function municipalities(?int $departmentId, bool $includeInactive = false): array
+    {
+        return array_map(static fn(array $r) => ['id_municipio'=>(int)$r['id_municipio'],'id_departamento'=>(int)$r['id_departamento'],'codigo_departamento'=>(string)$r['codigo_departamento'],'departamento'=>(string)$r['departamento'],'codigo_dane'=>(string)$r['codigo_dane'],'nombre'=>(string)$r['nombre'],'activo'=>(bool)$r['activo']], $this->repo->municipalitiesList($departmentId,$includeInactive));
+    }
+    public function saveMunicipality(array $data, ?int $userId, array $context): array
+    {
+        $id=$data['id_municipio']??null; $before=$id?collect($this->municipalities(null,true))->firstWhere('id_municipio',(int)$id):null;
+        $result=$this->repo->saveMunicipality($id,(int)$data['id_departamento'],$data['codigo_dane'],$data['nombre'],(bool)($data['activo']??true));
+        $saved=(int)($result['id_municipio']??$id); $after=collect($this->municipalities(null,true))->firstWhere('id_municipio',$saved)??$result;
+        $this->audit->record($userId,'PARAMETROS',$id?'ACTUALIZAR':'CREAR','MUNICIPIO',$saved,$before,$after,$context); return $after;
+    }
+
     public function areas(bool $onlyActive = true): array
     {
         return array_map(static fn (array $row): array => [
@@ -411,6 +434,66 @@ class ParameterService
         $this->audit->record($userId, 'PARAMETROS', $action, 'DOTACION_ARTICULO', $id ?? null, $before, $after ?? $data, $context);
 
         return $result;
+    }
+
+    public function noveltyTypes(bool $includeInactive = false): array
+    {
+        return array_map(static fn (array $row): array => [
+            'id_tipo_novedad' => (int) ($row['id_tipo_novedad'] ?? 0),
+            'codigo' => (string) ($row['codigo'] ?? ''),
+            'nombre' => (string) ($row['nombre'] ?? ''),
+            'descripcion' => $row['descripcion'] ?? null,
+            'requiere_fecha_fin' => (bool) ($row['requiere_fecha_fin'] ?? false),
+            'requiere_soporte' => (bool) ($row['requiere_soporte'] ?? false),
+            'es_incapacidad' => (bool) ($row['es_incapacidad'] ?? false),
+            'activo' => (bool) ($row['activo'] ?? false),
+            'total_novedades' => (int) ($row['total_novedades'] ?? 0),
+            'novedades_activas' => (int) ($row['novedades_activas'] ?? 0),
+        ], $this->repo->noveltyTypesList($includeInactive));
+    }
+
+    public function saveNoveltyType(array $data, ?int $userId, array $context): array
+    {
+        $id = isset($data['id_tipo_novedad']) ? (int) $data['id_tipo_novedad'] : null;
+        $before = null;
+        if ($id) {
+            $before = collect($this->noveltyTypes(true))->firstWhere('id_tipo_novedad', $id);
+        }
+
+        $codigo = $before['codigo'] ?? null;
+        if (! $id) {
+            $base = Str::upper(Str::slug($data['nombre'], '_'));
+            $codigo = $base ?: 'NOVEDAD';
+            $existing = array_column($this->noveltyTypes(true), 'codigo');
+            $candidate = $codigo;
+            $suffix = 2;
+            while (in_array($candidate, $existing, true)) {
+                $candidate = substr($codigo, 0, 46).'_'.$suffix++;
+            }
+            $codigo = $candidate;
+        }
+
+        $result = $this->repo->saveNoveltyType(
+            $id,
+            $codigo,
+            $data['nombre'],
+            $data['descripcion'] ?? null,
+            (bool) ($data['requiere_fecha_fin'] ?? false),
+            (bool) ($data['requiere_soporte'] ?? false),
+            (bool) ($data['es_incapacidad'] ?? false),
+            (bool) ($data['activo'] ?? true),
+        );
+
+        $savedId = (int) ($result['id_tipo_novedad'] ?? $id ?? 0);
+        $after = collect($this->noveltyTypes(true))->firstWhere('id_tipo_novedad', $savedId) ?? $result;
+        $action = $id ? 'ACTUALIZAR' : 'CREAR';
+        if ($id && $before) {
+            if ($before['activo'] && ! $after['activo']) $action = 'INACTIVAR';
+            elseif (! $before['activo'] && $after['activo']) $action = 'ACTIVAR';
+        }
+        $this->audit->record($userId, 'PARAMETROS', $action, 'TIPO_NOVEDAD', $savedId ?: null, $before, $after, $context);
+
+        return $after;
     }
 
     private function nextDotationArticleCode(string $name): string

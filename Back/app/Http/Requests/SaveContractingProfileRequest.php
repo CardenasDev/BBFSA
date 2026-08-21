@@ -10,6 +10,7 @@ class SaveContractingProfileRequest extends ApiRequest
             'numero_carpeta' => ['nullable', 'string', 'max:50'],
             'genero' => ['nullable', 'string', 'max:20'],
             'fecha_expedicion_documento' => ['nullable', 'date'],
+            'lugar_expedicion_documento' => ['nullable', 'string', 'max:150'],
             'id_departamento_nacimiento' => ['nullable', 'integer', 'min:1'],
             'id_municipio_nacimiento' => ['nullable', 'integer', 'min:1'],
             'id_departamento_residencia' => ['nullable', 'integer', 'min:1'],

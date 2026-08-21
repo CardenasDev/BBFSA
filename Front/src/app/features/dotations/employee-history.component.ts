@@ -107,6 +107,11 @@ interface DeliveryHistoryGroup {
               <p class="muted">Fecha entrega: {{ group.fecha_entrega }}</p>
             </div>
             <div class="row-actions">
+              @if (canManageEvidence(group)) {
+                <button class="btn small secondary" type="button" (click)="openEvidence(group)">
+                  {{ evidenceUrl(group) ? 'Modificar evidencia' : 'Agregar evidencia' }}
+                </button>
+              }
               @if (canPrepareDelivery(group)) {
                 <button
                   class="btn small primary"
@@ -406,6 +411,37 @@ interface DeliveryHistoryGroup {
         </div>
       </aside>
     }
+
+    @if (selectedEvidenceDelivery(); as delivery) {
+      <button class="drawer-backdrop" type="button" aria-label="Cerrar evidencia" (click)="closeEvidence()"></button>
+      <aside class="role-drawer" aria-label="Gestionar evidencia" aria-modal="true">
+        <header class="drawer-header">
+          <div><p class="eyebrow">Evidencia de dotación</p><h2>Entrega #{{ delivery.id_dotacion_entrega }}</h2></div>
+          <button class="icon-btn close-btn" type="button" (click)="closeEvidence()" aria-label="Cerrar">x</button>
+        </header>
+        <p class="muted">La entrega está {{ statusLabel(delivery.estado).toLowerCase() }}. Puedes reemplazar o eliminar únicamente su evidencia.</p>
+        @if (evidenceUrl(delivery); as currentUrl) {
+          <p><a class="btn small ghost" [href]="currentUrl" target="_blank" rel="noopener noreferrer">Ver evidencia actual</a></p>
+        }
+        @if (evidenceManageError()) { <div class="alert error" role="alert">{{ evidenceManageError() }}</div> }
+        <label>Origen de la nueva evidencia *
+          <select [(ngModel)]="evidenceOrigin" name="history_evidence_origin" (ngModelChange)="clearEvidenceInput()" [disabled]="evidenceSaving()">
+            <option value="ARCHIVO">Archivo</option><option value="URL">URL externa</option>
+          </select>
+        </label>
+        @if (evidenceOrigin === 'ARCHIVO') {
+          <app-camera-file-picker accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx" galleryLabel="Seleccionar evidencia" (filesSelected)="setEvidenceFiles($event)" />
+          @if (evidenceFile) { <p><strong>{{ evidenceFile.name }}</strong></p> }
+        } @else {
+          <label>URL de evidencia *<input type="url" [(ngModel)]="evidenceExternalUrl" name="history_evidence_url" maxlength="500" placeholder="https://..." [disabled]="evidenceSaving()" /></label>
+        }
+        <div class="form-actions">
+          @if (evidenceUrl(delivery)) { <button class="btn danger-outline" type="button" (click)="removeEvidence()" [disabled]="evidenceSaving()">Eliminar evidencia</button> }
+          <button class="btn secondary" type="button" (click)="closeEvidence()" [disabled]="evidenceSaving()">Cancelar</button>
+          <button class="btn primary" type="button" (click)="replaceEvidence()" [disabled]="evidenceSaving()">{{ evidenceSaving() ? 'Guardando...' : 'Reemplazar evidencia' }}</button>
+        </div>
+      </aside>
+    }
   `,
 })
 export class EmployeeDotationHistoryComponent implements OnInit {
@@ -423,11 +459,17 @@ export class EmployeeDotationHistoryComponent implements OnInit {
   readonly selectedDeleteDelivery = signal<DeliveryHistoryGroup | null>(null);
   readonly selectedPrepareDelivery = signal<DeliveryHistoryGroup | null>(null);
   readonly prepareError = signal('');
+  readonly selectedEvidenceDelivery = signal<DeliveryHistoryGroup | null>(null);
+  readonly evidenceManageError = signal('');
+  readonly evidenceSaving = signal(false);
   deleteReason = '';
   prepareDate = new Date().toISOString().slice(0, 10);
   prepareOrigin: DotationEvidenceOrigin = 'ARCHIVO';
   prepareFile: File | null = null;
   prepareUrl = '';
+  evidenceOrigin: DotationEvidenceOrigin = 'ARCHIVO';
+  evidenceFile: File | null = null;
+  evidenceExternalUrl = '';
   employeeId = 0;
 
   ngOnInit(): void {
@@ -545,6 +587,70 @@ export class EmployeeDotationHistoryComponent implements OnInit {
 
   canConfirmDeliveryByHr(delivery: DeliveryHistoryGroup): boolean {
     return this.auth.hasPermission('DOTACIONES_ENTREGAS_CREAR') && delivery.estado === 'REGISTRADA';
+  }
+
+  canManageEvidence(delivery: DeliveryHistoryGroup): boolean {
+    return this.auth.hasPermission('DOTACIONES_ENTREGAS_CREAR')
+      && delivery.estado !== 'POR_COMPRAR'
+      && delivery.estado !== 'ANULADA';
+  }
+
+  openEvidence(delivery: DeliveryHistoryGroup): void {
+    this.selectedEvidenceDelivery.set(delivery);
+    this.evidenceOrigin = 'ARCHIVO';
+    this.evidenceFile = null;
+    this.evidenceExternalUrl = '';
+    this.evidenceManageError.set('');
+  }
+
+  closeEvidence(): void {
+    if (this.evidenceSaving()) return;
+    this.selectedEvidenceDelivery.set(null);
+    this.clearEvidenceInput();
+  }
+
+  clearEvidenceInput(): void {
+    this.evidenceFile = null;
+    this.evidenceExternalUrl = '';
+    this.evidenceManageError.set('');
+  }
+
+  setEvidenceFiles(files: File[]): void {
+    this.evidenceFile = files[0] ?? null;
+    this.evidenceManageError.set('');
+  }
+
+  replaceEvidence(): void {
+    const delivery = this.selectedEvidenceDelivery();
+    if (!delivery) return;
+    if (this.evidenceOrigin === 'ARCHIVO' && !this.evidenceFile) {
+      this.evidenceManageError.set('Selecciona el archivo de evidencia.'); return;
+    }
+    if (this.evidenceOrigin === 'URL' && !/^https?:\/\/\S+$/i.test(this.evidenceExternalUrl.trim())) {
+      this.evidenceManageError.set('Ingresa una URL válida.'); return;
+    }
+    this.evidenceSaving.set(true);
+    this.evidenceManageError.set('');
+    this.service.replaceDeliveryEvidence(delivery.id_dotacion_entrega, {
+      origen_evidencia: this.evidenceOrigin,
+      evidencia_nombre_archivo: 'Evidencia entrega',
+      evidencia_archivo: this.evidenceOrigin === 'ARCHIVO' ? this.evidenceFile : null,
+      evidencia_url: this.evidenceOrigin === 'URL' ? this.evidenceExternalUrl.trim() : null,
+    }).pipe(finalize(() => this.evidenceSaving.set(false))).subscribe({
+      next: () => { this.selectedEvidenceDelivery.set(null); this.success.set('Evidencia reemplazada correctamente.'); this.load(); },
+      error: (error) => this.evidenceManageError.set(apiErrorMessage(error, 'No fue posible reemplazar la evidencia.')),
+    });
+  }
+
+  removeEvidence(): void {
+    const delivery = this.selectedEvidenceDelivery();
+    if (!delivery || !window.confirm('¿Deseas eliminar la evidencia actual? La entrega confirmada se conservará.')) return;
+    this.evidenceSaving.set(true);
+    this.evidenceManageError.set('');
+    this.service.deleteDeliveryEvidence(delivery.id_dotacion_entrega).pipe(finalize(() => this.evidenceSaving.set(false))).subscribe({
+      next: () => { this.selectedEvidenceDelivery.set(null); this.success.set('Evidencia eliminada correctamente.'); this.load(); },
+      error: (error) => this.evidenceManageError.set(apiErrorMessage(error, 'No fue posible eliminar la evidencia.')),
+    });
   }
 
   confirmDeliveryByHr(delivery: DeliveryHistoryGroup): void {

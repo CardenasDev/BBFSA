@@ -331,6 +331,13 @@ export interface DotationEvidence {
   evidencia_fecha_carga?: string | null;
 }
 
+export interface UpdateDotationEvidenceRequest {
+  origen_evidencia: DotationEvidenceOrigin;
+  evidencia_nombre_archivo?: string | null;
+  evidencia_archivo?: File | null;
+  evidencia_url?: string | null;
+}
+
 export interface DotationCombination {
   id_dotacion_combinacion: number;
   codigo: string;
@@ -677,6 +684,7 @@ export interface ContractingProfile {
   numero_carpeta?: string | null;
   genero?: string | null;
   fecha_expedicion_documento?: string | null;
+  lugar_expedicion_documento?: string | null;
   fecha_nacimiento?: string | null;
   id_departamento_nacimiento?: number | null;
   id_municipio_nacimiento?: number | null;
@@ -711,6 +719,7 @@ export interface SaveContractingProfileRequest {
   numero_carpeta?: string | null;
   genero?: string | null;
   fecha_expedicion_documento?: string | null;
+  lugar_expedicion_documento?: string | null;
   fecha_nacimiento?: string | null;
   id_departamento_nacimiento?: number | null;
   id_municipio_nacimiento?: number | null;
@@ -1029,6 +1038,25 @@ export interface MedicalExamType {
   id_tipo_examen_medico: number;
   nombre: string;
 }
+
+export interface NoveltyTypeParameter {
+  id_tipo_novedad: number;
+  codigo: string;
+  nombre: string;
+  descripcion?: string | null;
+  requiere_fecha_fin: boolean;
+  requiere_soporte: boolean;
+  es_incapacidad: boolean;
+  activo: boolean;
+  total_novedades: number;
+  novedades_activas: number;
+}
+
+export interface DepartmentParameter { id_departamento:number; codigo_dane:string; nombre:string; activo:boolean; total_municipios:number; municipios_activos:number; }
+export interface MunicipalityParameter { id_municipio:number; id_departamento:number; codigo_departamento:string; departamento:string; codigo_dane:string; nombre:string; activo:boolean; }
+
+export type SaveNoveltyTypePayload = Omit<NoveltyTypeParameter,
+  'id_tipo_novedad' | 'codigo' | 'total_novedades' | 'novedades_activas'>;
 
 export interface CreateMedicalExamRequest {
   id_tipo_examen_medico?: number | null;

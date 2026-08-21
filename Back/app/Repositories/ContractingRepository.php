@@ -14,14 +14,19 @@ class ContractingRepository extends StoredProcedureRepository
 
     public function getProfile(int $employeeId): ?array
     {
-        return $this->first('SP_BBF_CONTRATACION_FICHA_OBTENER', [$employeeId]);
+        $profile = $this->first('SP_BBF_CONTRATACION_FICHA_OBTENER', [$employeeId]);
+        if ($profile) {
+            $location = $this->first('SP_BBF_CONTRATACION_LUGAR_EXPEDICION_OBTENER', [$employeeId]);
+            $profile['lugar_expedicion_documento'] = $location['lugar_expedicion_documento'] ?? null;
+        }
+        return $profile;
     }
 
     public function saveProfile(int $employeeId, array $data): array
     {
         $contact = $data['contacto_emergencia'] ?? [];
 
-        return $this->first('SP_BBF_CONTRATACION_FICHA_GUARDAR', [
+        $result = $this->first('SP_BBF_CONTRATACION_FICHA_GUARDAR', [
             $employeeId,
             $data['numero_carpeta'] ?? null,
             $data['genero'] ?? null,
@@ -47,6 +52,9 @@ class ContractingRepository extends StoredProcedureRepository
             $contact['direccion'] ?? null,
             $contact['observaciones'] ?? null,
         ]) ?? [];
+        $this->first('SP_BBF_CONTRATACION_LUGAR_EXPEDICION_GUARDAR', [$employeeId, $data['lugar_expedicion_documento'] ?? null]);
+        $result['lugar_expedicion_documento'] = $data['lugar_expedicion_documento'] ?? null;
+        return $result;
     }
 
     public function listContractTemplates(array $filters): array

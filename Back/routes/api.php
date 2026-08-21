@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\DotationController;
 use App\Http\Controllers\Api\EmployeeController;
 use App\Http\Controllers\Api\HealthController;
 use App\Http\Controllers\Api\MyToolDeliveryController;
+use App\Http\Controllers\Api\NoveltyController;
 use App\Http\Controllers\Api\ReturnController;
 use App\Http\Controllers\Api\RoleController;
 use App\Http\Controllers\Api\ToolController;
@@ -43,11 +44,17 @@ Route::middleware('auth.jwt')->group(function (): void {
     Route::get('catalogs/contract-types', [CatalogController::class, 'contractTypes'])->middleware('permission:EMPLEADOS_VER,EMPLEADOS_CREAR');
     Route::get('catalogs/departments', [CatalogController::class, 'departments'])->middleware('permission:ASPIRANTES_VER,ASPIRANTES_CREAR,ASPIRANTES_EDITAR,CONTRATACION_VER,CONTRATACION_CREAR,CONTRATACION_EDITAR');
     Route::get('catalogs/departments/{departmentId}/municipalities', [CatalogController::class, 'municipalities'])->whereNumber('departmentId')->middleware('permission:ASPIRANTES_VER,ASPIRANTES_CREAR,ASPIRANTES_EDITAR,CONTRATACION_VER,CONTRATACION_CREAR,CONTRATACION_EDITAR');
-    Route::get('catalogs/social-security-entities', [CatalogController::class, 'socialSecurityEntities'])->middleware('permission:CONTRATACION_SEGURIDAD_SOCIAL_VER,CONTRATACION_SEGURIDAD_SOCIAL_EDITAR');
+    Route::get('catalogs/social-security-entities', [CatalogController::class, 'socialSecurityEntities'])->middleware('permission:CONTRATACION_SEGURIDAD_SOCIAL_VER,CONTRATACION_SEGURIDAD_SOCIAL_EDITAR,NOVEDADES_CREAR,NOVEDADES_EDITAR');
     Route::get('catalogs/medical-exam-types', [CatalogController::class, 'medicalExamTypes'])->middleware('permission:CONTRATACION_EXAMENES_VER,CONTRATACION_EXAMENES_CREAR');
     Route::get('catalogs/labor-document-types', [CatalogController::class, 'laborDocumentTypes'])->middleware('permission:ASPIRANTES_DOCUMENTOS_VER,CONTRATACION_DOCUMENTOS_VER');
     // Parámetros administrativos centralizados
     Route::prefix('parameters')->group(function (): void {
+        Route::get('departments', [\App\Http\Controllers\Api\ParametersController::class, 'departments'])->middleware('permission:PARAMETROS_VER');
+        Route::post('departments', [\App\Http\Controllers\Api\ParametersController::class, 'storeDepartment'])->middleware('permission:PARAMETROS_ADMINISTRAR');
+        Route::put('departments/{id}', [\App\Http\Controllers\Api\ParametersController::class, 'updateDepartment'])->whereNumber('id')->middleware('permission:PARAMETROS_ADMINISTRAR');
+        Route::get('municipalities', [\App\Http\Controllers\Api\ParametersController::class, 'municipalities'])->middleware('permission:PARAMETROS_VER');
+        Route::post('municipalities', [\App\Http\Controllers\Api\ParametersController::class, 'storeMunicipality'])->middleware('permission:PARAMETROS_ADMINISTRAR');
+        Route::put('municipalities/{id}', [\App\Http\Controllers\Api\ParametersController::class, 'updateMunicipality'])->whereNumber('id')->middleware('permission:PARAMETROS_ADMINISTRAR');
         Route::get('areas', [\App\Http\Controllers\Api\ParametersController::class, 'areas'])->middleware('permission:PARAMETROS_VER');
         Route::post('areas', [\App\Http\Controllers\Api\ParametersController::class, 'storeArea'])->middleware('permission:PARAMETROS_ADMINISTRAR');
         Route::put('areas/{id}', [\App\Http\Controllers\Api\ParametersController::class, 'updateArea'])->whereNumber('id')->middleware('permission:PARAMETROS_ADMINISTRAR');
@@ -75,6 +82,9 @@ Route::middleware('auth.jwt')->group(function (): void {
         Route::get('medical-exam-types', [\App\Http\Controllers\Api\ParametersController::class, 'medicalExamTypes'])->middleware('permission:PARAMETROS_VER');
         Route::post('medical-exam-types', [\App\Http\Controllers\Api\ParametersController::class, 'storeMedicalExamType'])->middleware('permission:PARAMETROS_ADMINISTRAR');
         Route::put('medical-exam-types/{id}', [\App\Http\Controllers\Api\ParametersController::class, 'updateMedicalExamType'])->whereNumber('id')->middleware('permission:PARAMETROS_ADMINISTRAR');
+        Route::get('novelty-types', [\App\Http\Controllers\Api\ParametersController::class, 'noveltyTypes'])->middleware('permission:PARAMETROS_VER');
+        Route::post('novelty-types', [\App\Http\Controllers\Api\ParametersController::class, 'storeNoveltyType'])->middleware('permission:PARAMETROS_ADMINISTRAR');
+        Route::put('novelty-types/{id}', [\App\Http\Controllers\Api\ParametersController::class, 'updateNoveltyType'])->whereNumber('id')->middleware('permission:PARAMETROS_ADMINISTRAR');
 
         Route::get('uniform-items', [\App\Http\Controllers\Api\ParametersController::class, 'uniformItems'])->middleware('permission:PARAMETROS_VER');
         Route::get('uniform-item-families', [\App\Http\Controllers\Api\ParametersController::class, 'uniformItemFamilies'])->middleware('permission:PARAMETROS_VER');
@@ -98,7 +108,7 @@ Route::middleware('auth.jwt')->group(function (): void {
         Route::get('{applicantId}/status-history', [ApplicantController::class, 'statusHistory'])->whereNumber('applicantId')->middleware('permission:ASPIRANTES_VER');
         Route::post('{applicantId}/convert-to-employee', [ApplicantController::class, 'convertToEmployee'])->whereNumber('applicantId')->middleware('permission:ASPIRANTES_CONVERTIR_EMPLEADO');
     });
-    Route::get('employees', [EmployeeController::class, 'index'])->middleware('permission:EMPLEADOS_LISTAR,EMPLEADOS_VER,USUARIOS_CREAR,USUARIOS_EDITAR');
+    Route::get('employees', [EmployeeController::class, 'index'])->middleware('permission:EMPLEADOS_LISTAR,EMPLEADOS_VER,USUARIOS_CREAR,USUARIOS_EDITAR,NOVEDADES_VER,NOVEDADES_CREAR');
     Route::get('employees/export', [EmployeeController::class, 'export'])->middleware('permission:EMPLEADOS_LISTAR,EMPLEADOS_VER');
     Route::post('employees', [EmployeeController::class, 'store'])->middleware('permission:EMPLEADOS_CREAR');
     Route::get('employees/by-document/{document}', [EmployeeController::class, 'byDocument'])->middleware('permission:EMPLEADOS_VER,USUARIOS_CREAR,USUARIOS_EDITAR');
@@ -169,6 +179,8 @@ Route::middleware('auth.jwt')->group(function (): void {
         Route::post('deliveries/{deliveryId}/confirm', [DotationController::class, 'confirmDeliveryReceived'])->whereNumber('deliveryId')->middleware('permission:DOTACIONES_MIS_ENTREGAS_CONFIRMAR');
         Route::post('deliveries/{deliveryId}/confirm-by-hr', [DotationController::class, 'confirmDeliveryByHr'])->whereNumber('deliveryId')->middleware('permission:DOTACIONES_ENTREGAS_CREAR');
         Route::get('deliveries/{deliveryId}/details', [DotationController::class, 'deliveryDetails'])->whereNumber('deliveryId')->middleware('permission:DOTACIONES_ENTREGAS_VER');
+        Route::post('deliveries/{deliveryId}/evidence', [DotationController::class, 'replaceDeliveryEvidence'])->whereNumber('deliveryId')->middleware('permission:DOTACIONES_ENTREGAS_CREAR');
+        Route::delete('deliveries/{deliveryId}/evidence', [DotationController::class, 'deleteDeliveryEvidence'])->whereNumber('deliveryId')->middleware('permission:DOTACIONES_ENTREGAS_CREAR');
     });
     Route::prefix('trainings')->group(function (): void {
         Route::get('tasks', [TrainingController::class, 'tasks'])->middleware('permission:CAPACITACIONES_VER');
@@ -202,6 +214,19 @@ Route::middleware('auth.jwt')->group(function (): void {
         Route::get('{id}', [ReturnController::class, 'show'])->whereNumber('id')->middleware('permission:DEVOLUCIONES_VER');
         Route::post('{id}/confirm', [ReturnController::class, 'confirm'])->whereNumber('id')->middleware('permission:DEVOLUCIONES_CONFIRMAR');
         Route::post('{id}/cancel', [ReturnController::class, 'cancel'])->whereNumber('id')->middleware('permission:DEVOLUCIONES_ANULAR');
+    });
+    Route::prefix('novelties')->group(function (): void {
+        Route::get('types', [NoveltyController::class, 'types'])->middleware('permission:NOVEDADES_VER');
+        Route::get('/', [NoveltyController::class, 'index'])->middleware('permission:NOVEDADES_VER');
+        Route::post('/', [NoveltyController::class, 'store'])->middleware('permission:NOVEDADES_CREAR');
+        Route::post('disabilities', [NoveltyController::class, 'storeDisability'])->middleware('permission:NOVEDADES_CREAR');
+        Route::get('{id}', [NoveltyController::class, 'show'])->whereNumber('id')->middleware('permission:NOVEDADES_VER');
+        Route::put('{id}', [NoveltyController::class, 'update'])->whereNumber('id')->middleware('permission:NOVEDADES_EDITAR');
+        Route::put('{id}/disability', [NoveltyController::class, 'updateDisability'])->whereNumber('id')->middleware('permission:NOVEDADES_EDITAR');
+        Route::patch('{id}/status', [NoveltyController::class, 'status'])->whereNumber('id')->middleware('permission:NOVEDADES_CAMBIAR_ESTADO');
+        Route::get('{id}/evidence', [NoveltyController::class, 'evidence'])->whereNumber('id')->middleware('permission:NOVEDADES_VER');
+        Route::post('{id}/evidence', [NoveltyController::class, 'addEvidence'])->whereNumber('id')->middleware('permission:NOVEDADES_SOPORTES');
+        Route::get('{id}/history', [NoveltyController::class, 'history'])->whereNumber('id')->middleware('permission:NOVEDADES_VER');
     });
     Route::prefix('contracting')->group(function (): void {
         Route::get('employees', [ContractingController::class, 'indexEmployees'])->middleware('permission:CONTRATACION_VER');

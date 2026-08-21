@@ -19,13 +19,14 @@ import { ApplicantService } from '../../core/services/applicant.service';
 import { CatalogService } from '../../core/services/catalog.service';
 import { apiErrorMessage } from '../../shared/api-error';
 import { applicantName, applicantStatusClass, blankToNull, toNullableNumber } from './applicant-utils';
+import { SearchableSelectComponent } from '../../shared/searchable-select.component';
 
 const CIVIL_STATES: ApplicantCivilState[] = ['SOLTERO', 'CASADO', 'UNION_LIBRE', 'SEPARADO', 'DIVORCIADO', 'VIUDO', 'OTRO'];
 const EDUCATION_LEVELS: ApplicantEducationLevel[] = ['PRIMARIA', 'BACHILLER', 'TECNICO', 'TECNOLOGO', 'PROFESIONAL', 'POSGRADO', 'NINGUNO', 'OTRO'];
 
 @Component({
   standalone: true,
-  imports: [NgClass, ReactiveFormsModule, RouterLink],
+  imports: [NgClass, ReactiveFormsModule, RouterLink, SearchableSelectComponent],
   template: `
     <div class="page-heading">
       <div>
@@ -84,23 +85,13 @@ const EDUCATION_LEVELS: ApplicantEducationLevel[] = ['PRIMARIA', 'BACHILLER', 'T
         <div class="form-wide section-title"><h2>Datos personales</h2></div>
         <label>Fecha nacimiento<input type="date" formControlName="fecha_nacimiento" /></label>
         <label>Departamento nacimiento
-          <select formControlName="id_departamento_nacimiento" (change)="onBirthDepartmentChange(form.controls.id_departamento_nacimiento.value)">
-            <option [ngValue]="null">{{ isLoadingDepartments() ? 'Cargando...' : 'Seleccione departamento' }}</option>
-            @for (department of departments(); track department.id_departamento) {
-              <option [ngValue]="department.id_departamento">{{ department.nombre }}</option>
-            }
-          </select>
+          <app-searchable-select formControlName="id_departamento_nacimiento" [options]="departmentOptions()" [placeholder]="isLoadingDepartments() ? 'Cargando...' : 'Escriba para buscar departamento'" />
           @if (!form.controls.id_departamento_nacimiento.value && currentApplicant()?.departamento_nacimiento) {
             <small class="muted">Valor registrado anteriormente: {{ currentApplicant()?.departamento_nacimiento }}</small>
           }
         </label>
         <label>Lugar/Ciudad nacimiento
-          <select formControlName="id_municipio_nacimiento" [attr.disabled]="!form.controls.id_departamento_nacimiento.value || isLoadingBirthMunicipalities() ? true : null">
-            <option [ngValue]="null">{{ isLoadingBirthMunicipalities() ? 'Cargando...' : 'Seleccione municipio' }}</option>
-            @for (municipality of birthMunicipalities(); track municipality.id_municipio) {
-              <option [ngValue]="municipality.id_municipio">{{ municipality.nombre }}</option>
-            }
-          </select>
+          <app-searchable-select formControlName="id_municipio_nacimiento" [options]="birthMunicipalityOptions()" [placeholder]="isLoadingBirthMunicipalities() ? 'Cargando...' : 'Escriba para buscar municipio'" />
           @if (!form.controls.id_municipio_nacimiento.value && currentApplicant()?.lugar_nacimiento) {
             <small class="muted">Valor registrado anteriormente: {{ currentApplicant()?.lugar_nacimiento }}</small>
           }
@@ -130,23 +121,13 @@ const EDUCATION_LEVELS: ApplicantEducationLevel[] = ['PRIMARIA', 'BACHILLER', 'T
         <div class="form-wide section-title"><h2>Residencia</h2></div>
         <label class="form-wide">Direccion<input type="text" formControlName="direccion" maxlength="250" /></label>
         <label>Departamento residencia
-          <select formControlName="id_departamento_residencia" (change)="onResidenceDepartmentChange(form.controls.id_departamento_residencia.value)">
-            <option [ngValue]="null">{{ isLoadingDepartments() ? 'Cargando...' : 'Seleccione departamento' }}</option>
-            @for (department of departments(); track department.id_departamento) {
-              <option [ngValue]="department.id_departamento">{{ department.nombre }}</option>
-            }
-          </select>
+          <app-searchable-select formControlName="id_departamento_residencia" [options]="departmentOptions()" [placeholder]="isLoadingDepartments() ? 'Cargando...' : 'Escriba para buscar departamento'" />
           @if (!form.controls.id_departamento_residencia.value && currentApplicant()?.departamento_residencia) {
             <small class="muted">Valor registrado anteriormente: {{ currentApplicant()?.departamento_residencia }}</small>
           }
         </label>
         <label>Ciudad residencia
-          <select formControlName="id_municipio_residencia" [attr.disabled]="!form.controls.id_departamento_residencia.value || isLoadingResidenceMunicipalities() ? true : null">
-            <option [ngValue]="null">{{ isLoadingResidenceMunicipalities() ? 'Cargando...' : 'Seleccione municipio' }}</option>
-            @for (municipality of residenceMunicipalities(); track municipality.id_municipio) {
-              <option [ngValue]="municipality.id_municipio">{{ municipality.nombre }}</option>
-            }
-          </select>
+          <app-searchable-select formControlName="id_municipio_residencia" [options]="residenceMunicipalityOptions()" [placeholder]="isLoadingResidenceMunicipalities() ? 'Cargando...' : 'Escriba para buscar municipio'" />
           @if (!form.controls.id_municipio_residencia.value && currentApplicant()?.ciudad_residencia) {
             <small class="muted">Valor registrado anteriormente: {{ currentApplicant()?.ciudad_residencia }}</small>
           }
@@ -237,10 +218,16 @@ export class ApplicantFormComponent implements OnInit {
     this.editMode.set(this.route.snapshot.routeConfig?.path?.includes('edit') ?? false);
     this.loadCatalogs();
     this.loadDepartments();
+    this.form.controls.id_departamento_nacimiento.valueChanges.subscribe((id) => this.onBirthDepartmentChange(id));
+    this.form.controls.id_departamento_residencia.valueChanges.subscribe((id) => this.onResidenceDepartmentChange(id));
     if (this.editMode()) {
       this.loadApplicant();
     }
   }
+
+  departmentOptions() { return this.departments().map((item) => ({ value: item.id_departamento, label: item.nombre })); }
+  birthMunicipalityOptions() { return this.birthMunicipalities().map((item) => ({ value: item.id_municipio, label: item.nombre })); }
+  residenceMunicipalityOptions() { return this.residenceMunicipalities().map((item) => ({ value: item.id_municipio, label: item.nombre })); }
 
   loadDepartments(): void {
     this.isLoadingDepartments.set(true);

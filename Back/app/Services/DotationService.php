@@ -503,6 +503,62 @@ class DotationService
         return array_map(fn (array $row): array => $this->mapDeliveryDetail($row), $this->dotations->deliveryDetails($deliveryId));
     }
 
+    public function replaceDeliveryEvidence(int $deliveryId, array $data, int $userId, array $context): array
+    {
+        $before = $this->requireEditableDeliveryEvidence($deliveryId);
+        $evidence = $this->buildEvidencePayload($data);
+        try {
+            if (! $this->dotations->updateDeliveryEvidence($deliveryId, $evidence)) {
+                throw new ApiException('No fue posible reemplazar la evidencia de la entrega.', 422);
+            }
+        } catch (Throwable $exception) {
+            $this->deleteEvidenceFile($evidence['evidencia_ruta']);
+            throw $exception;
+        }
+
+        $this->deleteEvidenceFile($before['evidencia_ruta'] ?? null);
+        $after = $this->dotations->deliveryEvidence($deliveryId) ?? $evidence;
+        $this->audit->record($userId, 'DOTACIONES', 'DOTACIONES_EVIDENCIA_REEMPLAZAR', 'DOTACION_ENTREGA', $deliveryId, $this->mapEvidence($before), $this->mapEvidence($after), $context);
+
+        return ['id_dotacion_entrega' => $deliveryId, ...$this->mapEvidence($after)];
+    }
+
+    public function deleteDeliveryEvidence(int $deliveryId, int $userId, array $context): array
+    {
+        $before = $this->requireEditableDeliveryEvidence($deliveryId);
+        if (! $this->hasEvidence($before)) {
+            throw new ApiException('La entrega no tiene una evidencia para eliminar.', 422);
+        }
+        if (! $this->dotations->deleteDeliveryEvidence($deliveryId)) {
+            throw new ApiException('No fue posible eliminar la evidencia de la entrega.', 422);
+        }
+        $this->deleteEvidenceFile($before['evidencia_ruta'] ?? null);
+        $this->audit->record($userId, 'DOTACIONES', 'DOTACIONES_EVIDENCIA_ELIMINAR', 'DOTACION_ENTREGA', $deliveryId, $this->mapEvidence($before), $this->emptyEvidencePayload(), $context);
+
+        return ['id_dotacion_entrega' => $deliveryId, ...$this->mapEvidence($this->emptyEvidencePayload())];
+    }
+
+    private function requireEditableDeliveryEvidence(int $deliveryId): array
+    {
+        $delivery = $this->dotations->deliveryEvidence($deliveryId);
+        if (! $delivery || (bool) ($delivery['eliminado'] ?? false)) {
+            throw new ApiException('La entrega de dotación no existe o fue eliminada.', 404);
+        }
+        if (($delivery['estado'] ?? null) === 'ANULADA') {
+            throw new ApiException('No puede modificarse la evidencia de una entrega anulada.', 422);
+        }
+        if (($delivery['estado'] ?? null) === 'POR_COMPRAR') {
+            throw new ApiException('Primero debe preparar la solicitud para entrega.', 422);
+        }
+        return $delivery;
+    }
+
+    private function hasEvidence(array $delivery): bool
+    {
+        return $this->blankToNull($delivery['evidencia_url'] ?? null) !== null
+            || $this->blankToNull($delivery['evidencia_ruta'] ?? null) !== null;
+    }
+
     public function deleteDelivery(int $deliveryId, int $userId, ?string $deletionReason): array
     {
         $deleted = $this->dotations->deleteDelivery($deliveryId, $userId, $this->blankToNull($deletionReason));

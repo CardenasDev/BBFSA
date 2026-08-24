@@ -192,6 +192,12 @@ export class AdminLayoutComponent {
       permissions: ['NOVEDADES_VER'],
     },
     {
+      label: 'Notificaciones',
+      icon: 'N',
+      route: '/admin/notifications',
+      permissions: ['NOTIFICACIONES_VER'],
+    },
+    {
       label: 'Capacitaciones',
       icon: 'CA',
       route: '/admin/trainings',

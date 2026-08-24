@@ -282,6 +282,10 @@ export const routes: Routes = [
         loadComponent: () => import('./features/novelties/novelty-detail.component').then((m) => m.NoveltyDetailComponent),
       },
       {
+        path: 'notifications', canActivate: [permissionGuard], data: { permissions: ['NOTIFICACIONES_VER'] },
+        loadComponent: () => import('./features/notifications/notifications.component').then((m) => m.NotificationsComponent),
+      },
+      {
         path: 'trainings',
         canActivate: [permissionGuard],
         data: { permissions: ['CAPACITACIONES_VER'] },

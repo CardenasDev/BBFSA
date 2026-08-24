@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\EmployeeController;
 use App\Http\Controllers\Api\HealthController;
 use App\Http\Controllers\Api\MyToolDeliveryController;
 use App\Http\Controllers\Api\NoveltyController;
+use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\ReturnController;
 use App\Http\Controllers\Api\RoleController;
 use App\Http\Controllers\Api\ToolController;
@@ -231,6 +232,14 @@ Route::middleware('auth.jwt')->group(function (): void {
         Route::get('{id}/evidence', [NoveltyController::class, 'evidence'])->whereNumber('id')->middleware('permission:NOVEDADES_VER');
         Route::post('{id}/evidence', [NoveltyController::class, 'addEvidence'])->whereNumber('id')->middleware('permission:NOVEDADES_SOPORTES');
         Route::get('{id}/history', [NoveltyController::class, 'history'])->whereNumber('id')->middleware('permission:NOVEDADES_VER');
+    });
+    Route::prefix('notifications')->group(function (): void {
+        Route::get('summary', [NotificationController::class, 'summary'])->middleware('permission:NOTIFICACIONES_VER');
+        Route::get('/', [NotificationController::class, 'index'])->middleware('permission:NOTIFICACIONES_VER');
+        Route::post('manual', [NotificationController::class, 'store'])->middleware('permission:NOTIFICACIONES_GESTIONAR');
+        Route::patch('{id}/read', [NotificationController::class, 'markRead'])->whereNumber('id')->middleware('permission:NOTIFICACIONES_VER');
+        Route::patch('{id}/archive', [NotificationController::class, 'archive'])->whereNumber('id')->middleware('permission:NOTIFICACIONES_VER');
+        Route::patch('{id}/resolve', [NotificationController::class, 'resolve'])->whereNumber('id')->middleware('permission:NOTIFICACIONES_GESTIONAR');
     });
     Route::prefix('contracting')->group(function (): void {
         Route::get('employees', [ContractingController::class, 'indexEmployees'])->middleware('permission:CONTRATACION_VER');

@@ -3,7 +3,7 @@ import { Injectable,inject } from '@angular/core';
 import { map } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { ApiResponse } from '../models/api.models';
-import { DisabilityPayload,Novelty,NoveltyDetail,NoveltyEvidence,NoveltyFilters,NoveltyHistory,NoveltyPayload,NoveltyType } from '../models/novelty.models';
+import { DisabilityPayload,DisabilityTracking,DisabilityTrackingFilters,DisabilityTrackingPayload,Novelty,NoveltyDetail,NoveltyEvidence,NoveltyFilters,NoveltyHistory,NoveltyPayload,NoveltyType } from '../models/novelty.models';
 @Injectable({providedIn:'root'}) export class NoveltyService {
  private http=inject(HttpClient); private url=`${environment.apiUrl}/novelties`;
  types(includeInactive=false){return this.http.get<ApiResponse<NoveltyType[]>>(`${this.url}/types`,{params:{include_inactive:String(includeInactive)}}).pipe(map(r=>r.data));}
@@ -17,4 +17,8 @@ import { DisabilityPayload,Novelty,NoveltyDetail,NoveltyEvidence,NoveltyFilters,
  evidence(id:number){return this.http.get<ApiResponse<NoveltyEvidence[]>>(`${this.url}/${id}/evidence`).pipe(map(r=>r.data));}
  history(id:number){return this.http.get<ApiResponse<NoveltyHistory[]>>(`${this.url}/${id}/history`).pipe(map(r=>r.data));}
  addEvidence(id:number,p:{evidence_type:string;file_name:string;file_url?:string;file?:File;observations?:string}){const f=new FormData();f.append('evidence_type',p.evidence_type);f.append('file_name',p.file_name);if(p.file_url)f.append('file_url',p.file_url);if(p.file)f.append('file',p.file);if(p.observations)f.append('observations',p.observations);return this.http.post<ApiResponse<unknown>>(`${this.url}/${id}/evidence`,f).pipe(map(r=>r.data));}
+ disabilityTracking(id:number){return this.http.get<ApiResponse<DisabilityTracking>>(`${this.url}/${id}/disability-tracking`).pipe(map(r=>r.data));}
+ saveDisabilityTracking(id:number,p:DisabilityTrackingPayload){return this.http.put<ApiResponse<DisabilityTracking>>(`${this.url}/${id}/disability-tracking`,p).pipe(map(r=>r.data));}
+ listDisabilityTracking(f:DisabilityTrackingFilters={}){let p=new HttpParams();Object.entries(f).forEach(([k,v])=>{if(v!==null&&v!==undefined&&v!=='')p=p.set(k,String(v));});return this.http.get<ApiResponse<DisabilityTracking[]>>(`${this.url}/disabilities/tracking`,{params:p}).pipe(map(r=>r.data));}
+ exportDisabilityTracking(f:DisabilityTrackingFilters={}){let p=new HttpParams();Object.entries(f).forEach(([k,v])=>{if(v!==null&&v!==undefined&&v!=='')p=p.set(k,String(v));});return this.http.get(`${this.url}/disabilities/tracking/export`,{params:p,responseType:'blob'});}
 }

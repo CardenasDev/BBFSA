@@ -22,6 +22,21 @@ class NoveltyService
     public function changeStatus(int $id,array $data,int $user,array $context): array { $before=$this->get($id)['novelty']; $r=$this->repository->changeStatus($id,$data['status'],$data['observation']??null,$user); if(!$r) throw new ApiException('No fue posible cambiar el estado.',422); $this->audit->record($user,'NOVEDADES','NOVEDAD_CAMBIAR_ESTADO','NOVEDAD',$id,$before,$r,$context); return $r; }
     public function evidence(int $id): array { $this->get($id); return $this->withEvidenceUrls($this->repository->evidence($id)); }
     public function history(int $id): array { $this->get($id); return $this->repository->history($id); }
+    public function disabilityTracking(int $id): array
+    {
+        $novelty = $this->get($id)['novelty'];
+        if (empty($novelty['es_incapacidad'])) throw new ApiException('La novedad no corresponde a una incapacidad.', 422);
+        return $this->repository->disabilityTracking($id) ?? [];
+    }
+    public function listDisabilityTracking(array $filters): array { return $this->repository->listDisabilityTracking($filters); }
+    public function saveDisabilityTracking(int $id,array $data,int $user,array $context): array
+    {
+        $before=$this->disabilityTracking($id);
+        $result=$this->repository->saveDisabilityTracking($id,$data,$user);
+        if(!$result) throw new ApiException('No fue posible guardar el seguimiento de la incapacidad.',422);
+        $this->audit->record($user,'NOVEDADES','INCAPACIDAD_SEGUIMIENTO_GUARDAR','NOVEDAD',$id,$before,$result,$context);
+        return $result;
+    }
 
     public function addEvidence(int $id,array $data,int $user,array $context): array
     {

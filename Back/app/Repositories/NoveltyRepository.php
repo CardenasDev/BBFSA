@@ -17,6 +17,27 @@ class NoveltyRepository extends StoredProcedureRepository
     public function addEvidence(int $id, array $d, int $user): ?array { return $this->first('SP_BBF_NOVEDAD_EVIDENCIA_AGREGAR', [$id, $d['evidence_type'], $d['file_name'], $d['original_name'] ?? null, $d['file_url'] ?? null, $d['file_path'] ?? null, $d['mime_type'] ?? null, $d['size_bytes'] ?? null, $d['observations'] ?? null, $user]); }
     public function evidence(int $id): array { return $this->call('SP_BBF_NOVEDAD_EVIDENCIAS_LISTAR', [$id]); }
     public function history(int $id): array { return $this->call('SP_BBF_NOVEDAD_HISTORIAL_LISTAR', [$id]); }
+    public function disabilityTracking(int $id): ?array { return $this->first('SP_BBF_INCAPACIDAD_SEGUIMIENTO_OBTENER', [$id]); }
+    public function saveDisabilityTracking(int $id, array $d, int $user): ?array
+    {
+        return $this->first('SP_BBF_INCAPACIDAD_SEGUIMIENTO_GUARDAR', [
+            $id, $d['responsible_entity_id'] ?? null, $d['days_paid_company'] ?? 0,
+            $d['days_payable_entity'] ?? 0, $d['transcription_status'],
+            $d['transcription_channel'] ?? null, $d['transcription_date'] ?? null,
+            $d['payment_request_status'], $d['payment_request_date'] ?? null,
+            $d['disability_value'] ?? 0, $d['entity_received_value'] ?? 0,
+            $d['company_paid_worker_value'] ?? 0, $d['worker_paid_value'] ?? 0,
+            $d['last_payment_date'] ?? null, $d['tracking_status'],
+            $d['tracking_observations'] ?? null, $user,
+        ]);
+    }
+    public function listDisabilityTracking(array $f): array
+    {
+        return $this->call('SP_BBF_INCAPACIDADES_SEGUIMIENTO_LISTAR', [
+            $f['employee_id'] ?? null, $f['responsible_entity_id'] ?? null,
+            $f['tracking_status'] ?? null, $f['date_from'] ?? null, $f['date_to'] ?? null,
+        ]);
+    }
 
     public function get(int $id): array
     {

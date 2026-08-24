@@ -27,4 +27,26 @@ class NoveltyRepositoryTest extends TestCase
         DB::shouldReceive('select')->once()->with('CALL SP_BBF_NOVEDADES_LISTAR(?,?,?,?,?)',[5,'INCAPACIDAD',null,null,null])->andReturn([]);
         self::assertSame([], (new NoveltyRepository)->list(['employee_id'=>5,'type'=>'INCAPACIDAD']));
     }
+
+    public function test_saves_disability_tracking_with_database_contract(): void
+    {
+        DB::shouldReceive('select')->once()->withArgs(fn(string $sql,array $p): bool =>
+            $sql==='CALL SP_BBF_INCAPACIDAD_SEGUIMIENTO_GUARDAR(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)'
+            && $p[0]===9 && $p[1]===3 && $p[9]===150000.0 && $p[16]===99
+        )->andReturn([(object)['ID_NOVEDAD'=>9,'ESTADO_SEGUIMIENTO'=>'EN_TRAMITE']]);
+
+        $result=(new NoveltyRepository)->saveDisabilityTracking(9,[
+            'responsible_entity_id'=>3,'days_paid_company'=>2,'days_payable_entity'=>3,
+            'transcription_status'=>'TRANSCRITA','payment_request_status'=>'RADICADA',
+            'disability_value'=>150000.0,'entity_received_value'=>0,'company_paid_worker_value'=>50000,
+            'worker_paid_value'=>50000,'tracking_status'=>'EN_TRAMITE',
+        ],99);
+        self::assertSame('EN_TRAMITE',$result['estado_seguimiento']);
+    }
+
+    public function test_lists_disability_tracking_preserving_filter_positions(): void
+    {
+        DB::shouldReceive('select')->once()->with('CALL SP_BBF_INCAPACIDADES_SEGUIMIENTO_LISTAR(?,?,?,?,?)',[5,null,'PENDIENTE',null,null])->andReturn([]);
+        self::assertSame([], (new NoveltyRepository)->listDisabilityTracking(['employee_id'=>5,'tracking_status'=>'PENDIENTE']));
+    }
 }

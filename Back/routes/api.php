@@ -220,9 +220,13 @@ Route::middleware('auth.jwt')->group(function (): void {
         Route::get('/', [NoveltyController::class, 'index'])->middleware('permission:NOVEDADES_VER');
         Route::post('/', [NoveltyController::class, 'store'])->middleware('permission:NOVEDADES_CREAR');
         Route::post('disabilities', [NoveltyController::class, 'storeDisability'])->middleware('permission:NOVEDADES_CREAR');
+        Route::get('disabilities/tracking', [NoveltyController::class, 'disabilityTrackingIndex'])->middleware('permission:NOVEDADES_VER');
+        Route::get('disabilities/tracking/export', [NoveltyController::class, 'exportDisabilityTracking'])->middleware('permission:NOVEDADES_VER');
         Route::get('{id}', [NoveltyController::class, 'show'])->whereNumber('id')->middleware('permission:NOVEDADES_VER');
         Route::put('{id}', [NoveltyController::class, 'update'])->whereNumber('id')->middleware('permission:NOVEDADES_EDITAR');
         Route::put('{id}/disability', [NoveltyController::class, 'updateDisability'])->whereNumber('id')->middleware('permission:NOVEDADES_EDITAR');
+        Route::get('{id}/disability-tracking', [NoveltyController::class, 'disabilityTracking'])->whereNumber('id')->middleware('permission:NOVEDADES_VER');
+        Route::put('{id}/disability-tracking', [NoveltyController::class, 'saveDisabilityTracking'])->whereNumber('id')->middleware('permission:NOVEDADES_EDITAR');
         Route::patch('{id}/status', [NoveltyController::class, 'status'])->whereNumber('id')->middleware('permission:NOVEDADES_CAMBIAR_ESTADO');
         Route::get('{id}/evidence', [NoveltyController::class, 'evidence'])->whereNumber('id')->middleware('permission:NOVEDADES_VER');
         Route::post('{id}/evidence', [NoveltyController::class, 'addEvidence'])->whereNumber('id')->middleware('permission:NOVEDADES_SOPORTES');

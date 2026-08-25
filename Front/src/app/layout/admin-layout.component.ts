@@ -192,6 +192,11 @@ export class AdminLayoutComponent {
       permissions: ['NOVEDADES_VER'],
     },
     {
+      label: 'Retiros',
+      icon: 'R',
+      route: '/admin/retirements',
+      permissions: ['RETIROS_VER'],
+    },    {
       label: 'Notificaciones',
       icon: 'N',
       route: '/admin/notifications',

@@ -282,6 +282,17 @@ export const routes: Routes = [
         loadComponent: () => import('./features/novelties/novelty-detail.component').then((m) => m.NoveltyDetailComponent),
       },
       {
+        path: 'retirements', canActivate: [permissionGuard], data: { permissions: ['RETIROS_VER'] },
+        loadComponent: () => import('./features/retirements/retirements.component').then((m) => m.RetirementsComponent),
+      },
+      {
+        path: 'retirements/:id', canActivate: [permissionGuard], data: { permissions: ['RETIROS_VER'] },
+        loadComponent: () => import('./features/retirements/retirement-detail.component').then((m) => m.RetirementDetailComponent),
+      },
+      {
+        path: 'retirements/:id/certificate', canActivate: [permissionGuard], data: { permissions: ['RETIROS_CERTIFICADO_GENERAR'] },
+        loadComponent: () => import('./features/retirements/retirement-certificate.component').then((m) => m.RetirementCertificateComponent),
+      },      {
         path: 'notifications', canActivate: [permissionGuard], data: { permissions: ['NOTIFICACIONES_VER'] },
         loadComponent: () => import('./features/notifications/notifications.component').then((m) => m.NotificationsComponent),
       },

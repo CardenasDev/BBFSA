@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\MyToolDeliveryController;
 use App\Http\Controllers\Api\NoveltyController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\ReturnController;
+use App\Http\Controllers\Api\RetirementController;
 use App\Http\Controllers\Api\RoleController;
 use App\Http\Controllers\Api\ToolController;
 use App\Http\Controllers\Api\TrainingController;
@@ -109,7 +110,7 @@ Route::middleware('auth.jwt')->group(function (): void {
         Route::get('{applicantId}/status-history', [ApplicantController::class, 'statusHistory'])->whereNumber('applicantId')->middleware('permission:ASPIRANTES_VER');
         Route::post('{applicantId}/convert-to-employee', [ApplicantController::class, 'convertToEmployee'])->whereNumber('applicantId')->middleware('permission:ASPIRANTES_CONVERTIR_EMPLEADO');
     });
-    Route::get('employees', [EmployeeController::class, 'index'])->middleware('permission:EMPLEADOS_LISTAR,EMPLEADOS_VER,USUARIOS_CREAR,USUARIOS_EDITAR,NOVEDADES_VER,NOVEDADES_CREAR');
+    Route::get('employees', [EmployeeController::class, 'index'])->middleware('permission:EMPLEADOS_LISTAR,EMPLEADOS_VER,USUARIOS_CREAR,USUARIOS_EDITAR,NOVEDADES_VER,NOVEDADES_CREAR,RETIROS_VER,RETIROS_CREAR,RETIROS_VER,RETIROS_CREAR');
     Route::get('employees/export', [EmployeeController::class, 'export'])->middleware('permission:EMPLEADOS_LISTAR,EMPLEADOS_VER');
     Route::post('employees', [EmployeeController::class, 'store'])->middleware('permission:EMPLEADOS_CREAR');
     Route::get('employees/by-document/{document}', [EmployeeController::class, 'byDocument'])->middleware('permission:EMPLEADOS_VER,USUARIOS_CREAR,USUARIOS_EDITAR');
@@ -232,6 +233,19 @@ Route::middleware('auth.jwt')->group(function (): void {
         Route::get('{id}/evidence', [NoveltyController::class, 'evidence'])->whereNumber('id')->middleware('permission:NOVEDADES_VER');
         Route::post('{id}/evidence', [NoveltyController::class, 'addEvidence'])->whereNumber('id')->middleware('permission:NOVEDADES_SOPORTES');
         Route::get('{id}/history', [NoveltyController::class, 'history'])->whereNumber('id')->middleware('permission:NOVEDADES_VER');
+    });
+    Route::prefix('retirements')->group(function (): void {
+        Route::get('reasons', [RetirementController::class, 'reasons'])->middleware('permission:RETIROS_VER,RETIROS_CREAR');
+        Route::get('document-types', [RetirementController::class, 'documentTypes'])->middleware('permission:RETIROS_VER,RETIROS_DOCUMENTOS');
+        Route::get('/', [RetirementController::class, 'index'])->middleware('permission:RETIROS_VER');
+        Route::post('/', [RetirementController::class, 'store'])->middleware('permission:RETIROS_CREAR');
+        Route::get('{id}', [RetirementController::class, 'show'])->whereNumber('id')->middleware('permission:RETIROS_VER');
+        Route::get('{id}/certificate', [RetirementController::class, 'certificate'])->whereNumber('id')->middleware('permission:RETIROS_CERTIFICADO_GENERAR');
+        Route::patch('{id}/activities', [RetirementController::class, 'activity'])->whereNumber('id')->middleware('permission:RETIROS_EDITAR');
+        Route::put('{id}/interview', [RetirementController::class, 'interview'])->whereNumber('id')->middleware('permission:RETIROS_ENTREVISTA');
+        Route::post('{id}/documents', [RetirementController::class, 'document'])->whereNumber('id')->middleware('permission:RETIROS_DOCUMENTOS');
+        Route::post('{id}/finalize', [RetirementController::class, 'finalize'])->whereNumber('id')->middleware('permission:RETIROS_FINALIZAR');
+        Route::post('{id}/cancel', [RetirementController::class, 'cancel'])->whereNumber('id')->middleware('permission:RETIROS_CANCELAR');
     });
     Route::prefix('notifications')->group(function (): void {
         Route::get('summary', [NotificationController::class, 'summary'])->middleware('permission:NOTIFICACIONES_VER');

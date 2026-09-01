@@ -62,12 +62,6 @@ class ContractingRepositoryTest extends TestCase
                 'VALORES_DEFAULT_JSON' => '{"salario":0}',
             ]]);
         DB::shouldReceive('select')->once()
-            ->with('CALL SP_BBF_CONTRATO_PLANTILLA_OBTENER(?)', [2])
-            ->andReturn([(object) ['ID_PLANTILLA_CONTRATO' => 2]]);
-        DB::shouldReceive('select')->once()
-            ->with('CALL SP_BBF_CONTRATO_PLANTILLA_POR_TIPO_OBTENER(?,?)', [1, 'OPERATIVO'])
-            ->andReturn([(object) ['ID_PLANTILLA_CONTRATO' => 2]]);
-        DB::shouldReceive('select')->once()
             ->with('CALL SP_BBF_CONTRATACION_CONTRATO_DATOS_GENERAR(?)', [7])
             ->andReturn([(object) [
                 'ID_EMPLEADO_CONTRATO' => 7,
@@ -111,8 +105,6 @@ class ContractingRepositoryTest extends TestCase
         $this->assertSame(2, $template['id_plantilla_contrato']);
         $this->assertSame(['campo' => 'valor'], $template['config_campos']);
         $this->assertSame(['salario' => 0], $template['valores_default']);
-        $this->assertSame(2, $repository->getContractTemplate(2)['id_plantilla_contrato']);
-        $this->assertSame(2, $repository->getContractTemplateByType(1, 'OPERATIVO')['id_plantilla_contrato']);
         $this->assertSame(7, $repository->getContractGenerationData(7)['id_empleado_contrato']);
         $repository->getSocialSecurity(5);
         $repository->listMedicalExams(5);

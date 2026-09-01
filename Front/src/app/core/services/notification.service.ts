@@ -3,7 +3,7 @@ import { Injectable, inject } from '@angular/core';
 import { map } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { ApiResponse } from '../models/api.models';
-import { AppNotification, ManualNotificationPayload, NotificationSummary } from '../models/notification.models';
+import { AppNotification, NotificationSummary } from '../models/notification.models';
 
 @Injectable({ providedIn: 'root' })
 export class NotificationService {
@@ -31,7 +31,4 @@ export class NotificationService {
     return this.http.patch<ApiResponse<unknown>>(`${this.url}/${id}/resolve`, {}).pipe(map((response) => response.data));
   }
 
-  createManual(payload: ManualNotificationPayload) {
-    return this.http.post<ApiResponse<unknown>>(`${this.url}/manual`, payload).pipe(map((response) => response.data));
-  }
 }

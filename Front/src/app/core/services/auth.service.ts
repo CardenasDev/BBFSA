@@ -36,12 +36,6 @@ export class AuthService {
     );
   }
 
-  logoutAll(): Observable<void> {
-    return this.http.post<ApiResponse<null>>(`${environment.apiUrl}/auth/logout-all`, {}).pipe(
-      map(() => undefined), tap(() => this.clearSession()),
-    );
-  }
-
   refreshToken(): Observable<TokenResponse> {
     const refresh_token = this.getRefreshToken();
     if (!refresh_token) return throwError(() => new Error('No hay refresh token.'));
@@ -64,10 +58,7 @@ export class AuthService {
   isAuthenticated(): boolean { return this.authenticated(); }
   hasPermission(code: string): boolean { return this.permissionState().some((p) => p.codigo === code); }
   hasAnyPermission(codes: string[]): boolean { return codes.some((code) => this.hasPermission(code)); }
-  hasRole(name: string): boolean { return this.roleState().some((role) => role.nombre === name); }
   getCurrentUser(): AuthUser | null { return this.userState(); }
-  getPermissions(): Permission[] { return this.permissionState(); }
-  getRoles(): Role[] { return this.roleState(); }
   getAccessToken(): string | null { return localStorage.getItem(KEYS.access); }
   getRefreshToken(): string | null { return localStorage.getItem(KEYS.refresh); }
 

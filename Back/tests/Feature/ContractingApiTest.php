@@ -22,8 +22,6 @@ class ContractingApiTest extends TestCase
         $this->assertEqualsCanonicalizing([
             'GET|HEAD api/contracting/employees',
             'GET|HEAD api/contracting/contract-templates',
-            'GET|HEAD api/contracting/contract-templates/by-type',
-            'GET|HEAD api/contracting/contract-templates/{templateId}',
             'GET|HEAD api/contracting/contracts/{employeeContractId}/generation-data',
             'POST api/contracting/contracts/{employeeContractId}/sign',
             'GET|HEAD api/contracting/employees/{employeeId}/profile',
@@ -166,10 +164,6 @@ class ContractingApiTest extends TestCase
             ->assertUnprocessable()
             ->assertJsonValidationErrors(['dias_antes']);
 
-        $this->withToken($this->tokenWithPermissions(['CONTRATACION_VER']))
-            ->getJson('/api/contracting/contract-templates/by-type')
-            ->assertUnprocessable()
-            ->assertJsonValidationErrors(['id_tipo_contrato']);
     }
 
     public function test_profile_get_maps_new_fields_from_sp(): void
@@ -410,12 +404,6 @@ class ContractingApiTest extends TestCase
                 'VALORES_DEFAULT_JSON' => '{"formato":"PDF"}',
             ]]);
         DB::shouldReceive('select')->once()
-            ->with('CALL SP_BBF_CONTRATO_PLANTILLA_OBTENER(?)', [9])
-            ->andReturn([(object) ['ID_PLANTILLA_CONTRATO' => 9, 'NOMBRE_PLANTILLA' => 'Contrato operativo']]);
-        DB::shouldReceive('select')->once()
-            ->with('CALL SP_BBF_CONTRATO_PLANTILLA_POR_TIPO_OBTENER(?,?)', [1, 'OPERATIVO'])
-            ->andReturn([(object) ['ID_PLANTILLA_CONTRATO' => 9]]);
-        DB::shouldReceive('select')->once()
             ->with('CALL SP_BBF_CONTRATACION_CONTRATO_DATOS_GENERAR(?)', [7])
             ->andReturn([(object) [
                 'ID_EMPLEADO_CONTRATO' => 7,
@@ -444,16 +432,6 @@ class ContractingApiTest extends TestCase
             ->assertJsonPath('data.0.valores_default.formato', 'PDF');
 
         $this->withToken($this->tokenWithPermissions(['CONTRATACION_VER']))
-            ->getJson('/api/contracting/contract-templates/9')
-            ->assertOk()
-            ->assertJsonPath('data.nombre_plantilla', 'Contrato operativo');
-
-        $this->withToken($this->tokenWithPermissions(['CONTRATACION_VER']))
-            ->getJson('/api/contracting/contract-templates/by-type?id_tipo_contrato=1&tipo_cargo_contrato=OPERATIVO')
-            ->assertOk()
-            ->assertJsonPath('data.id_plantilla_contrato', 9);
-
-        $this->withToken($this->tokenWithPermissions(['CONTRATACION_VER']))
             ->getJson('/api/contracting/contracts/7/generation-data')
             ->assertOk()
             ->assertJsonPath('data.empresa.razonSocial', 'BARRO BLANCO FARMS S.A.S')
@@ -466,51 +444,6 @@ class ContractingApiTest extends TestCase
             ->assertJsonPath('data.parametros.plantilla.config_campos.nombre', true)
             ->assertJsonPath('data.parametros.plantilla.formato_salida_default', 'PDF')
             ->assertJsonPath('data.parametros.reemplazos.FECHA_FIN_TEXTO', '23 de octubre de 2026');
-    }
-
-    public function test_template_by_type_resolves_active_contract_templates_for_ids_2_3_and_4(): void
-    {
-        DB::shouldReceive('select')->once()
-            ->with('CALL SP_BBF_CONTRATO_PLANTILLA_POR_TIPO_OBTENER(?,?)', [2, 'ADMINISTRATIVO'])
-            ->andReturn([(object) [
-                'ID_PLANTILLA_CONTRATO' => 3,
-                'ID_TIPO_CONTRATO' => 2,
-                'CODIGO_FORMATO' => 'BBTH-F-016',
-                'NOMBRE_PLANTILLA' => 'Contrato de trabajo a término indefinido',
-            ]]);
-
-        DB::shouldReceive('select')->once()
-            ->with('CALL SP_BBF_CONTRATO_PLANTILLA_POR_TIPO_OBTENER(?,?)', [3, 'ADMINISTRATIVO'])
-            ->andReturn([(object) [
-                'ID_PLANTILLA_CONTRATO' => 1,
-                'ID_TIPO_CONTRATO' => 3,
-                'CODIGO_FORMATO' => 'BBTH-F-015',
-                'NOMBRE_PLANTILLA' => 'Contrato laboral a término fijo inferior a un año - Administrativo',
-            ]]);
-
-        DB::shouldReceive('select')->once()
-            ->with('CALL SP_BBF_CONTRATO_PLANTILLA_POR_TIPO_OBTENER(?,?)', [4, 'OPERATIVO'])
-            ->andReturn([(object) [
-                'ID_PLANTILLA_CONTRATO' => 2,
-                'ID_TIPO_CONTRATO' => 4,
-                'CODIGO_FORMATO' => 'BBTH-F-014',
-                'NOMBRE_PLANTILLA' => 'CONTRATO POR OBRA O LABOR DETERMINADA OPERATIVA',
-            ]]);
-
-        $this->withToken($this->tokenWithPermissions(['CONTRATACION_VER']))
-            ->getJson('/api/contracting/contract-templates/by-type?id_tipo_contrato=2&tipo_cargo_contrato=ADMINISTRATIVO')
-            ->assertOk()
-            ->assertJsonPath('data.codigo_formato', 'BBTH-F-016');
-
-        $this->withToken($this->tokenWithPermissions(['CONTRATACION_VER']))
-            ->getJson('/api/contracting/contract-templates/by-type?id_tipo_contrato=3&tipo_cargo_contrato=ADMINISTRATIVO')
-            ->assertOk()
-            ->assertJsonPath('data.codigo_formato', 'BBTH-F-015');
-
-        $this->withToken($this->tokenWithPermissions(['CONTRATACION_VER']))
-            ->getJson('/api/contracting/contract-templates/by-type?id_tipo_contrato=4&tipo_cargo_contrato=OPERATIVO')
-            ->assertOk()
-            ->assertJsonPath('data.codigo_formato', 'BBTH-F-014');
     }
 
     public function test_alerts_endpoint_accepts_dias_antes(): void
@@ -678,8 +611,6 @@ class ContractingApiTest extends TestCase
         return [
             ['GET', '/api/contracting/employees'],
             ['GET', '/api/contracting/contract-templates'],
-            ['GET', '/api/contracting/contract-templates/9'],
-            ['GET', '/api/contracting/contract-templates/by-type'],
             ['GET', '/api/contracting/contracts/7/generation-data'],
             ['POST', '/api/contracting/contracts/7/sign'],
             ['GET', '/api/contracting/employees/5/profile'],

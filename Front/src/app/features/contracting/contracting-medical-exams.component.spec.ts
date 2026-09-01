@@ -90,6 +90,7 @@ describe('ContractingMedicalExamsComponent', () => {
       fecha_examen: '2026-07-24',
       entidad_realiza: 'IPS Ejemplo',
     };
+    component.fileOrigin = 'NINGUNO';
 
     component.createExam();
 
@@ -97,6 +98,22 @@ describe('ContractingMedicalExamsComponent', () => {
     expect(payload.id_tipo_examen_medico).toBe(3);
     expect(payload['tipo_examen']).toBeUndefined();
     expect(payload['nombre_tipo_examen']).toBeUndefined();
+  });
+
+  it('sends the selected medical exam file as multipart form data', () => {
+    const { component, contracting } = setup();
+    component.openCreate();
+    component.form.id_tipo_examen_medico = 1;
+    component.form.fecha_examen = '2026-09-01';
+    component.selectedFile = new File(['contenido'], 'examen.pdf', { type: 'application/pdf' });
+
+    component.createExam();
+
+    const payload = contracting.createMedicalExam.mock.calls[0][1] as FormData;
+    expect(payload).toBeInstanceOf(FormData);
+    expect(payload.get('id_tipo_examen_medico')).toBe('1');
+    expect(payload.get('fecha_examen')).toBe('2026-09-01');
+    expect((payload.get('archivo') as File).name).toBe('examen.pdf');
   });
 
   it('does not clear form data or the exam list when the catalog fails', () => {

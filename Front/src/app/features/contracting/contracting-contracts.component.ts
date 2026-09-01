@@ -256,7 +256,7 @@ const BASE_FIELDS = [
           <button class="icon-btn close-btn" type="button" (click)="closeGenerationData()" aria-label="Cerrar">x</button>
         </header>
 
-        <p class="muted">Estos son los datos preparados para el contrato. Esta vista no genera el archivo; la accion Generar PDF crea el documento final.</p>
+        <p class="muted">Estos son los datos preparados para el contrato. Usa la opción Ver / imprimir contrato para revisar y guardar el documento en PDF.</p>
         @if (generationError()) { <div class="alert error">{{ generationError() }}</div> }
         @if (generationLoading()) { <section class="panel empty">Cargando datos...</section> }
         @if (generationData(); as data) {
@@ -322,7 +322,6 @@ export class ContractingContractsComponent implements OnInit {
   readonly generationOpen = signal(false);
   readonly generationLoading = signal(false);
   readonly generationData = signal<ContractGenerationData | null>(null);
-  readonly generatingContractId = signal<number | null>(null);
   readonly error = signal('');
   readonly formError = signal('');
   readonly templateMessage = signal('');
@@ -518,21 +517,6 @@ export class ContractingContractsComponent implements OnInit {
     return this.expandedContract() === this.contractKey(contract);
   }
 
-  canGeneratePdf(contract: EmployeeContract): boolean {
-    return !!this.contractId(contract) && !!this.numberOrNull(contract.id_plantilla_contrato);
-  }
-
-  pdfDisabledReason(contract: EmployeeContract): string {
-    if (!this.contractId(contract)) return 'Contrato invalido.';
-    if (!this.numberOrNull(contract.id_plantilla_contrato)) return 'Este contrato no tiene plantilla asociada.';
-    return '';
-  }
-
-  isGeneratingContract(contract: EmployeeContract): boolean {
-    const contractId = this.contractId(contract);
-    return !!contractId && this.generatingContractId() === contractId;
-  }
-
   getStorageUrl(path?: string | null): string | null {
     if (!path?.trim()) {
       return null;
@@ -546,52 +530,6 @@ export class ContractingContractsComponent implements OnInit {
     const normalizedPath = path.replace(/^\/+/, '');
 
     return `${baseUrl}/storage/${normalizedPath}`;
-  }
-
-  generatePdf(contract: EmployeeContract): void {
-    const contractId = this.contractId(contract);
-    if (!contractId) {
-      this.error.set('Contrato invalido.');
-      this.success.set('');
-      return;
-    }
-
-    if (!this.numberOrNull(contract.id_plantilla_contrato)) {
-      this.error.set('Este contrato no tiene plantilla asociada.');
-      this.success.set('');
-      return;
-    }
-
-    if (this.generatingContractId() === contractId) {
-      return;
-    }
-
-    const hasGeneratedFile = !!this.getStorageUrl(contract.archivo_contrato_url);
-    const confirmed = hasGeneratedFile
-      ? window.confirm('Este contrato ya tiene un PDF generado. ¿Deseas generar uno nuevo?')
-      : window.confirm('¿Deseas generar el PDF de este contrato?');
-
-    if (!confirmed) {
-      return;
-    }
-
-    this.generatingContractId.set(contractId);
-    this.error.set('');
-    this.success.set('');
-
-    this.service.generateContractPdf(contractId).pipe(
-      finalize(() => this.generatingContractId.set(null)),
-    ).subscribe({
-      next: (response) => {
-        const generatedPath = response.archivo_contrato_url || response.archivo_generado_url || null;
-        this.updateGeneratedContractFile(contractId, generatedPath);
-        this.success.set('Contrato PDF generado correctamente. Documento disponible para revision y firma.');
-        this.load();
-      },
-      error: () => {
-        this.error.set('No fue posible generar el PDF del contrato. Verifica que el contrato tenga plantilla asociada y datos completos.');
-      },
-    });
   }
 
   templateLabel(template: ContractTemplate): string {
@@ -827,23 +765,6 @@ export class ContractingContractsComponent implements OnInit {
 
   contractId(contract: EmployeeContract): number | null {
     return this.numberOrNull(contract.id_empleado_contrato ?? contract.id_contrato_empleado);
-  }
-
-  private updateGeneratedContractFile(contractId: number, archivoContratoUrl: string | null): void {
-    if (!archivoContratoUrl) {
-      return;
-    }
-
-    this.contracts.set(this.contracts().map((contract) => {
-      if (this.contractId(contract) !== contractId) {
-        return contract;
-      }
-
-      return {
-        ...contract,
-        archivo_contrato_url: archivoContratoUrl,
-      };
-    }));
   }
 
   private selectedContractTypeLooksLikeWork(): boolean {

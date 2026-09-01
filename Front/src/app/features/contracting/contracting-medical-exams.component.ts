@@ -7,6 +7,7 @@ import { AuthService } from '../../core/services/auth.service';
 import { CatalogService } from '../../core/services/catalog.service';
 import { ContractingService } from '../../core/services/contracting.service';
 import { apiErrorMessage } from '../../shared/api-error';
+import { environment } from '../../../environments/environment';
 
 @Component({
   standalone: true,
@@ -45,7 +46,7 @@ import { apiErrorMessage } from '../../shared/api-error';
                 <td>{{ exam.resultado_general || 'Sin resultado' }}</td>
                 <td>{{ exam.fecha_vencimiento || 'Sin fecha' }}</td>
                 <td><span class="badge" [class.success]="examStatus(exam) === 'Vigente'" [class.danger]="examStatus(exam) === 'Vencido'">{{ examStatus(exam) }}</span></td>
-                <td>@if (exam.archivo_url) { <a [href]="exam.archivo_url" target="_blank" rel="noopener">Abrir</a> } @else { Sin archivo }</td>
+                <td>@if (exam.archivo_url) { <a [href]="backendFileUrl(exam.archivo_url)" target="_blank" rel="noopener">Abrir</a> } @else { Sin archivo }</td>
                 <td>{{ exam.observaciones || 'Sin observaciones' }}</td>
               </tr>
             } @empty {
@@ -78,7 +79,21 @@ import { apiErrorMessage } from '../../shared/api-error';
           <label>Entidad realiza<input name="entidad_realiza" [(ngModel)]="form.entidad_realiza" maxlength="200" /></label>
           <label>Resultado general<input name="resultado_general" [(ngModel)]="form.resultado_general" maxlength="250" /></label>
           <label>Fecha vencimiento<input type="date" name="fecha_vencimiento" [(ngModel)]="form.fecha_vencimiento" /></label>
-          <label class="form-wide">Archivo URL<input name="archivo_url" [(ngModel)]="form.archivo_url" maxlength="500" /></label>
+          <label class="form-wide">Origen del soporte
+            <select name="fileOrigin" [(ngModel)]="fileOrigin" (ngModelChange)="changeFileOrigin()">
+              <option value="ARCHIVO">Cargar archivo</option>
+              <option value="URL">URL externa</option>
+              <option value="NINGUNO">Sin soporte</option>
+            </select>
+          </label>
+          @if (fileOrigin === 'ARCHIVO') {
+            <label class="form-wide">Archivo
+              <input type="file" name="archivo" accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx" (change)="selectFile($event)" />
+              <small class="muted">PDF, imagen o Word. Tamaño máximo: 5 MB.</small>
+            </label>
+          } @else if (fileOrigin === 'URL') {
+            <label class="form-wide">Archivo URL<input name="archivo_url" [(ngModel)]="form.archivo_url" maxlength="500" placeholder="https://..." /></label>
+          }
           <label class="form-wide">Observaciones<textarea rows="3" name="observaciones" [(ngModel)]="form.observaciones"></textarea></label>
           <div class="form-actions form-wide">
             <button class="btn secondary" type="button" (click)="closeCreate()" [disabled]="saving()">Cancelar</button>
@@ -106,6 +121,8 @@ export class ContractingMedicalExamsComponent implements OnInit {
   readonly success = signal('');
   employeeId = 0;
   form: CreateMedicalExamRequest = this.emptyForm();
+  fileOrigin: 'ARCHIVO' | 'URL' | 'NINGUNO' = 'ARCHIVO';
+  selectedFile: File | null = null;
 
   ngOnInit(): void {
     this.employeeId = Number(this.route.snapshot.paramMap.get('employeeId'));
@@ -139,6 +156,8 @@ export class ContractingMedicalExamsComponent implements OnInit {
     this.form = this.emptyForm();
     this.formError.set('');
     this.success.set('');
+    this.fileOrigin = 'ARCHIVO';
+    this.selectedFile = null;
     this.createOpen.set(true);
   }
 
@@ -154,7 +173,7 @@ export class ContractingMedicalExamsComponent implements OnInit {
       return;
     }
     this.saving.set(true);
-    this.service.createMedicalExam(this.employeeId, this.normalize()).pipe(finalize(() => this.saving.set(false))).subscribe({
+    this.service.createMedicalExam(this.employeeId, this.payload()).pipe(finalize(() => this.saving.set(false))).subscribe({
       next: () => {
         this.success.set('Examen medico registrado correctamente.');
         this.createOpen.set(false);
@@ -176,15 +195,50 @@ export class ContractingMedicalExamsComponent implements OnInit {
     return examType?.nombre ?? (exam.id_tipo_examen_medico ? `ID ${exam.id_tipo_examen_medico}` : 'Sin dato');
   }
 
+  changeFileOrigin(): void {
+    this.selectedFile = null;
+    this.form.archivo_url = null;
+    this.formError.set('');
+  }
+
+  selectFile(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    this.selectedFile = input.files?.[0] ?? null;
+    this.formError.set('');
+  }
+
+  backendFileUrl(path: string): string {
+    if (/^https?:\/\//i.test(path)) return path;
+    const baseUrl = environment.backendUrl.replace(/\/$/, '');
+    return `${baseUrl}${path.startsWith('/') ? path : `/${path}`}`;
+  }
+
   private validate(): string {
     if (!this.form.id_tipo_examen_medico) return 'El tipo de examen medico es obligatorio.';
     if (!this.form.fecha_examen) return 'La fecha de examen es obligatoria.';
     if (this.form.fecha_vencimiento && this.form.fecha_examen && this.form.fecha_vencimiento < this.form.fecha_examen) return 'La fecha de vencimiento no puede ser menor que la fecha de examen.';
+    if (this.fileOrigin === 'ARCHIVO') {
+      if (!this.selectedFile) return 'Selecciona el archivo del examen médico.';
+      if (!/\.(pdf|jpe?g|png|webp|docx?)$/i.test(this.selectedFile.name)) return 'El archivo debe ser PDF, imagen o documento Word.';
+      if (this.selectedFile.size > 5 * 1024 * 1024) return 'El archivo no debe superar 5 MB.';
+    }
+    if (this.fileOrigin === 'URL' && !this.form.archivo_url?.trim()) return 'Ingresa la URL externa del examen médico.';
     return '';
   }
 
-  private normalize(): CreateMedicalExamRequest {
-    return { ...this.form, id_tipo_examen_medico: Number(this.form.id_tipo_examen_medico) };
+  private payload(): CreateMedicalExamRequest | FormData {
+    const normalized = { ...this.form, id_tipo_examen_medico: Number(this.form.id_tipo_examen_medico) };
+    if (this.fileOrigin !== 'ARCHIVO') {
+      if (this.fileOrigin === 'NINGUNO') normalized.archivo_url = null;
+      return normalized;
+    }
+
+    const formData = new FormData();
+    Object.entries(normalized).forEach(([key, value]) => {
+      if (value !== null && value !== undefined && value !== '') formData.append(key, String(value));
+    });
+    if (this.selectedFile) formData.append('archivo', this.selectedFile, this.selectedFile.name);
+    return formData;
   }
 
   private emptyForm(): CreateMedicalExamRequest {

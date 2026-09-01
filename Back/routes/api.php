@@ -28,7 +28,6 @@ Route::prefix('auth')->group(function (): void {
 
     Route::middleware('auth.jwt')->group(function (): void {
         Route::post('logout', [AuthController::class, 'logout']);
-        Route::post('logout-all', [AuthController::class, 'logoutAll']);
         Route::get('me', [AuthController::class, 'me']);
         Route::post('change-password', [AuthController::class, 'changePassword']);
     });
@@ -124,7 +123,6 @@ Route::middleware('auth.jwt')->group(function (): void {
     Route::post('users', [UserController::class, 'store'])->middleware('permission:USUARIOS_CREAR');
     Route::patch('users/{id}', [UserController::class, 'update'])->whereNumber('id')->middleware('permission:USUARIOS_EDITAR');
     Route::patch('users/{id}/estado', [UserController::class, 'changeStatus'])->whereNumber('id')->middleware('permission:USUARIOS_CAMBIAR_ESTADO');
-    Route::patch('users/{id}/status', [UserController::class, 'changeStatus'])->whereNumber('id')->middleware('permission:USUARIOS_CAMBIAR_ESTADO');
     Route::post('users/{id}/roles', [UserController::class, 'assignRole'])->whereNumber('id')->middleware('permission:USUARIOS_ASIGNAR_ROL');
     Route::delete('users/{id}/roles/{roleId}', [UserController::class, 'removeRole'])->whereNumber(['id', 'roleId'])->middleware('permission:USUARIOS_QUITAR_ROL');
     Route::get('users/{id}/roles', [UserController::class, 'roles'])->whereNumber('id')->middleware('permission:USUARIOS_VER_ROLES');
@@ -222,7 +220,6 @@ Route::middleware('auth.jwt')->group(function (): void {
         Route::get('/', [NoveltyController::class, 'index'])->middleware('permission:NOVEDADES_VER');
         Route::post('/', [NoveltyController::class, 'store'])->middleware('permission:NOVEDADES_CREAR');
         Route::post('disabilities', [NoveltyController::class, 'storeDisability'])->middleware('permission:NOVEDADES_CREAR');
-        Route::get('disabilities/tracking', [NoveltyController::class, 'disabilityTrackingIndex'])->middleware('permission:NOVEDADES_VER');
         Route::get('disabilities/tracking/export', [NoveltyController::class, 'exportDisabilityTracking'])->middleware('permission:NOVEDADES_VER');
         Route::get('{id}', [NoveltyController::class, 'show'])->whereNumber('id')->middleware('permission:NOVEDADES_VER');
         Route::put('{id}', [NoveltyController::class, 'update'])->whereNumber('id')->middleware('permission:NOVEDADES_EDITAR');
@@ -230,9 +227,7 @@ Route::middleware('auth.jwt')->group(function (): void {
         Route::get('{id}/disability-tracking', [NoveltyController::class, 'disabilityTracking'])->whereNumber('id')->middleware('permission:NOVEDADES_VER');
         Route::put('{id}/disability-tracking', [NoveltyController::class, 'saveDisabilityTracking'])->whereNumber('id')->middleware('permission:NOVEDADES_EDITAR');
         Route::patch('{id}/status', [NoveltyController::class, 'status'])->whereNumber('id')->middleware('permission:NOVEDADES_CAMBIAR_ESTADO');
-        Route::get('{id}/evidence', [NoveltyController::class, 'evidence'])->whereNumber('id')->middleware('permission:NOVEDADES_VER');
         Route::post('{id}/evidence', [NoveltyController::class, 'addEvidence'])->whereNumber('id')->middleware('permission:NOVEDADES_SOPORTES');
-        Route::get('{id}/history', [NoveltyController::class, 'history'])->whereNumber('id')->middleware('permission:NOVEDADES_VER');
     });
     Route::prefix('retirements')->group(function (): void {
         Route::get('reasons', [RetirementController::class, 'reasons'])->middleware('permission:RETIROS_VER,RETIROS_CREAR');
@@ -250,7 +245,6 @@ Route::middleware('auth.jwt')->group(function (): void {
     Route::prefix('notifications')->group(function (): void {
         Route::get('summary', [NotificationController::class, 'summary'])->middleware('permission:NOTIFICACIONES_VER');
         Route::get('/', [NotificationController::class, 'index'])->middleware('permission:NOTIFICACIONES_VER');
-        Route::post('manual', [NotificationController::class, 'store'])->middleware('permission:NOTIFICACIONES_GESTIONAR');
         Route::patch('{id}/read', [NotificationController::class, 'markRead'])->whereNumber('id')->middleware('permission:NOTIFICACIONES_VER');
         Route::patch('{id}/archive', [NotificationController::class, 'archive'])->whereNumber('id')->middleware('permission:NOTIFICACIONES_VER');
         Route::patch('{id}/resolve', [NotificationController::class, 'resolve'])->whereNumber('id')->middleware('permission:NOTIFICACIONES_GESTIONAR');
@@ -258,8 +252,6 @@ Route::middleware('auth.jwt')->group(function (): void {
     Route::prefix('contracting')->group(function (): void {
         Route::get('employees', [ContractingController::class, 'indexEmployees'])->middleware('permission:CONTRATACION_VER');
         Route::get('contract-templates', [ContractingController::class, 'listContractTemplates'])->middleware('permission:CONTRATACION_VER');
-        Route::get('contract-templates/by-type', [ContractingController::class, 'getContractTemplateByType'])->middleware('permission:CONTRATACION_VER');
-        Route::get('contract-templates/{templateId}', [ContractingController::class, 'getContractTemplate'])->whereNumber('templateId')->middleware('permission:CONTRATACION_VER');
         Route::get('parameters/minimum-salary', [ContractingController::class, 'minimumSalary'])->middleware('permission:CONTRATACION_CREAR');
         Route::get('contracts/{employeeContractId}/generation-data', [ContractingController::class, 'getContractGenerationData'])->whereNumber('employeeContractId')->middleware('permission:CONTRATACION_VER');
         Route::post('contracts/{employeeContractId}/sign', [ContractingController::class, 'signContract'])->whereNumber('employeeContractId')->middleware('permission:CONTRATACION_EDITAR');

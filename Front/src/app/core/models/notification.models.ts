@@ -29,15 +29,3 @@ export interface NotificationSummary {
   total_capacitaciones: number;
   total_novedades: number;
 }
-
-export interface ManualNotificationPayload {
-  type_code: string;
-  employee_id?: number | null;
-  recipient_user_id?: number | null;
-  title: string;
-  message: string;
-  priority?: NotificationPriority;
-  event_date?: string | null;
-  due_date?: string | null;
-  action_url?: string | null;
-}

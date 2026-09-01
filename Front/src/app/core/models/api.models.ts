@@ -836,20 +836,6 @@ export interface EmployeeContract {
   created_at?: string | null;
 }
 
-export interface GenerateContractDocxResponse {
-  id_empleado_contrato: number;
-  archivo_generado_url: string;
-  archivo_contrato_url?: string | null;
-  formato: 'DOCX';
-}
-
-export interface GenerateContractPdfResponse {
-  id_empleado_contrato: number;
-  archivo_generado_url: string;
-  archivo_contrato_url?: string | null;
-  formato: 'PDF';
-}
-
 export interface CreateEmployeeContractRequest {
   id_tipo_contrato: number | null;
   id_plantilla_contrato?: number | null;

@@ -4,7 +4,6 @@ import { Observable, map } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import {
   ApiResponse,
-  ContractChargeType,
   ContractGenerationData,
   ContractTemplate,
   ContractingAlert,
@@ -16,8 +15,6 @@ import {
   EmployeeLaborDocument,
   EmployeeMedicalExam,
   EmployeeSocialSecurity,
-  GenerateContractDocxResponse,
-  GenerateContractPdfResponse,
   RegisterEmployeeDocumentRequest,
   SaveContractingProfileRequest,
   SaveSocialSecurityRequest,
@@ -34,7 +31,7 @@ export interface ContractingEmployeeFilters {
 
 export interface ContractTemplateFilters {
   id_tipo_contrato?: number | null;
-  tipo_cargo_contrato?: ContractChargeType | string | null;
+  tipo_cargo_contrato?: string | null;
   solo_activas?: number | boolean | null;
 }
 
@@ -92,27 +89,6 @@ export class ContractingService {
     return this.http
       .get<ApiResponse<ContractTemplate[]>>(`${this.url}/contract-templates`, { params })
       .pipe(map((response) => response.data ?? []));
-  }
-
-  getContractTemplate(templateId: number): Observable<ContractTemplate> {
-    return this.http
-      .get<ApiResponse<ContractTemplate>>(`${this.url}/contract-templates/${templateId}`)
-      .pipe(map((response) => response.data));
-  }
-
-  getContractTemplateByType(
-    idTipoContrato: number,
-    tipoCargoContrato?: ContractChargeType | string | null,
-  ): Observable<ContractTemplate | null> {
-    let params = new HttpParams().set('id_tipo_contrato', String(idTipoContrato));
-    if (tipoCargoContrato?.trim())
-      params = params.set('tipo_cargo_contrato', tipoCargoContrato.trim());
-
-    return this.http
-      .get<
-        ApiResponse<ContractTemplate | null>
-      >(`${this.url}/contract-templates/by-type`, { params })
-      .pipe(map((response) => response.data ?? null));
   }
 
   getMinimumSalary(date: string): Observable<CurrentSystemParameter> {
@@ -189,22 +165,6 @@ export class ContractingService {
       .pipe(map((response) => response.data));
   }
 
-  generateContractDocx(employeeContractId: number): Observable<GenerateContractDocxResponse> {
-    return this.http
-      .post<
-        ApiResponse<GenerateContractDocxResponse>
-      >(`${this.url}/contracts/${employeeContractId}/generate-docx`, {})
-      .pipe(map((response) => response.data));
-  }
-
-  generateContractPdf(employeeContractId: number): Observable<GenerateContractPdfResponse> {
-    return this.http
-      .post<
-        ApiResponse<GenerateContractPdfResponse>
-      >(`${this.url}/contracts/${employeeContractId}/generate-pdf`, {})
-      .pipe(map((response) => response.data));
-  }
-
   getSocialSecurity(employeeId: number): Observable<EmployeeSocialSecurity | null> {
     return this.http
       .get<
@@ -232,7 +192,7 @@ export class ContractingService {
 
   createMedicalExam(
     employeeId: number,
-    payload: CreateMedicalExamRequest,
+    payload: CreateMedicalExamRequest | FormData,
   ): Observable<EmployeeMedicalExam> {
     return this.http
       .post<
@@ -266,7 +226,4 @@ export class ContractingService {
       .pipe(map((response) => response.data ?? []));
   }
 
-  getAlerts(days?: number | null): Observable<ContractingAlert[]> {
-    return this.getContractAlerts(days);
-  }
 }

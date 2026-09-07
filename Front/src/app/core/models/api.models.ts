@@ -1080,7 +1080,7 @@ export interface EmployeeLaborDocument {
 export interface RegisterEmployeeDocumentRequest {
   id_tipo_documento_laboral?: number | null;
   nombre_archivo: string;
-  archivo_url: string;
+  archivo_url?: string | null;
   mime_type?: string | null;
   peso_bytes?: number | null;
   fecha_vencimiento?: string | null;

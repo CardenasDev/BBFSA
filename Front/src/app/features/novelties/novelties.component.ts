@@ -1,13 +1,169 @@
-import {Component,OnInit,inject,signal} from '@angular/core';
-import {FormsModule} from '@angular/forms';
-import {RouterLink} from '@angular/router';
-import {finalize} from 'rxjs';
-import {Novelty,NoveltyFilters,NoveltyType} from '../../core/models/novelty.models';
-import {NoveltyService} from '../../core/services/novelty.service';
-import {AuthService} from '../../core/services/auth.service';
-import {apiErrorMessage} from '../../shared/api-error';
-@Component({standalone:true,imports:[FormsModule,RouterLink],template:`
-<section class="page-header"><div><p class="eyebrow">Talento humano</p><h1>Novedades e inactividades</h1><p class="muted">Incapacidades, permisos, llamados de atención y suspensiones.</p></div><div class="row-actions"><button class="btn secondary" (click)="exportTracking()" [disabled]="exporting()">{{exporting()?'Exportando...':'Exportar seguimiento de incapacidades'}}</button>@if(auth.hasPermission('NOVEDADES_CREAR')){<a class="btn primary" routerLink="/admin/novelties/create">Registrar novedad</a>}</div></section>
-<section class="panel"><form class="filters" (ngSubmit)="load()"><label>Buscar empleado<input name="search" [(ngModel)]="search" placeholder="Nombre o documento"></label><label>Tipo<select name="type" [(ngModel)]="filters.type"><option value="">Todos</option>@for(t of types();track t.codigo){<option [value]="t.codigo">{{t.nombre}}</option>}</select></label><label>Estado<select name="status" [(ngModel)]="filters.status"><option value="">Todos</option><option>REGISTRADA</option><option>VALIDADA</option><option>CERRADA</option><option>ANULADA</option></select></label><label>Desde<input type="date" name="date_from" [(ngModel)]="filters.date_from"></label><label>Hasta<input type="date" name="date_to" [(ngModel)]="filters.date_to"></label><div class="filter-actions"><button class="btn secondary">Filtrar</button><button class="btn ghost" type="button" (click)="clear()">Limpiar</button></div></form>
-@if(error()){<div class="alert error">{{error()}}</div>}<div class="table-wrap"><table><thead><tr><th>Empleado</th><th>Tipo</th><th>Periodo</th><th>Días</th><th>Motivo / diagnóstico</th><th>Soportes</th><th>Estado</th><th></th></tr></thead><tbody>@for(n of visible();track n.id_novedad){<tr><td><strong>{{n.nombre_completo}}</strong><br><small>{{n.numero_documento}}</small></td><td>{{n.tipo_novedad}}</td><td>{{n.fecha_inicio}}<br>{{n.fecha_fin||'Sin fecha final'}}</td><td>{{n.numero_dias}}</td><td>{{n.diagnostico||n.motivo||'—'}}</td><td>{{n.total_evidencias||0}}</td><td><span class="badge" [class.success]="n.estado==='VALIDADA'||n.estado==='CERRADA'" [class.danger]="n.estado==='ANULADA'">{{n.estado}}</span></td><td><a class="btn small ghost" [routerLink]="['/admin/novelties',n.id_novedad]">Ver</a></td></tr>}@empty{<tr><td colspan="8" class="empty">{{loading()?'Cargando...':'No hay novedades.'}}</td></tr>}</tbody></table></div></section>`})
-export class NoveltiesComponent implements OnInit{auth=inject(AuthService);private api=inject(NoveltyService);types=signal<NoveltyType[]>([]);items=signal<Novelty[]>([]);loading=signal(false);exporting=signal(false);error=signal('');search='';filters:NoveltyFilters={type:'',status:'',date_from:'',date_to:''};ngOnInit(){this.api.types().subscribe(v=>this.types.set(v));this.load();}visible(){const q=this.search.trim().toLowerCase();return this.items().filter(n=>!q||n.nombre_completo.toLowerCase().includes(q)||n.numero_documento.includes(q));}load(){this.loading.set(true);this.error.set('');this.api.list(this.filters).pipe(finalize(()=>this.loading.set(false))).subscribe({next:v=>this.items.set(v),error:e=>this.error.set(apiErrorMessage(e,'No fue posible consultar las novedades.'))});}exportTracking(){this.exporting.set(true);this.error.set('');this.api.exportDisabilityTracking({date_from:this.filters.date_from,date_to:this.filters.date_to}).pipe(finalize(()=>this.exporting.set(false))).subscribe({next:blob=>{const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=`seguimiento_incapacidades_${new Date().toISOString().slice(0,10)}.csv`;a.click();URL.revokeObjectURL(url);},error:e=>this.error.set(apiErrorMessage(e,'No fue posible exportar el seguimiento.'))});}clear(){this.search='';this.filters={type:'',status:'',date_from:'',date_to:''};this.load();}}
+import { Component, OnInit, inject, signal } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
+import { finalize } from 'rxjs';
+import { Novelty, NoveltyFilters, NoveltyType } from '../../core/models/novelty.models';
+import { NoveltyService } from '../../core/services/novelty.service';
+import { AuthService } from '../../core/services/auth.service';
+import { apiErrorMessage } from '../../shared/api-error';
+import { FeedbackDialogComponent } from '../../shared/feedback-dialog.component';
+@Component({
+  standalone: true,
+  imports: [FormsModule, RouterLink, FeedbackDialogComponent],
+  template: ` <section class="page-header">
+      <div>
+        <p class="eyebrow">Talento humano</p>
+        <h1>Novedades e inactividades</h1>
+        <p class="muted">Incapacidades, permisos, llamados de atención y suspensiones.</p>
+      </div>
+      <div class="row-actions">
+        <button class="btn secondary" (click)="exportTracking()" [disabled]="exporting()">
+          {{ exporting() ? 'Exportando...' : 'Exportar seguimiento de incapacidades' }}
+        </button>
+        @if (auth.hasPermission('NOVEDADES_CREAR')) {
+          <a class="btn primary" routerLink="/admin/novelties/create">Registrar novedad</a>
+        }
+      </div>
+    </section>
+    <section class="panel">
+      <form class="filters" (ngSubmit)="load()">
+        <label
+          >Buscar empleado<input
+            name="search"
+            [(ngModel)]="search"
+            placeholder="Nombre o documento" /></label
+        ><label
+          >Tipo<select name="type" [(ngModel)]="filters.type">
+            <option value="">Todos</option>
+            @for (t of types(); track t.codigo) {
+              <option [value]="t.codigo">{{ t.nombre }}</option>
+            }
+          </select></label
+        ><label
+          >Estado<select name="status" [(ngModel)]="filters.status">
+            <option value="">Todos</option>
+            <option>REGISTRADA</option>
+            <option>VALIDADA</option>
+            <option>CERRADA</option>
+            <option>ANULADA</option>
+          </select></label
+        ><label>Desde<input type="date" name="date_from" [(ngModel)]="filters.date_from" /></label
+        ><label>Hasta<input type="date" name="date_to" [(ngModel)]="filters.date_to" /></label>
+        <div class="filter-actions">
+          <button class="btn secondary">Filtrar</button
+          ><button class="btn ghost" type="button" (click)="clear()">Limpiar</button>
+        </div>
+      </form>
+      @if (error()) {
+        <app-feedback-dialog type="error" [message]="error()" (closed)="error.set('')" />
+      }
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Empleado</th>
+              <th>Tipo</th>
+              <th>Periodo</th>
+              <th>Días</th>
+              <th>Motivo / diagnóstico</th>
+              <th>Soportes</th>
+              <th>Estado</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (n of visible(); track n.id_novedad) {
+              <tr>
+                <td>
+                  <strong>{{ n.nombre_completo }}</strong
+                  ><br /><small>{{ n.numero_documento }}</small>
+                </td>
+                <td>{{ n.tipo_novedad }}</td>
+                <td>{{ n.fecha_inicio }}<br />{{ n.fecha_fin || 'Sin fecha final' }}</td>
+                <td>{{ n.numero_dias }}</td>
+                <td>{{ n.diagnostico || n.motivo || '—' }}</td>
+                <td>{{ n.total_evidencias || 0 }}</td>
+                <td>
+                  <span
+                    class="badge"
+                    [class.success]="n.estado === 'VALIDADA' || n.estado === 'CERRADA'"
+                    [class.danger]="n.estado === 'ANULADA'"
+                    >{{ n.estado }}</span
+                  >
+                </td>
+                <td>
+                  <a class="btn small ghost" [routerLink]="['/admin/novelties', n.id_novedad]"
+                    >Ver</a
+                  >
+                </td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="8" class="empty">
+                  {{ loading() ? 'Cargando...' : 'No hay novedades.' }}
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>`,
+})
+export class NoveltiesComponent implements OnInit {
+  auth = inject(AuthService);
+  private api = inject(NoveltyService);
+  types = signal<NoveltyType[]>([]);
+  items = signal<Novelty[]>([]);
+  loading = signal(false);
+  exporting = signal(false);
+  error = signal('');
+  search = '';
+  filters: NoveltyFilters = { type: '', status: '', date_from: '', date_to: '' };
+  ngOnInit() {
+    this.api.types().subscribe((v) => this.types.set(v));
+    this.load();
+  }
+  visible() {
+    const q = this.search.trim().toLowerCase();
+    return this.items().filter(
+      (n) => !q || n.nombre_completo.toLowerCase().includes(q) || n.numero_documento.includes(q),
+    );
+  }
+  load() {
+    this.loading.set(true);
+    this.error.set('');
+    this.api
+      .list(this.filters)
+      .pipe(finalize(() => this.loading.set(false)))
+      .subscribe({
+        next: (v) => this.items.set(v),
+        error: (e) => this.error.set(apiErrorMessage(e, 'No fue posible consultar las novedades.')),
+      });
+  }
+  exportTracking() {
+    this.exporting.set(true);
+    this.error.set('');
+    this.api
+      .exportDisabilityTracking({
+        date_from: this.filters.date_from,
+        date_to: this.filters.date_to,
+      })
+      .pipe(finalize(() => this.exporting.set(false)))
+      .subscribe({
+        next: (blob) => {
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `seguimiento_incapacidades_${new Date().toISOString().slice(0, 10)}.csv`;
+          a.click();
+          URL.revokeObjectURL(url);
+        },
+        error: (e) => this.error.set(apiErrorMessage(e, 'No fue posible exportar el seguimiento.')),
+      });
+  }
+  clear() {
+    this.search = '';
+    this.filters = { type: '', status: '', date_from: '', date_to: '' };
+    this.load();
+  }
+}

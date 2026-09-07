@@ -19,6 +19,7 @@ import { AuthService } from '../../core/services/auth.service';
 import { CatalogService } from '../../core/services/catalog.service';
 import { ContractingService } from '../../core/services/contracting.service';
 import { apiErrorMessage } from '../../shared/api-error';
+import { FeedbackDialogComponent } from '../../shared/feedback-dialog.component';
 import { parseContractFunctions } from '../../contracts/contract-work-validation.util';
 
 const CONTRACT_STATUSES = ['ACTIVO', 'VENCIDO', 'RENOVADO', 'FINALIZADO', 'ANULADO'];
@@ -40,7 +41,7 @@ const BASE_FIELDS = [
 
 @Component({
   standalone: true,
-  imports: [FormsModule, RouterLink],
+  imports: [FormsModule, RouterLink, FeedbackDialogComponent],
   template: `
     <div class="page-heading">
       <div><p class="eyebrow">Contratacion</p><h1>Historial contractual</h1><p class="muted">Contratos registrados para el empleado.</p></div>
@@ -59,8 +60,8 @@ const BASE_FIELDS = [
         <a class="btn small ghost" [routerLink]="['/admin/contracting/employees', employeeId, 'documents']">Documentos</a>
       </div>
 
-      @if (success()) { <div class="alert success">{{ success() }}</div> }
-      @if (error()) { <div class="alert error">{{ error() }} <button class="btn small ghost" type="button" (click)="load()" [disabled]="loading()">Reintentar</button></div> }
+      @if (success()) { <app-feedback-dialog type="success" [message]="success()" (closed)="success.set('')" /> }
+      @if (error()) { <app-feedback-dialog type="error" [message]="error()" (closed)="error.set('')" /> }
 
       <div class="table-wrap">
         <table>
@@ -139,7 +140,7 @@ const BASE_FIELDS = [
           <button class="icon-btn close-btn" type="button" (click)="closeCreate()" aria-label="Cerrar">x</button>
         </header>
 
-        @if (formError()) { <div class="alert error">{{ formError() }}</div> }
+        @if (formError()) { <app-feedback-dialog type="error" [message]="formError()" (closed)="formError.set('')" /> }
         @if (templateMessage()) { <div class="alert success">{{ templateMessage() }}</div> }
         <form class="form-grid" (ngSubmit)="saveContract()">
           <label>Tipo contrato

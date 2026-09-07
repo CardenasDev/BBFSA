@@ -42,7 +42,13 @@ const DOCUMENT_STATUSES = ['PENDIENTE', 'CARGADO', 'VALIDADO', 'RECHAZADO', 'VEN
               <tr>
                 <td>{{ document.tipo_documento_laboral || displayId(document.id_tipo_documento_laboral) }}</td>
                 <td>{{ truthy(document.obligatorio) ? 'Si' : 'No' }}</td>
-                <td>@if (document.archivo_url) { <a [href]="document.archivo_url" target="_blank" rel="noopener">{{ document.nombre_archivo || 'Abrir' }}</a> } @else { <span>{{ document.nombre_archivo || 'Sin archivo' }}</span> }</td>
+                <td>
+                  @if (isPrivateFile(document)) {
+                    <button class="btn small ghost" type="button" (click)="openPrivateFile(document)">Abrir {{ document.nombre_archivo || 'archivo' }}</button>
+                  } @else if (document.archivo_url) {
+                    <a [href]="document.archivo_url" target="_blank" rel="noopener">{{ document.nombre_archivo || 'Abrir' }}</a>
+                  } @else { <span>{{ document.nombre_archivo || 'Sin archivo' }}</span> }
+                </td>
                 <td><span class="badge" [class.success]="document.estado_documento === 'VALIDADO'" [class.danger]="document.estado_documento === 'RECHAZADO' || document.estado_documento === 'VENCIDO'">{{ document.estado_documento || 'Sin estado' }}</span></td>
                 <td>{{ document.fecha_carga || 'Sin fecha' }}</td>
                 <td>{{ document.fecha_vencimiento || 'Sin fecha' }}</td>
@@ -78,9 +84,20 @@ const DOCUMENT_STATUSES = ['PENDIENTE', 'CARGADO', 'VALIDADO', 'RECHAZADO', 'VEN
             </select>
           </label>
           <label>Nombre archivo<input name="nombre_archivo" [(ngModel)]="form.nombre_archivo" required maxlength="255" /></label>
-          <label class="form-wide">Archivo URL<input name="archivo_url" [(ngModel)]="form.archivo_url" required maxlength="500" /></label>
-          <label>MIME type<input name="mime_type" [(ngModel)]="form.mime_type" maxlength="100" /></label>
-          <label>Peso bytes<input type="number" min="0" name="peso_bytes" [(ngModel)]="form.peso_bytes" /></label>
+          <label class="form-wide">Origen del documento
+            <select name="file_origin" [(ngModel)]="fileOrigin" (ngModelChange)="changeFileOrigin()">
+              <option value="ARCHIVO">Cargar archivo físico</option>
+              <option value="URL">Usar URL externa</option>
+            </select>
+          </label>
+          @if (fileOrigin === 'ARCHIVO') {
+            <label class="form-wide">Archivo
+              <input type="file" name="archivo" accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx" (change)="selectFile($event)" />
+              <small class="muted">PDF, imagen o documento Word. Máximo 5 MB.</small>
+            </label>
+          } @else {
+            <label class="form-wide">Archivo URL<input type="url" name="archivo_url" [(ngModel)]="form.archivo_url" maxlength="500" placeholder="https://..." /></label>
+          }
           <label>Fecha vencimiento<input type="date" name="fecha_vencimiento" [(ngModel)]="form.fecha_vencimiento" /></label>
           <label>Estado
             <select name="estado_documento" [(ngModel)]="form.estado_documento">
@@ -114,6 +131,8 @@ export class ContractingDocumentsComponent implements OnInit {
   readonly statuses = DOCUMENT_STATUSES;
   employeeId = 0;
   form: RegisterEmployeeDocumentRequest = this.emptyForm();
+  fileOrigin: 'ARCHIVO' | 'URL' = 'ARCHIVO';
+  selectedFile: File | null = null;
 
   ngOnInit(): void {
     this.employeeId = Number(this.route.snapshot.paramMap.get('employeeId'));
@@ -142,6 +161,8 @@ export class ContractingDocumentsComponent implements OnInit {
     this.form = this.emptyForm();
     this.formError.set('');
     this.success.set('');
+    this.fileOrigin = 'ARCHIVO';
+    this.selectedFile = null;
     this.createOpen.set(true);
   }
 
@@ -157,7 +178,7 @@ export class ContractingDocumentsComponent implements OnInit {
       return;
     }
     this.saving.set(true);
-    this.service.registerDocument(this.employeeId, this.normalize()).pipe(finalize(() => this.saving.set(false))).subscribe({
+    this.service.registerDocument(this.employeeId, this.payload()).pipe(finalize(() => this.saving.set(false))).subscribe({
       next: () => {
         this.success.set('Documento registrado correctamente.');
         this.createOpen.set(false);
@@ -181,24 +202,68 @@ export class ContractingDocumentsComponent implements OnInit {
     return value ? `ID ${value}` : 'Sin dato';
   }
 
+  changeFileOrigin(): void {
+    this.selectedFile = null;
+    this.form.archivo_url = null;
+    this.formError.set('');
+  }
+
+  selectFile(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    this.selectedFile = input.files?.[0] ?? null;
+    if (this.selectedFile && !this.form.nombre_archivo.trim()) this.form.nombre_archivo = this.selectedFile.name;
+    this.formError.set('');
+  }
+
+  isPrivateFile(document: EmployeeLaborDocument): boolean {
+    return Boolean(document.archivo_url?.startsWith('private://'));
+  }
+
+  openPrivateFile(employeeDocument: EmployeeLaborDocument): void {
+    const documentId = Number(employeeDocument.id_empleado_documento_laboral ?? employeeDocument.id_empleado_documento);
+    if (!documentId) {
+      this.error.set('No fue posible identificar el documento.');
+      return;
+    }
+    this.service.downloadDocument(this.employeeId, documentId).subscribe({
+      next: (blob) => {
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.target = '_blank';
+        link.rel = 'noopener';
+        link.click();
+        setTimeout(() => URL.revokeObjectURL(url), 60_000);
+      },
+      error: (error) => this.error.set(apiErrorMessage(error, 'No fue posible abrir el documento.')),
+    });
+  }
+
   private validate(): string {
     if (!this.form.id_tipo_documento_laboral) return 'El tipo de documento laboral es obligatorio.';
     if (!this.form.nombre_archivo?.trim()) return 'El nombre del archivo es obligatorio.';
-    if (!this.form.archivo_url?.trim()) return 'La URL del archivo es obligatoria.';
-    if (Number(this.form.peso_bytes ?? 0) < 0) return 'El peso en bytes debe ser mayor o igual a cero.';
+    if (this.fileOrigin === 'ARCHIVO') {
+      if (!this.selectedFile) return 'Selecciona el archivo del documento laboral.';
+      if (!/\.(pdf|jpe?g|png|webp|docx?)$/i.test(this.selectedFile.name)) return 'El archivo debe ser PDF, imagen o documento Word.';
+      if (this.selectedFile.size > 5 * 1024 * 1024) return 'El archivo no debe superar 5 MB.';
+    }
+    if (this.fileOrigin === 'URL' && !this.form.archivo_url?.trim()) return 'Ingresa la URL externa del documento.';
     return '';
   }
 
-  private normalize(): RegisterEmployeeDocumentRequest {
-    return { ...this.form, id_tipo_documento_laboral: Number(this.form.id_tipo_documento_laboral), peso_bytes: this.numberOrNull(this.form.peso_bytes) };
+  private payload(): RegisterEmployeeDocumentRequest | FormData {
+    const normalized = { ...this.form, id_tipo_documento_laboral: Number(this.form.id_tipo_documento_laboral) };
+    if (this.fileOrigin === 'URL') return normalized;
+
+    const formData = new FormData();
+    Object.entries(normalized).forEach(([key, value]) => {
+      if (value !== null && value !== undefined && value !== '') formData.append(key, String(value));
+    });
+    if (this.selectedFile) formData.append('archivo', this.selectedFile, this.selectedFile.name);
+    return formData;
   }
 
   private emptyForm(): RegisterEmployeeDocumentRequest {
-    return { id_tipo_documento_laboral: null, nombre_archivo: '', archivo_url: '', estado_documento: 'CARGADO' };
-  }
-
-  private numberOrNull(value: unknown): number | null {
-    const numberValue = Number(value);
-    return Number.isFinite(numberValue) && value !== '' && value !== null ? numberValue : null;
+    return { id_tipo_documento_laboral: null, nombre_archivo: '', archivo_url: null, estado_documento: 'CARGADO' };
   }
 }

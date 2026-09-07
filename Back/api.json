@@ -48,6 +48,10 @@
             "description": "Gestion de tallas y entregas de dotacion."
         },
         {
+            "name": "Retiros laborales",
+            "description": "Proceso integral de finalizacion laboral."
+        },
+        {
             "name": "Herramientas",
             "description": "Cat\u00e1logo y entregas de herramientas a empleados."
         },
@@ -74,6 +78,10 @@
         {
             "name": "Devoluciones",
             "description": "Devoluciones unificadas de dotaciones y herramientas."
+        },
+        {
+            "name": "Notificaciones",
+            "description": "Alertas laborales visibles seg\u00fan los permisos del usuario."
         },
         {
             "name": "Parameters",
@@ -317,45 +325,6 @@
                                         "message": {
                                             "type": "string",
                                             "const": "Sesi\u00f3n cerrada exitosamente."
-                                        },
-                                        "data": {
-                                            "type": "null"
-                                        }
-                                    },
-                                    "required": [
-                                        "success",
-                                        "message",
-                                        "data"
-                                    ]
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/auth/logout-all": {
-            "post": {
-                "operationId": "auth.logoutAll",
-                "description": "Revoca todos los refresh tokens activos del usuario autenticado.",
-                "summary": "Cerrar todas las sesiones",
-                "tags": [
-                    "Auth"
-                ],
-                "responses": {
-                    "200": {
-                        "description": "",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "success": {
-                                            "type": "boolean"
-                                        },
-                                        "message": {
-                                            "type": "string",
-                                            "const": "Todas las sesiones fueron revocadas."
                                         },
                                         "data": {
                                             "type": "null"
@@ -709,70 +678,7 @@
         },
         "/users/{id}/estado": {
             "patch": {
-                "operationId": "user.changeStatus_0",
-                "description": "Establece el estado ACTIVO, INACTIVO, BLOQUEADO o ELIMINADO.",
-                "summary": "Cambiar estado de usuario",
-                "tags": [
-                    "Users"
-                ],
-                "parameters": [
-                    {
-                        "name": "id",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "integer"
-                        }
-                    }
-                ],
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/UpdateUserStatusRequest"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "description": "",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "success": {
-                                            "type": "boolean"
-                                        },
-                                        "message": {
-                                            "type": "string",
-                                            "const": "Estado actualizado exitosamente."
-                                        },
-                                        "data": {
-                                            "type": "array",
-                                            "items": {}
-                                        }
-                                    },
-                                    "required": [
-                                        "success",
-                                        "message",
-                                        "data"
-                                    ]
-                                }
-                            }
-                        }
-                    },
-                    "422": {
-                        "$ref": "#/components/responses/ValidationException"
-                    }
-                }
-            }
-        },
-        "/users/{id}/status": {
-            "patch": {
-                "operationId": "user.changeStatus_0",
+                "operationId": "user.changeStatus",
                 "description": "Establece el estado ACTIVO, INACTIVO, BLOQUEADO o ELIMINADO.",
                 "summary": "Cambiar estado de usuario",
                 "tags": [
@@ -4755,6 +4661,1063 @@
                 }
             }
         },
+        "/dotations/deliveries/{deliveryId}/evidence": {
+            "post": {
+                "operationId": "dotation.replaceDeliveryEvidence",
+                "summary": "Reemplazar la evidencia de una entrega mediante archivo o URL",
+                "tags": [
+                    "Dotations"
+                ],
+                "parameters": [
+                    {
+                        "name": "deliveryId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UpdateDotationEvidenceRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "const": "Evidencia de la entrega reemplazada correctamente"
+                                        },
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "id_dotacion_entrega": {
+                                                    "type": "integer"
+                                                },
+                                                "evidencia_nombre_archivo": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "evidencia_nombre_original": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "evidencia_url": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "evidencia_ruta": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "evidencia_url_publica": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "evidencia_mime_type": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "evidencia_peso_bytes": {
+                                                    "type": [
+                                                        "integer",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "evidencia_fecha_carga": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                }
+                                            },
+                                            "required": [
+                                                "id_dotacion_entrega",
+                                                "evidencia_nombre_archivo",
+                                                "evidencia_nombre_original",
+                                                "evidencia_url",
+                                                "evidencia_ruta",
+                                                "evidencia_url_publica",
+                                                "evidencia_mime_type",
+                                                "evidencia_peso_bytes",
+                                                "evidencia_fecha_carga"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "message",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            },
+            "delete": {
+                "operationId": "dotation.deleteDeliveryEvidence",
+                "summary": "Eliminar la evidencia actual sin eliminar la entrega",
+                "tags": [
+                    "Dotations"
+                ],
+                "parameters": [
+                    {
+                        "name": "deliveryId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "const": "Evidencia de la entrega eliminada correctamente"
+                                        },
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "id_dotacion_entrega": {
+                                                    "type": "integer"
+                                                },
+                                                "evidencia_nombre_archivo": {
+                                                    "type": "null"
+                                                },
+                                                "evidencia_nombre_original": {
+                                                    "type": "null"
+                                                },
+                                                "evidencia_url": {
+                                                    "type": "null"
+                                                },
+                                                "evidencia_ruta": {
+                                                    "type": "null"
+                                                },
+                                                "evidencia_url_publica": {
+                                                    "type": [
+                                                        "string",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "evidencia_mime_type": {
+                                                    "type": "null"
+                                                },
+                                                "evidencia_peso_bytes": {
+                                                    "type": [
+                                                        "integer",
+                                                        "null"
+                                                    ]
+                                                },
+                                                "evidencia_fecha_carga": {
+                                                    "type": "null"
+                                                }
+                                            },
+                                            "required": [
+                                                "id_dotacion_entrega",
+                                                "evidencia_nombre_archivo",
+                                                "evidencia_nombre_original",
+                                                "evidencia_url",
+                                                "evidencia_ruta",
+                                                "evidencia_url_publica",
+                                                "evidencia_mime_type",
+                                                "evidencia_peso_bytes",
+                                                "evidencia_fecha_carga"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "message",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/retirements/reasons": {
+            "get": {
+                "operationId": "retirement.reasons",
+                "tags": [
+                    "Retiros laborales"
+                ],
+                "parameters": [
+                    {
+                        "name": "include_inactive",
+                        "in": "query",
+                        "schema": {
+                            "type": "boolean",
+                            "default": false
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "const": "Operaci\u00f3n exitosa"
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {}
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "message",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/retirements/document-types": {
+            "get": {
+                "operationId": "retirement.documentTypes",
+                "tags": [
+                    "Retiros laborales"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "const": "Operaci\u00f3n exitosa"
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {}
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "message",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/retirements": {
+            "get": {
+                "operationId": "retirement.index",
+                "tags": [
+                    "Retiros laborales"
+                ],
+                "parameters": [
+                    {
+                        "name": "employee_id",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "integer",
+                                "null"
+                            ],
+                            "minimum": 1
+                        }
+                    },
+                    {
+                        "name": "status",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "enum": [
+                                "BORRADOR",
+                                "EN_PROCESO",
+                                "COMPLETADO",
+                                "CANCELADO"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "date_from",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "format": "date-time"
+                        }
+                    },
+                    {
+                        "name": "date_to",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "format": "date-time"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "const": "Operaci\u00f3n exitosa"
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {}
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "message",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            },
+            "post": {
+                "operationId": "retirement.store",
+                "tags": [
+                    "Retiros laborales"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "employee_id": {
+                                        "type": "integer",
+                                        "minimum": 1
+                                    },
+                                    "employee_contract_id": {
+                                        "type": [
+                                            "integer",
+                                            "null"
+                                        ],
+                                        "minimum": 1
+                                    },
+                                    "retirement_reason_id": {
+                                        "type": "integer",
+                                        "minimum": 1
+                                    },
+                                    "process_start_date": {
+                                        "type": "string",
+                                        "format": "date-time"
+                                    },
+                                    "retirement_date": {
+                                        "type": "string",
+                                        "format": "date-time"
+                                    },
+                                    "reason_detail": {
+                                        "type": [
+                                            "string",
+                                            "null"
+                                        ],
+                                        "maxLength": 1000
+                                    },
+                                    "observations": {
+                                        "type": [
+                                            "string",
+                                            "null"
+                                        ],
+                                        "maxLength": 3000
+                                    }
+                                },
+                                "required": [
+                                    "employee_id",
+                                    "retirement_reason_id",
+                                    "process_start_date",
+                                    "retirement_date"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "const": "Proceso de retiro iniciado."
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {}
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "message",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/retirements/{id}": {
+            "get": {
+                "operationId": "retirement.show",
+                "tags": [
+                    "Retiros laborales"
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "const": "Operaci\u00f3n exitosa"
+                                        },
+                                        "data": {
+                                            "type": "object",
+                                            "properties": {
+                                                "retirement": {},
+                                                "activities": {
+                                                    "type": "array",
+                                                    "items": {}
+                                                },
+                                                "documents": {
+                                                    "type": "array",
+                                                    "items": {}
+                                                },
+                                                "interview": {}
+                                            },
+                                            "required": [
+                                                "retirement",
+                                                "activities",
+                                                "documents",
+                                                "interview"
+                                            ]
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "message",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/retirements/{id}/certificate": {
+            "get": {
+                "operationId": "retirement.certificate",
+                "tags": [
+                    "Retiros laborales"
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "const": "Operaci\u00f3n exitosa"
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {}
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "message",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/retirements/{id}/activities": {
+            "patch": {
+                "operationId": "retirement.activity",
+                "tags": [
+                    "Retiros laborales"
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "activity_code": {
+                                        "type": "string",
+                                        "maxLength": 60
+                                    },
+                                    "status": {
+                                        "type": "string",
+                                        "enum": [
+                                            "PENDIENTE",
+                                            "EN_PROCESO",
+                                            "COMPLETADA",
+                                            "NO_APLICA"
+                                        ]
+                                    },
+                                    "observations": {
+                                        "type": [
+                                            "string",
+                                            "null"
+                                        ],
+                                        "maxLength": 1000
+                                    }
+                                },
+                                "required": [
+                                    "activity_code",
+                                    "status"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "const": "Actividad actualizada."
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {}
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "message",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/retirements/{id}/interview": {
+            "put": {
+                "operationId": "retirement.interview",
+                "tags": [
+                    "Retiros laborales"
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "interview_date": {
+                                        "type": "string",
+                                        "format": "date-time"
+                                    },
+                                    "stated_reason": {
+                                        "type": [
+                                            "string",
+                                            "null"
+                                        ]
+                                    },
+                                    "positive_aspects": {
+                                        "type": [
+                                            "string",
+                                            "null"
+                                        ]
+                                    },
+                                    "improvement_aspects": {
+                                        "type": [
+                                            "string",
+                                            "null"
+                                        ]
+                                    },
+                                    "work_environment": {
+                                        "type": [
+                                            "string",
+                                            "null"
+                                        ]
+                                    },
+                                    "leadership_relationship": {
+                                        "type": [
+                                            "string",
+                                            "null"
+                                        ]
+                                    },
+                                    "compensation_benefits": {
+                                        "type": [
+                                            "string",
+                                            "null"
+                                        ]
+                                    },
+                                    "would_recommend_company": {
+                                        "type": [
+                                            "boolean",
+                                            "null"
+                                        ]
+                                    },
+                                    "eligible_for_rehire": {
+                                        "type": [
+                                            "boolean",
+                                            "null"
+                                        ]
+                                    },
+                                    "conclusions": {
+                                        "type": [
+                                            "string",
+                                            "null"
+                                        ]
+                                    }
+                                },
+                                "required": [
+                                    "interview_date"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "const": "Entrevista guardada."
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {}
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "message",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/retirements/{id}/documents": {
+            "post": {
+                "operationId": "retirement.document",
+                "tags": [
+                    "Retiros laborales"
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "multipart/form-data": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "document_type_id": {
+                                        "type": "integer",
+                                        "minimum": 1
+                                    },
+                                    "file_name": {
+                                        "type": "string",
+                                        "maxLength": 255
+                                    },
+                                    "period": {
+                                        "type": [
+                                            "string",
+                                            "null"
+                                        ]
+                                    },
+                                    "file_url": {
+                                        "type": [
+                                            "string",
+                                            "null"
+                                        ],
+                                        "format": "uri",
+                                        "maxLength": 500
+                                    },
+                                    "file": {
+                                        "type": [
+                                            "string",
+                                            "null"
+                                        ],
+                                        "format": "binary",
+                                        "contentMediaType": "application/octet-stream",
+                                        "maxLength": 10240
+                                    },
+                                    "observations": {
+                                        "type": [
+                                            "string",
+                                            "null"
+                                        ],
+                                        "maxLength": 2000
+                                    }
+                                },
+                                "required": [
+                                    "document_type_id",
+                                    "file_name"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "const": "Documento cargado."
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {}
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "message",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/retirements/{id}/finalize": {
+            "post": {
+                "operationId": "retirement.finalize",
+                "tags": [
+                    "Retiros laborales"
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "observations": {
+                                        "type": [
+                                            "string",
+                                            "null"
+                                        ],
+                                        "maxLength": 3000
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "const": "Retiro finalizado."
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {}
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "message",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/retirements/{id}/cancel": {
+            "post": {
+                "operationId": "retirement.cancel",
+                "tags": [
+                    "Retiros laborales"
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "reason": {
+                                        "type": "string",
+                                        "maxLength": 500
+                                    }
+                                },
+                                "required": [
+                                    "reason"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "const": "Retiro cancelado."
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {}
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "message",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
         "/trainings/tasks": {
             "get": {
                 "operationId": "training.tasks",
@@ -6526,124 +7489,6 @@
                 }
             }
         },
-        "/contracting/contract-templates/by-type": {
-            "get": {
-                "operationId": "contracting.getContractTemplateByType",
-                "description": "Permiso requerido: CONTRATACION_VER.",
-                "summary": "Obtener plantilla sugerida por tipo de contrato",
-                "tags": [
-                    "Contracting"
-                ],
-                "parameters": [
-                    {
-                        "name": "id_tipo_contrato",
-                        "in": "query",
-                        "required": true,
-                        "schema": {
-                            "type": "integer"
-                        }
-                    },
-                    {
-                        "name": "tipo_cargo_contrato",
-                        "in": "query",
-                        "schema": {
-                            "type": [
-                                "string",
-                                "null"
-                            ],
-                            "enum": [
-                                "ADMINISTRATIVO",
-                                "OPERATIVO",
-                                "OTRO"
-                            ]
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "success": {
-                                            "type": "boolean"
-                                        },
-                                        "message": {
-                                            "type": "string",
-                                            "const": "Plantilla de contrato sugerida consultada correctamente"
-                                        },
-                                        "data": {
-                                            "type": "array",
-                                            "items": {}
-                                        }
-                                    },
-                                    "required": [
-                                        "success",
-                                        "message",
-                                        "data"
-                                    ]
-                                }
-                            }
-                        }
-                    },
-                    "422": {
-                        "$ref": "#/components/responses/ValidationException"
-                    }
-                }
-            }
-        },
-        "/contracting/contract-templates/{templateId}": {
-            "get": {
-                "operationId": "contracting.getContractTemplate",
-                "description": "Permiso requerido: CONTRATACION_VER.",
-                "summary": "Obtener plantilla de contrato",
-                "tags": [
-                    "Contracting"
-                ],
-                "parameters": [
-                    {
-                        "name": "templateId",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "integer"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "success": {
-                                            "type": "boolean"
-                                        },
-                                        "message": {
-                                            "type": "string",
-                                            "const": "Plantilla de contrato consultada correctamente"
-                                        },
-                                        "data": {
-                                            "type": "array",
-                                            "items": {}
-                                        }
-                                    },
-                                    "required": [
-                                        "success",
-                                        "message",
-                                        "data"
-                                    ]
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
         "/contracting/parameters/minimum-salary": {
             "get": {
                 "operationId": "contracting.minimumSalary",
@@ -7520,7 +8365,7 @@
             },
             "post": {
                 "operationId": "contracting.createMedicalExam",
-                "description": "Permiso requerido: CONTRATACION_EXAMENES_CREAR.",
+                "description": "Permiso requerido: CONTRATACION_EXAMENES_CREAR.\nAcepta application/json con archivo_url o multipart/form-data con archivo.\nEl archivo f\u00edsico admite PDF, im\u00e1genes y documentos Word de hasta 5 MB.",
                 "summary": "Crear examen medico",
                 "tags": [
                     "Contracting"
@@ -7538,7 +8383,7 @@
                 "requestBody": {
                     "required": true,
                     "content": {
-                        "application/json": {
+                        "multipart/form-data": {
                             "schema": {
                                 "$ref": "#/components/schemas/CreateMedicalExamRequest"
                             }
@@ -8686,6 +9531,103 @@
                 }
             }
         },
+        "/novelties/disabilities/tracking/export": {
+            "get": {
+                "operationId": "novelty.exportDisabilityTracking",
+                "summary": "Exportar el seguimiento en CSV compatible con Excel",
+                "tags": [
+                    "Novedades e incapacidades"
+                ],
+                "parameters": [
+                    {
+                        "name": "employee_id",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "integer",
+                                "null"
+                            ],
+                            "minimum": 1
+                        }
+                    },
+                    {
+                        "name": "responsible_entity_id",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "integer",
+                                "null"
+                            ],
+                            "minimum": 1
+                        }
+                    },
+                    {
+                        "name": "tracking_status",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "enum": [
+                                "PENDIENTE",
+                                "EN_TRAMITE",
+                                "CERRADO",
+                                "CANCELADO"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "date_from",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "format": "date-time"
+                        }
+                    },
+                    {
+                        "name": "date_to",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "format": "date-time"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "text/csv; charset=UTF-8": {
+                                "schema": {
+                                    "type": "string"
+                                }
+                            }
+                        },
+                        "headers": {
+                            "Transfer-Encoding": {
+                                "required": true,
+                                "schema": {
+                                    "type": "string",
+                                    "enum": [
+                                        "chunked"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
         "/novelties/{id}": {
             "get": {
                 "operationId": "novelty.show",
@@ -8872,6 +9814,115 @@
                 }
             }
         },
+        "/novelties/{id}/disability-tracking": {
+            "get": {
+                "operationId": "novelty.disabilityTracking",
+                "summary": "Consultar seguimiento administrativo y financiero",
+                "tags": [
+                    "Novedades e incapacidades"
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "const": "Seguimiento consultado correctamente."
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {}
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "message",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "put": {
+                "operationId": "novelty.saveDisabilityTracking",
+                "summary": "Guardar seguimiento administrativo y financiero",
+                "tags": [
+                    "Novedades e incapacidades"
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/SaveDisabilityTrackingRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "const": "Seguimiento guardado correctamente."
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {}
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "message",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
         "/novelties/{id}/status": {
             "patch": {
                 "operationId": "novelty.status",
@@ -8935,53 +9986,6 @@
             }
         },
         "/novelties/{id}/evidence": {
-            "get": {
-                "operationId": "novelty.evidence",
-                "summary": "Listar soportes",
-                "tags": [
-                    "Novedades e incapacidades"
-                ],
-                "parameters": [
-                    {
-                        "name": "id",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "integer"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "success": {
-                                            "type": "boolean"
-                                        },
-                                        "message": {
-                                            "type": "string",
-                                            "const": "Soportes consultados correctamente."
-                                        },
-                                        "data": {
-                                            "type": "array",
-                                            "items": {}
-                                        }
-                                    },
-                                    "required": [
-                                        "success",
-                                        "message",
-                                        "data"
-                                    ]
-                                }
-                            }
-                        }
-                    }
-                }
-            },
             "post": {
                 "operationId": "novelty.addEvidence",
                 "summary": "Agregar soporte mediante archivo o URL",
@@ -9039,55 +10043,6 @@
                     },
                     "422": {
                         "$ref": "#/components/responses/ValidationException"
-                    }
-                }
-            }
-        },
-        "/novelties/{id}/history": {
-            "get": {
-                "operationId": "novelty.history",
-                "summary": "Consultar trazabilidad",
-                "tags": [
-                    "Novedades e incapacidades"
-                ],
-                "parameters": [
-                    {
-                        "name": "id",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "integer"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "success": {
-                                            "type": "boolean"
-                                        },
-                                        "message": {
-                                            "type": "string",
-                                            "const": "Historial consultado correctamente."
-                                        },
-                                        "data": {
-                                            "type": "array",
-                                            "items": {}
-                                        }
-                                    },
-                                    "required": [
-                                        "success",
-                                        "message",
-                                        "data"
-                                    ]
-                                }
-                            }
-                        }
                     }
                 }
             }
@@ -10512,6 +11467,580 @@
                 }
             }
         },
+        "/notifications/summary": {
+            "get": {
+                "operationId": "notification.summary",
+                "summary": "Obtiene los contadores del dashboard para el usuario autenticado",
+                "tags": [
+                    "Notificaciones"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "const": "Resumen consultado correctamente."
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {}
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "message",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/notifications": {
+            "get": {
+                "operationId": "notification.index",
+                "summary": "Lista las notificaciones activas destinadas al usuario autenticado",
+                "tags": [
+                    "Notificaciones"
+                ],
+                "parameters": [
+                    {
+                        "name": "unread_only",
+                        "in": "query",
+                        "schema": {
+                            "type": "boolean"
+                        }
+                    },
+                    {
+                        "name": "limit",
+                        "in": "query",
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 200
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "const": "Notificaciones consultadas correctamente."
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {}
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "message",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/notifications/{id}/read": {
+            "patch": {
+                "operationId": "notification.markRead",
+                "summary": "Marca una notificaci\u00f3n como le\u00edda o no le\u00edda",
+                "tags": [
+                    "Notificaciones"
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/MarkNotificationReadRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "const": "Lectura actualizada correctamente."
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {}
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "message",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/notifications/{id}/archive": {
+            "patch": {
+                "operationId": "notification.archive",
+                "summary": "Oculta una notificaci\u00f3n solamente para el usuario autenticado",
+                "tags": [
+                    "Notificaciones"
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "const": "Notificaci\u00f3n archivada correctamente."
+                                        },
+                                        "data": {
+                                            "type": "null"
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "message",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/notifications/{id}/resolve": {
+            "patch": {
+                "operationId": "notification.resolve",
+                "summary": "Resuelve una notificaci\u00f3n para todos sus destinatarios",
+                "tags": [
+                    "Notificaciones"
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "const": "Notificaci\u00f3n resuelta correctamente."
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {}
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "message",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/parameters/departments": {
+            "get": {
+                "operationId": "parameters.departments",
+                "tags": [
+                    "Parameters"
+                ],
+                "parameters": [
+                    {
+                        "name": "includeInactive",
+                        "in": "query",
+                        "schema": {
+                            "type": "boolean",
+                            "default": false
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "const": "Operaci\u00f3n exitosa"
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {}
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "message",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "operationId": "parameters.storeDepartment",
+                "tags": [
+                    "Parameters"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/SaveDepartmentRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "const": "Departamento guardado correctamente."
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {}
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "message",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/parameters/departments/{id}": {
+            "put": {
+                "operationId": "parameters.updateDepartment",
+                "tags": [
+                    "Parameters"
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/SaveDepartmentRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "const": "Departamento actualizado correctamente."
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {}
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "message",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/parameters/municipalities": {
+            "get": {
+                "operationId": "parameters.municipalities",
+                "tags": [
+                    "Parameters"
+                ],
+                "parameters": [
+                    {
+                        "name": "includeInactive",
+                        "in": "query",
+                        "schema": {
+                            "type": "boolean",
+                            "default": false
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "const": "Operaci\u00f3n exitosa"
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {}
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "message",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "operationId": "parameters.storeMunicipality",
+                "tags": [
+                    "Parameters"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/SaveMunicipalityRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "const": "Municipio guardado correctamente."
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {}
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "message",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/parameters/municipalities/{id}": {
+            "put": {
+                "operationId": "parameters.updateMunicipality",
+                "tags": [
+                    "Parameters"
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/SaveMunicipalityRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "const": "Municipio actualizado correctamente."
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {}
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "message",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
         "/parameters/areas": {
             "get": {
                 "operationId": "parameters.areas",
@@ -11621,6 +13150,164 @@
                                         "message": {
                                             "type": "string",
                                             "const": "Tipo de examen actualizado correctamente."
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {}
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "message",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/parameters/novelty-types": {
+            "get": {
+                "operationId": "parameters.noveltyTypes",
+                "tags": [
+                    "Parameters"
+                ],
+                "parameters": [
+                    {
+                        "name": "includeInactive",
+                        "in": "query",
+                        "schema": {
+                            "type": "boolean",
+                            "default": false
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "const": "Operaci\u00f3n exitosa"
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {}
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "message",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "operationId": "parameters.storeNoveltyType",
+                "tags": [
+                    "Parameters"
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/SaveNoveltyTypeRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "const": "Tipo de novedad guardado correctamente."
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {}
+                                        }
+                                    },
+                                    "required": [
+                                        "success",
+                                        "message",
+                                        "data"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#/components/responses/ValidationException"
+                    }
+                }
+            }
+        },
+        "/parameters/novelty-types/{id}": {
+            "put": {
+                "operationId": "parameters.updateNoveltyType",
+                "tags": [
+                    "Parameters"
+                ],
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/SaveNoveltyTypeRequest"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean"
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "const": "Tipo de novedad actualizado correctamente."
                                         },
                                         "data": {
                                             "type": "array",
@@ -13001,6 +14688,15 @@
                         ],
                         "maxLength": 500
                     },
+                    "archivo": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "binary",
+                        "contentMediaType": "application/octet-stream",
+                        "maxLength": 5120
+                    },
                     "observaciones": {
                         "type": [
                             "string",
@@ -13139,6 +14835,18 @@
                     "password"
                 ],
                 "title": "LoginRequest"
+            },
+            "MarkNotificationReadRequest": {
+                "type": "object",
+                "properties": {
+                    "read": {
+                        "type": "boolean"
+                    }
+                },
+                "required": [
+                    "read"
+                ],
+                "title": "MarkNotificationReadRequest"
             },
             "PrepareDotationDeliveryRequest": {
                 "type": "object",
@@ -13397,6 +15105,13 @@
                         ],
                         "format": "date-time"
                     },
+                    "lugar_expedicion_documento": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 150
+                    },
                     "id_departamento_nacimiento": {
                         "type": [
                             "integer",
@@ -13561,6 +15276,27 @@
                 },
                 "title": "SaveContractingProfileRequest"
             },
+            "SaveDepartmentRequest": {
+                "type": "object",
+                "properties": {
+                    "codigo_dane": {
+                        "type": "string",
+                        "pattern": "^\\d{2}$"
+                    },
+                    "nombre": {
+                        "type": "string",
+                        "maxLength": 150
+                    },
+                    "activo": {
+                        "type": "boolean"
+                    }
+                },
+                "required": [
+                    "codigo_dane",
+                    "nombre"
+                ],
+                "title": "SaveDepartmentRequest"
+            },
             "SaveDisabilityRequest": {
                 "type": "object",
                 "properties": {
@@ -13665,6 +15401,125 @@
                     "origin"
                 ],
                 "title": "SaveDisabilityRequest"
+            },
+            "SaveDisabilityTrackingRequest": {
+                "type": "object",
+                "properties": {
+                    "responsible_entity_id": {
+                        "type": [
+                            "integer",
+                            "null"
+                        ],
+                        "minimum": 1
+                    },
+                    "days_paid_company": {
+                        "type": "integer",
+                        "minimum": 0
+                    },
+                    "days_payable_entity": {
+                        "type": "integer",
+                        "minimum": 0
+                    },
+                    "transcription_status": {
+                        "type": "string",
+                        "enum": [
+                            "NO_REQUIERE",
+                            "PENDIENTE",
+                            "TRANSCRITA",
+                            "RECHAZADA"
+                        ]
+                    },
+                    "transcription_channel": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "enum": [
+                            "PLATAFORMA",
+                            "CORREO",
+                            "PRESENCIAL",
+                            "OTRO"
+                        ]
+                    },
+                    "transcription_date": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "payment_request_status": {
+                        "type": "string",
+                        "enum": [
+                            "NO_REQUIERE",
+                            "PENDIENTE",
+                            "RADICADA",
+                            "EN_ESTUDIO",
+                            "APROBADA",
+                            "RECHAZADA",
+                            "PAGADA_PARCIAL",
+                            "PAGADA"
+                        ]
+                    },
+                    "payment_request_date": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "disability_value": {
+                        "type": "number",
+                        "minimum": 0
+                    },
+                    "entity_received_value": {
+                        "type": "number",
+                        "minimum": 0
+                    },
+                    "company_paid_worker_value": {
+                        "type": "number",
+                        "minimum": 0
+                    },
+                    "worker_paid_value": {
+                        "type": "number",
+                        "minimum": 0
+                    },
+                    "last_payment_date": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "tracking_status": {
+                        "type": "string",
+                        "enum": [
+                            "PENDIENTE",
+                            "EN_TRAMITE",
+                            "CERRADO",
+                            "CANCELADO"
+                        ]
+                    },
+                    "tracking_observations": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 5000
+                    }
+                },
+                "required": [
+                    "days_paid_company",
+                    "days_payable_entity",
+                    "transcription_status",
+                    "payment_request_status",
+                    "disability_value",
+                    "entity_received_value",
+                    "company_paid_worker_value",
+                    "worker_paid_value",
+                    "tracking_status"
+                ],
+                "title": "SaveDisabilityTrackingRequest"
             },
             "SaveDocumentTypeRequest": {
                 "type": "object",
@@ -13866,6 +15721,32 @@
                 ],
                 "title": "SaveMedicalExamTypeRequest"
             },
+            "SaveMunicipalityRequest": {
+                "type": "object",
+                "properties": {
+                    "id_departamento": {
+                        "type": "integer",
+                        "minimum": 1
+                    },
+                    "codigo_dane": {
+                        "type": "string",
+                        "pattern": "^\\d{5}$"
+                    },
+                    "nombre": {
+                        "type": "string",
+                        "maxLength": 150
+                    },
+                    "activo": {
+                        "type": "boolean"
+                    }
+                },
+                "required": [
+                    "id_departamento",
+                    "codigo_dane",
+                    "nombre"
+                ],
+                "title": "SaveMunicipalityRequest"
+            },
             "SaveMyDotationSizeRequest": {
                 "type": "object",
                 "properties": {
@@ -13934,6 +15815,50 @@
                     "start_date"
                 ],
                 "title": "SaveNoveltyRequest"
+            },
+            "SaveNoveltyTypeRequest": {
+                "type": "object",
+                "properties": {
+                    "nombre": {
+                        "type": "string",
+                        "maxLength": 150
+                    },
+                    "descripcion": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 500
+                    },
+                    "requiere_fecha_fin": {
+                        "type": [
+                            "boolean",
+                            "null"
+                        ]
+                    },
+                    "requiere_soporte": {
+                        "type": [
+                            "boolean",
+                            "null"
+                        ]
+                    },
+                    "es_incapacidad": {
+                        "type": [
+                            "boolean",
+                            "null"
+                        ]
+                    },
+                    "activo": {
+                        "type": [
+                            "boolean",
+                            "null"
+                        ]
+                    }
+                },
+                "required": [
+                    "nombre"
+                ],
+                "title": "SaveNoveltyTypeRequest"
             },
             "SavePositionRequest": {
                 "type": "object",
@@ -15070,6 +16995,46 @@
                     "activo"
                 ],
                 "title": "UpdateDomainStateRequest"
+            },
+            "UpdateDotationEvidenceRequest": {
+                "type": "object",
+                "properties": {
+                    "origen_evidencia": {
+                        "type": "string",
+                        "enum": [
+                            "ARCHIVO",
+                            "URL"
+                        ]
+                    },
+                    "evidencia_nombre_archivo": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 255
+                    },
+                    "evidencia_archivo": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "binary",
+                        "contentMediaType": "application/octet-stream",
+                        "maxLength": 5120
+                    },
+                    "evidencia_url": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "uri",
+                        "maxLength": 500
+                    }
+                },
+                "required": [
+                    "origen_evidencia"
+                ],
+                "title": "UpdateDotationEvidenceRequest"
             },
             "UpdateEmployeeRequest": {
                 "type": "object",

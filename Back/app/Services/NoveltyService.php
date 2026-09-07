@@ -20,8 +20,6 @@ class NoveltyService
     public function update(int $id,array $data,int $user,array $context): array { $before=$this->get($id)['novelty']; $r=$this->repository->update($id,$data,$user); if(!$r) throw new ApiException('No fue posible actualizar la novedad.',422); $this->audit->record($user,'NOVEDADES','NOVEDAD_ACTUALIZAR','NOVEDAD',$id,$before,$r,$context); return $r; }
     public function updateDisability(int $id,array $data,int $user,array $context): array { $before=$this->get($id)['novelty']; $r=$this->repository->updateDisability($id,$data,$user); if(!$r) throw new ApiException('No fue posible actualizar la incapacidad.',422); $this->audit->record($user,'NOVEDADES','INCAPACIDAD_ACTUALIZAR','NOVEDAD',$id,$before,$r,$context); return $r; }
     public function changeStatus(int $id,array $data,int $user,array $context): array { $before=$this->get($id)['novelty']; $r=$this->repository->changeStatus($id,$data['status'],$data['observation']??null,$user); if(!$r) throw new ApiException('No fue posible cambiar el estado.',422); $this->audit->record($user,'NOVEDADES','NOVEDAD_CAMBIAR_ESTADO','NOVEDAD',$id,$before,$r,$context); return $r; }
-    public function evidence(int $id): array { $this->get($id); return $this->withEvidenceUrls($this->repository->evidence($id)); }
-    public function history(int $id): array { $this->get($id); return $this->repository->history($id); }
     public function disabilityTracking(int $id): array
     {
         $novelty = $this->get($id)['novelty'];

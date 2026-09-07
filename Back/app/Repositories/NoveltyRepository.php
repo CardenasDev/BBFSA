@@ -15,8 +15,6 @@ class NoveltyRepository extends StoredProcedureRepository
     public function updateDisability(int $id, array $d, int $user): ?array { return $this->first('SP_BBF_INCAPACIDAD_ACTUALIZAR', [$id, ...$this->disabilityParameters($d, $user, false)]); }
     public function changeStatus(int $id, string $status, ?string $observation, int $user): ?array { return $this->first('SP_BBF_NOVEDAD_CAMBIAR_ESTADO', [$id, $status, $observation, $user]); }
     public function addEvidence(int $id, array $d, int $user): ?array { return $this->first('SP_BBF_NOVEDAD_EVIDENCIA_AGREGAR', [$id, $d['evidence_type'], $d['file_name'], $d['original_name'] ?? null, $d['file_url'] ?? null, $d['file_path'] ?? null, $d['mime_type'] ?? null, $d['size_bytes'] ?? null, $d['observations'] ?? null, $user]); }
-    public function evidence(int $id): array { return $this->call('SP_BBF_NOVEDAD_EVIDENCIAS_LISTAR', [$id]); }
-    public function history(int $id): array { return $this->call('SP_BBF_NOVEDAD_HISTORIAL_LISTAR', [$id]); }
     public function disabilityTracking(int $id): ?array { return $this->first('SP_BBF_INCAPACIDAD_SEGUIMIENTO_OBTENER', [$id]); }
     public function saveDisabilityTracking(int $id, array $d, int $user): ?array
     {

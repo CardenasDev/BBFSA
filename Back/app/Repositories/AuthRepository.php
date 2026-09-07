@@ -51,8 +51,4 @@ class AuthRepository extends StoredProcedureRepository
         $this->call('SP_BBF_USUARIO_SESIONES_REVOCAR', [$sessionId]);
     }
 
-    public function revokeAllSessions(int $userId): void
-    {
-        $this->call('SP_BBF_USUARIO_SESIONES_REVOCAR_TODAS', [$userId]);
-    }
 }

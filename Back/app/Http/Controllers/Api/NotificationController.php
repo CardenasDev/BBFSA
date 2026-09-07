@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Requests\ListNotificationsRequest;
 use App\Http\Requests\MarkNotificationReadRequest;
-use App\Http\Requests\StoreManualNotificationRequest;
 use App\Services\NotificationService;
 use Dedoc\Scramble\Attributes\Group;
 use Illuminate\Http\JsonResponse;
@@ -47,9 +46,4 @@ class NotificationController extends ApiController
         return $this->success($this->service->resolve($id, $this->actorId($request), $this->context($request)), 'Notificación resuelta correctamente.');
     }
 
-    /** Crea una notificación manual, por ejemplo un aumento salarial. */
-    public function store(StoreManualNotificationRequest $request): JsonResponse
-    {
-        return $this->success($this->service->createManual($request->validated(), $this->actorId($request), $this->context($request)), 'Notificación creada correctamente.', 201);
-    }
 }

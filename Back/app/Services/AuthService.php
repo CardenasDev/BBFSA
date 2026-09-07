@@ -100,12 +100,6 @@ class AuthService
         $this->audit->record($userId, 'AUTENTICACION', 'LOGOUT', 'USUARIO_SESION', $sessionId, null, null, $context);
     }
 
-    public function logoutAll(int $userId, array $context): void
-    {
-        $this->auth->revokeAllSessions($userId);
-        $this->audit->record($userId, 'AUTENTICACION', 'LOGOUT_TODAS', 'USUARIO', $userId, null, null, $context);
-    }
-
     public function me(int $userId): array
     {
         $user = $this->users->find($userId);

@@ -209,13 +209,19 @@ export class ContractingService {
 
   registerDocument(
     employeeId: number,
-    payload: RegisterEmployeeDocumentRequest,
+    payload: RegisterEmployeeDocumentRequest | FormData,
   ): Observable<EmployeeLaborDocument> {
     return this.http
       .post<
         ApiResponse<EmployeeLaborDocument>
       >(`${this.url}/employees/${employeeId}/documents`, payload)
       .pipe(map((response) => response.data));
+  }
+
+  downloadDocument(employeeId: number, documentId: number): Observable<Blob> {
+    return this.http.get(`${this.url}/employees/${employeeId}/documents/${documentId}/file`, {
+      responseType: 'blob',
+    });
   }
 
   getContractAlerts(diasAntes?: number | null): Observable<ContractingAlert[]> {

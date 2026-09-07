@@ -36,18 +36,6 @@ class ContractingService
         ]);
     }
 
-    public function getContractTemplate(int $templateId): array
-    {
-        return $this->contracting->getContractTemplate($templateId)
-            ?? throw new ApiException('Plantilla de contrato no encontrada.', 404);
-    }
-
-    public function getContractTemplateByType(int $contractTypeId, ?string $positionType): array
-    {
-        return $this->contracting->getContractTemplateByType($contractTypeId, $this->blankToNull($positionType))
-            ?? throw new ApiException('No se encontro una plantilla para el tipo de contrato indicado.', 404);
-    }
-
     public function saveProfile(int $employeeId, int $userId, array $data, array $context): array
     {
         $payload = $this->normalizeData($data);
@@ -333,12 +321,21 @@ class ContractingService
 
     public function createMedicalExam(int $employeeId, int $userId, array $data, array $context): array
     {
-        $payload = $this->normalizeData($data);
-        $created = $this->contracting->createMedicalExam($employeeId, $payload);
+        $payload = $this->buildMedicalExamPayload($employeeId, $data);
+
+        try {
+            $created = $this->contracting->createMedicalExam($employeeId, $payload);
+        } catch (Throwable $exception) {
+            $this->deleteMedicalExamFile($payload['archivo_local'] ?? null);
+            throw $exception;
+        }
 
         if (! $created) {
+            $this->deleteMedicalExamFile($payload['archivo_local'] ?? null);
             throw new ApiException('No fue posible registrar el examen medico.', 422);
         }
+
+        unset($payload['archivo_local']);
 
         $this->audit->record($userId, 'CONTRATACION', 'CONTRATACION_EXAMEN_CREAR', 'EXAMEN_MEDICO_EMPLEADO', $this->nullableInt($created, 'id_empleado_examen_medico'), null, [
             'id_empleado' => $employeeId,
@@ -356,12 +353,21 @@ class ContractingService
 
     public function registerDocument(int $employeeId, int $userId, array $data, array $context): array
     {
-        $payload = $this->normalizeData($data);
-        $registered = $this->contracting->registerDocument($employeeId, $userId, $payload);
+        $payload = $this->buildEmployeeDocumentPayload($employeeId, $data);
+
+        try {
+            $registered = $this->contracting->registerDocument($employeeId, $userId, $payload);
+        } catch (Throwable $exception) {
+            $this->deleteEmployeeDocumentFile($payload['archivo_local'] ?? null);
+            throw $exception;
+        }
 
         if (! $registered) {
+            $this->deleteEmployeeDocumentFile($payload['archivo_local'] ?? null);
             throw new ApiException('No fue posible registrar el documento laboral.', 422);
         }
+
+        unset($payload['archivo_local']);
 
         $this->audit->record($userId, 'CONTRATACION', 'CONTRATACION_DOCUMENTO_REGISTRAR', 'DOCUMENTO_LABORAL_EMPLEADO', $this->nullableInt($registered, 'id_empleado_documento_laboral'), null, [
             'id_empleado' => $employeeId,
@@ -370,6 +376,40 @@ class ContractingService
         ], $context);
 
         return $registered;
+    }
+
+    public function employeeDocumentFile(int $employeeId, int $documentId): array
+    {
+        $document = collect($this->contracting->listDocuments($employeeId))->first(
+            fn (array $item): bool => (int) ($item['id_empleado_documento_laboral'] ?? $item['id_empleado_documento'] ?? 0) === $documentId
+        );
+
+        if (! $document) {
+            throw new ApiException('Documento laboral no encontrado.', 404);
+        }
+
+        $reference = (string) ($document['archivo_url'] ?? '');
+        $prefix = "private://employee-documents/{$employeeId}/";
+        if (! str_starts_with($reference, $prefix)) {
+            throw new ApiException('El documento no corresponde a un archivo almacenado.', 422);
+        }
+
+        $storedName = substr($reference, strlen($prefix));
+        if ($storedName === '' || basename($storedName) !== $storedName) {
+            throw new ApiException('La referencia del documento no es valida.', 422);
+        }
+
+        $relativePath = "employee-documents/{$employeeId}/{$storedName}";
+        $path = storage_path("app/private/{$relativePath}");
+        if (! File::isFile($path)) {
+            throw new ApiException('El archivo físico no fue encontrado.', 404);
+        }
+
+        return [
+            'path' => $path,
+            'name' => (string) ($document['nombre_archivo'] ?? basename($path)),
+            'mime_type' => $document['mime_type'] ?? null,
+        ];
     }
 
     public function listAlerts(?int $days): array
@@ -417,6 +457,95 @@ class ContractingService
             'nombre_archivo' => $this->blankToNull($data['nombre_archivo'] ?? null) ?? 'Contrato firmado',
             'archivo_url' => $this->blankToNull($data['url'] ?? null),
         ]);
+    }
+
+    private function buildMedicalExamPayload(int $employeeId, array $data): array
+    {
+        $payload = $this->normalizeData($data);
+        unset($payload['archivo']);
+
+        $file = $data['archivo'] ?? null;
+        if (! $file instanceof UploadedFile) {
+            return $payload;
+        }
+
+        $relativeDirectory = "uploads/medical-exams/{$employeeId}";
+        $directory = public_path($relativeDirectory);
+
+        if (! File::isDirectory($directory)) {
+            File::makeDirectory($directory, 0755, true);
+        }
+
+        $originalName = $file->getClientOriginalName();
+        $baseName = pathinfo($originalName, PATHINFO_FILENAME);
+        $safeName = Str::slug($baseName) ?: 'examen-medico';
+        $extension = strtolower($file->getClientOriginalExtension() ?: $file->extension() ?: 'bin');
+        $filename = sprintf('%s_%s_%s.%s', now()->format('Ymd_His'), Str::lower(Str::random(6)), $safeName, $extension);
+        $file->move($directory, $filename);
+
+        $relativePath = "{$relativeDirectory}/{$filename}";
+        $payload['archivo_url'] = "/{$relativePath}";
+        $payload['archivo_local'] = $relativePath;
+
+        return $payload;
+    }
+
+    private function buildEmployeeDocumentPayload(int $employeeId, array $data): array
+    {
+        $payload = $this->normalizeData($data);
+        unset($payload['archivo']);
+
+        $file = $data['archivo'] ?? null;
+        if (! $file instanceof UploadedFile) {
+            return $payload;
+        }
+
+        $relativeDirectory = "employee-documents/{$employeeId}";
+        $directory = storage_path("app/private/{$relativeDirectory}");
+        if (! File::isDirectory($directory)) {
+            File::makeDirectory($directory, 0755, true);
+        }
+
+        $originalName = $file->getClientOriginalName();
+        $safeName = Str::slug(pathinfo($originalName, PATHINFO_FILENAME)) ?: 'documento-laboral';
+        $extension = strtolower($file->getClientOriginalExtension() ?: $file->extension() ?: 'bin');
+        $filename = sprintf('%s_%s_%s.%s', now()->format('Ymd_His'), Str::lower(Str::random(6)), $safeName, $extension);
+        $mimeType = $file->getMimeType();
+        $size = $file->getSize();
+        $file->move($directory, $filename);
+
+        $relativePath = "{$relativeDirectory}/{$filename}";
+        $payload['nombre_archivo'] = $this->blankToNull($payload['nombre_archivo'] ?? null) ?? $originalName;
+        $payload['archivo_url'] = "private://{$relativePath}";
+        $payload['mime_type'] = $mimeType;
+        $payload['peso_bytes'] = $size;
+        $payload['archivo_local'] = $relativePath;
+
+        return $payload;
+    }
+
+    private function deleteEmployeeDocumentFile(?string $relativePath): void
+    {
+        if (! $relativePath || ! str_starts_with($relativePath, 'employee-documents/')) {
+            return;
+        }
+
+        $path = storage_path("app/private/{$relativePath}");
+        if (File::exists($path)) {
+            File::delete($path);
+        }
+    }
+
+    private function deleteMedicalExamFile(?string $relativePath): void
+    {
+        if (! $relativePath || ! str_starts_with($relativePath, 'uploads/medical-exams/')) {
+            return;
+        }
+
+        $path = public_path($relativePath);
+        if (File::exists($path)) {
+            File::delete($path);
+        }
     }
 
     private function storeSignedContractFile(int $employeeContractId, UploadedFile $file): array

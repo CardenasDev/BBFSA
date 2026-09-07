@@ -266,6 +266,7 @@ Route::middleware('auth.jwt')->group(function (): void {
         Route::post('employees/{employeeId}/medical-exams', [ContractingController::class, 'createMedicalExam'])->whereNumber('employeeId')->middleware('permission:CONTRATACION_EXAMENES_CREAR');
         Route::get('employees/{employeeId}/documents', [ContractingController::class, 'listDocuments'])->whereNumber('employeeId')->middleware('permission:CONTRATACION_DOCUMENTOS_VER');
         Route::post('employees/{employeeId}/documents', [ContractingController::class, 'registerDocument'])->whereNumber('employeeId')->middleware('permission:CONTRATACION_DOCUMENTOS_SUBIR');
+        Route::get('employees/{employeeId}/documents/{documentId}/file', [ContractingController::class, 'downloadDocument'])->whereNumber(['employeeId', 'documentId'])->middleware('permission:CONTRATACION_DOCUMENTOS_VER');
         Route::get('alerts', [ContractingController::class, 'listAlerts'])->middleware('permission:CONTRATACION_ALERTAS_VER');
     });
 });

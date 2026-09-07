@@ -66,20 +66,6 @@ class ContractingRepository extends StoredProcedureRepository
         ]));
     }
 
-    public function getContractTemplate(int $templateId): ?array
-    {
-        $row = $this->first('SP_BBF_CONTRATO_PLANTILLA_OBTENER', [$templateId]);
-
-        return $row ? $this->normalizeTemplateJson($row) : null;
-    }
-
-    public function getContractTemplateByType(int $contractTypeId, ?string $positionType): ?array
-    {
-        $row = $this->first('SP_BBF_CONTRATO_PLANTILLA_POR_TIPO_OBTENER', [$contractTypeId, $positionType]);
-
-        return $row ? $this->normalizeTemplateJson($row) : null;
-    }
-
     public function getCurrentParameter(string $code, string $date): ?array
     {
         return $this->first('SP_BBF_PARAMETRO_VIGENTE_OBTENER', [$code, $date]);

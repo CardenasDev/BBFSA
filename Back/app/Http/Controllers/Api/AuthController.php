@@ -53,18 +53,6 @@ class AuthController extends ApiController
     }
 
     /**
-     * Cerrar todas las sesiones
-     *
-     * Revoca todos los refresh tokens activos del usuario autenticado.
-     */
-    public function logoutAll(Request $request): JsonResponse
-    {
-        $this->auth->logoutAll($this->actorId($request), $this->context($request));
-
-        return $this->success(null, 'Todas las sesiones fueron revocadas.');
-    }
-
-    /**
      * Obtener usuario autenticado
      *
      * Retorna los datos vigentes del usuario, sus roles y permisos.

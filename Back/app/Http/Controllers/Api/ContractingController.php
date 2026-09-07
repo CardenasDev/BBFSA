@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Requests\CreateEmployeeContractRequest;
 use App\Http\Requests\CreateMedicalExamRequest;
-use App\Http\Requests\GetContractTemplateByTypeRequest;
 use App\Http\Requests\ListContractAlertsRequest;
 use App\Http\Requests\ListContractTemplatesRequest;
 use App\Http\Requests\RegisterEmployeeDocumentRequest;
@@ -16,6 +15,7 @@ use App\Services\ContractingService;
 use Dedoc\Scramble\Attributes\Group;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 #[Group('Contracting', 'Gestion de contratacion y ficha de ingreso.', weight: 8)]
 class ContractingController extends ApiController
@@ -74,34 +74,6 @@ class ContractingController extends ApiController
         return $this->success(
             $this->contracting->listContractTemplates($request->validated()),
             'Plantillas de contrato consultadas correctamente',
-        );
-    }
-
-    /**
-     * Obtener plantilla de contrato
-     *
-     * Permiso requerido: CONTRATACION_VER.
-     */
-    public function getContractTemplate(int $templateId): JsonResponse
-    {
-        return $this->success(
-            $this->contracting->getContractTemplate($templateId),
-            'Plantilla de contrato consultada correctamente',
-        );
-    }
-
-    /**
-     * Obtener plantilla sugerida por tipo de contrato
-     *
-     * Permiso requerido: CONTRATACION_VER.
-     */
-    public function getContractTemplateByType(GetContractTemplateByTypeRequest $request): JsonResponse
-    {
-        $validated = $request->validated();
-
-        return $this->success(
-            $this->contracting->getContractTemplateByType((int) $validated['id_tipo_contrato'], $validated['tipo_cargo_contrato'] ?? null),
-            'Plantilla de contrato sugerida consultada correctamente',
         );
     }
 
@@ -239,6 +211,8 @@ class ContractingController extends ApiController
      * Crear examen medico
      *
      * Permiso requerido: CONTRATACION_EXAMENES_CREAR.
+     * Acepta application/json con archivo_url o multipart/form-data con archivo.
+     * El archivo físico admite PDF, imágenes y documentos Word de hasta 5 MB.
      */
     public function createMedicalExam(CreateMedicalExamRequest $request, int $employeeId): JsonResponse
     {
@@ -274,6 +248,20 @@ class ContractingController extends ApiController
             'Documento laboral del empleado registrado correctamente',
             201,
         );
+    }
+
+    /**
+     * Consultar archivo físico de un documento laboral
+     *
+     * Permiso requerido: CONTRATACION_DOCUMENTOS_VER.
+     */
+    public function downloadDocument(int $employeeId, int $documentId): BinaryFileResponse
+    {
+        $file = $this->contracting->employeeDocumentFile($employeeId, $documentId);
+
+        return response()->download($file['path'], $file['name'], array_filter([
+            'Content-Type' => $file['mime_type'],
+        ]), 'inline');
     }
 
     /**

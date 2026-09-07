@@ -70,4 +70,33 @@ describe('ContractingService signContract', () => {
     request.flush({ success: true, message: 'ok', data: {} });
     http.verify();
   });
+
+  it('registers a physical employee document as multipart data', () => {
+    const { service, http } = setup();
+    const payload = new FormData();
+    payload.append('id_tipo_documento_laboral', '3');
+    payload.append('nombre_archivo', 'Certificado laboral');
+    payload.append('archivo', new File(['document'], 'certificado.pdf', { type: 'application/pdf' }));
+
+    service.registerDocument(11, payload).subscribe();
+
+    const request = http.expectOne(`${environment.apiUrl}/contracting/employees/11/documents`);
+    expect(request.request.method).toBe('POST');
+    expect(request.request.body).toBe(payload);
+    expect(request.request.headers.has('Content-Type')).toBe(false);
+    request.flush({ success: true, message: 'ok', data: {} });
+    http.verify();
+  });
+
+  it('downloads a private employee document as a blob', () => {
+    const { service, http } = setup();
+
+    service.downloadDocument(11, 27).subscribe((file) => expect(file).toBeInstanceOf(Blob));
+
+    const request = http.expectOne(`${environment.apiUrl}/contracting/employees/11/documents/27/file`);
+    expect(request.request.method).toBe('GET');
+    expect(request.request.responseType).toBe('blob');
+    request.flush(new Blob(['document'], { type: 'application/pdf' }));
+    http.verify();
+  });
 });

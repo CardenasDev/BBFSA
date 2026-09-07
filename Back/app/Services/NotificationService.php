@@ -47,12 +47,4 @@ class NotificationService
         return $result;
     }
 
-    public function createManual(array $data, int $userId, array $context): array
-    {
-        $result = $this->repository->createManual($data, $userId);
-        $id = (int) ($result['id_notificacion'] ?? 0);
-        $this->audit->record($userId, 'NOTIFICACIONES', 'NOTIFICACION_CREAR_MANUAL', 'NOTIFICACION', $id, null, $result, $context);
-
-        return $result;
-    }
 }

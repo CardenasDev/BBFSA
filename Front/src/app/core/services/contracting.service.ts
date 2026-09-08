@@ -129,6 +129,12 @@ export class ContractingService {
       .pipe(map((response) => response.data));
   }
 
+  deleteEmployeeContract(employeeId: number, employeeContractId: number): Observable<void> {
+    return this.http
+      .delete<ApiResponse<unknown>>(`${this.url}/employees/${employeeId}/contracts/${employeeContractId}`)
+      .pipe(map(() => undefined));
+  }
+
   signContract(
     employeeContractId: number,
     payload: SignEmployeeContractRequest,

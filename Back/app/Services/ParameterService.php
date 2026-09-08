@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Exceptions\ApiException;
 use Illuminate\Support\Str;
 
 use App\Repositories\ParametersRepository;
@@ -532,6 +533,24 @@ class ParameterService
         if (! empty($data['id_parametro'])) {
             $existing = array_filter($this->systemParameters(), fn($r) => (int) ($r['id_parametro'] ?? 0) === (int) $data['id_parametro']);
             $before = $existing ? array_values($existing)[0] : null;
+        }
+
+        $code = strtoupper(trim((string) $data['codigo']));
+        $start = (string) ($data['vigencia_desde'] ?? '');
+        $end = (string) ($data['vigencia_hasta'] ?? '9999-12-31');
+        $editingId = (int) ($data['id_parametro'] ?? 0);
+        foreach (($data['activo'] ?? true) ? $this->systemParameters() : [] as $parameter) {
+            if ((int) ($parameter['id_parametro'] ?? 0) === $editingId
+                || ! (bool) ($parameter['activo'] ?? false)
+                || strtoupper((string) ($parameter['codigo'] ?? '')) !== $code) {
+                continue;
+            }
+
+            $existingStart = (string) ($parameter['vigencia_desde'] ?? '0000-01-01');
+            $existingEnd = (string) ($parameter['vigencia_hasta'] ?? '9999-12-31');
+            if ($existingStart <= $end && $existingEnd >= $start) {
+                throw new ApiException('Ya existe una vigencia activa para este parámetro que se cruza con las fechas indicadas.', 422);
+            }
         }
 
         $result = $this->repo->saveSystemParameter(

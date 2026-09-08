@@ -1,5 +1,5 @@
 export const environment = {
-  production: false ,
-  apiUrl: 'https://cardenas.com.co/Demos/SA/Back/public/index.php/api',
-  backendUrl: 'https://cardenas.com.co/Demos/SA/Back/public',
+ production: false,
+  apiUrl: 'http://127.0.0.1:8000/api',
+  backendUrl: 'http://127.0.0.1:8000',
 };

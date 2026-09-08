@@ -17,8 +17,8 @@ class SaveSystemParameterRequest extends ApiRequest
             'tipo_dato' => ['required', 'string', Rule::in(['TEXTO', 'NUMERICO', 'FECHA', 'BOOLEANO', 'JSON'])],
             'valor' => ['nullable'],
             'unidad_medida' => ['nullable', 'string', 'max:50'],
-            'vigencia_desde' => ['nullable', 'date'],
-            'vigencia_hasta' => ['nullable', 'date'],
+            'vigencia_desde' => ['required', 'date'],
+            'vigencia_hasta' => ['nullable', 'date', 'after_or_equal:vigencia_desde'],
             'activo' => ['nullable', 'boolean'],
             'editable' => ['nullable', 'boolean'],
         ];
@@ -30,6 +30,8 @@ class SaveSystemParameterRequest extends ApiRequest
             'codigo.required' => 'El codigo del parametro es obligatorio.',
             'nombre.required' => 'El nombre del parametro es obligatorio.',
             'tipo_dato.in' => 'El tipo de dato no es válido.',
+            'vigencia_desde.required' => 'La fecha de inicio de vigencia es obligatoria.',
+            'vigencia_hasta.after_or_equal' => 'La vigencia final no puede ser anterior a la inicial.',
         ];
     }
 }

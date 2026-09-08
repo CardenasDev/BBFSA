@@ -113,6 +113,19 @@ class ContractingRepository extends StoredProcedureRepository
             ]);
     }
 
+    public function deleteContract(int $employeeId, int $employeeContractId): int
+    {
+        return DB::table('bbf_empleado_contratos')
+            ->where('ID_EMPLEADO', $employeeId)
+            ->where('ID_EMPLEADO_CONTRATO', $employeeContractId)
+            ->where('ELIMINADO', 0)
+            ->update([
+                'ESTADO_CONTRATO' => 'ANULADO',
+                'ELIMINADO' => 1,
+                'UPDATED_AT' => now(),
+            ]);
+    }
+
     public function createContract(int $employeeId, int $userId, array $data): array
     {
         return $this->first('SP_BBF_CONTRATACION_CONTRATO_CREAR', [

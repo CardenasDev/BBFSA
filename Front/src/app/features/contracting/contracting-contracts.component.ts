@@ -62,6 +62,17 @@ const BASE_FIELDS = [
 
       @if (success()) { <app-feedback-dialog type="success" [message]="success()" (closed)="success.set('')" /> }
       @if (error()) { <app-feedback-dialog type="error" [message]="error()" (closed)="error.set('')" /> }
+      @if (contractPendingDeletion(); as contract) {
+        <app-feedback-dialog
+          type="warning"
+          title="Eliminar contrato"
+          [message]="deleteConfirmationMessage(contract)"
+          actionLabel="Sí, eliminar"
+          closeLabel="Cancelar"
+          (action)="deleteContract()"
+          (closed)="cancelDelete()"
+        />
+      }
 
       <div class="table-wrap">
         <table>
@@ -86,6 +97,7 @@ const BASE_FIELDS = [
                 </td>
                 <td class="actions-cell">
                   @if (auth.hasPermission('CONTRATACION_EDITAR')) { <button class="btn small secondary" type="button" (click)="openEdit(contract)">Editar</button> }
+                  @if (auth.hasPermission('CONTRATACION_ELIMINAR')) { <button class="btn small danger" type="button" (click)="requestDelete(contract)" [disabled]="deletingContractId() === contractId(contract)">Eliminar</button> }
                   <button class="btn small ghost" type="button" (click)="toggleDetail(contract)">{{ isExpanded(contract) ? 'Ocultar' : 'Ver detalle' }}</button>
                   <button class="btn small secondary" type="button" (click)="openGenerationData(contract)" [disabled]="generationLoading()">Datos generacion</button>
                   @if (contractId(contract); as printableContractId) {
@@ -141,7 +153,7 @@ const BASE_FIELDS = [
         </header>
 
         @if (formError()) { <app-feedback-dialog type="error" [message]="formError()" (closed)="formError.set('')" /> }
-        @if (templateMessage()) { <div class="alert success">{{ templateMessage() }}</div> }
+        @if (templateMessage()) { <div class="alert success" data-feedback-inline>{{ templateMessage() }}</div> }
         <form class="form-grid" (ngSubmit)="saveContract()">
           <label>Tipo contrato
             <select name="id_tipo_contrato" [(ngModel)]="form.id_tipo_contrato" (ngModelChange)="onContractTypeChange($event)" required>
@@ -235,7 +247,7 @@ const BASE_FIELDS = [
               <p class="muted">{{ workSectionHint() }}</p>
               <div class="form-grid">
                 @if (isFieldVisible('objeto_obra_labor')) { <label class="form-wide">Objeto obra/labor<textarea rows="3" name="objeto_obra_labor" [(ngModel)]="form.objeto_obra_labor"></textarea></label> }
-                @if (isFieldVisible('clausula_funciones')) { <label class="form-wide">Funciones / clausula de funciones<textarea rows="3" name="clausula_funciones" [(ngModel)]="form.clausula_funciones"></textarea></label> }
+                @if (isFieldVisible('clausula_funciones')) { <label class="form-wide">Funciones / cláusula de funciones<textarea rows="4" name="clausula_funciones" [(ngModel)]="form.clausula_funciones" placeholder="Ejemplo:&#10;1. Supervisar la calidad de la flor.&#10;2. Registrar hallazgos del proceso."></textarea><small class="muted">Describe al menos una función concreta. Puedes escribir una función por línea o separarlas con punto y coma.</small></label> }
               </div>
             </section>
           }
@@ -328,6 +340,8 @@ export class ContractingContractsComponent implements OnInit {
   readonly templateMessage = signal('');
   readonly generationError = signal('');
   readonly success = signal('');
+  readonly contractPendingDeletion = signal<EmployeeContract | null>(null);
+  readonly deletingContractId = signal<number | null>(null);
   readonly expandedContract = signal<string | null>(null);
   readonly statuses = CONTRACT_STATUSES;
   readonly chargeTypes = CONTRACT_CHARGE_TYPES;
@@ -628,7 +642,9 @@ export class ContractingContractsComponent implements OnInit {
     if (this.selectedContractTypeLooksLikeWork()) {
       const configuredFunctions = parseContractFunctions(this.form.clausula_funciones);
       if (configuredFunctions.length === 0) {
-        return 'Debes configurar las funciones de la obra o labor antes de generar este contrato.';
+        return /^funciones\.?$/i.test(String(this.form.clausula_funciones ?? '').trim())
+          ? 'La palabra “funciones” no describe las actividades del cargo. Escribe al menos una función concreta, por ejemplo: Supervisar la calidad de la flor.'
+          : 'Debes describir al menos una función concreta de la obra o labor antes de generar este contrato.';
       }
 
       if (!this.stringOrNull(this.form.objeto_obra_labor)) {
@@ -686,6 +702,46 @@ export class ContractingContractsComponent implements OnInit {
       auxilio_transporte: null,
       tipo_cargo_contrato: null,
     };
+  }
+
+  requestDelete(contract: EmployeeContract): void {
+    if (!this.contractId(contract)) {
+      this.error.set('No fue posible identificar el contrato que deseas eliminar.');
+      return;
+    }
+    this.contractPendingDeletion.set(contract);
+  }
+
+  cancelDelete(): void {
+    if (this.deletingContractId() !== null) return;
+    this.contractPendingDeletion.set(null);
+  }
+
+  deleteConfirmationMessage(contract: EmployeeContract): string {
+    const number = contract.numero_contrato?.trim() || String(this.contractId(contract));
+    return `¿Deseas eliminar el contrato ${number}?\n\nSe ocultará del historial operativo, pero se conservarán sus archivos y la trazabilidad de auditoría.`;
+  }
+
+  deleteContract(): void {
+    const contract = this.contractPendingDeletion();
+    const contractId = contract ? this.contractId(contract) : null;
+    if (!contractId || this.deletingContractId() !== null) return;
+
+    this.deletingContractId.set(contractId);
+    this.service.deleteEmployeeContract(this.employeeId, contractId)
+      .pipe(finalize(() => this.deletingContractId.set(null)))
+      .subscribe({
+        next: () => {
+          this.contractPendingDeletion.set(null);
+          this.expandedContract.set(null);
+          this.success.set('Contrato eliminado correctamente.');
+          this.load();
+        },
+        error: (error) => {
+          this.contractPendingDeletion.set(null);
+          this.error.set(apiErrorMessage(error, 'No fue posible eliminar el contrato.'));
+        },
+      });
   }
 
   onStartDateChange(value: string): void {

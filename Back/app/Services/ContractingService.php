@@ -128,6 +128,30 @@ class ContractingService
         return $updated;
     }
 
+    public function deleteContract(int $employeeId, int $employeeContractId, int $userId, array $context): array
+    {
+        $before = $this->contracting->findContract($employeeId, $employeeContractId)
+            ?? throw new ApiException('El contrato no existe o no pertenece al empleado.', 404);
+
+        if ($this->contracting->deleteContract($employeeId, $employeeContractId) !== 1) {
+            throw new ApiException('No fue posible eliminar el contrato.', 422);
+        }
+
+        $after = [...$before, 'ESTADO_CONTRATO' => 'ANULADO', 'ELIMINADO' => 1];
+        $this->audit->record(
+            $userId,
+            'CONTRATACION',
+            'CONTRATACION_CONTRATO_ELIMINAR',
+            'CONTRATO_EMPLEADO',
+            $employeeContractId,
+            $before,
+            $after,
+            $context,
+        );
+
+        return ['id_empleado_contrato' => $employeeContractId, 'eliminado' => true];
+    }
+
     public function signContract(int $employeeContractId, int $userId, array $data, array $context): array
     {
         $payload = $this->buildSignedContractPayload($employeeContractId, $this->normalizeData($data));

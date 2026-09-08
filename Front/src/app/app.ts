@@ -1,9 +1,10 @@
 import { Component } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
+import { AlertModalBridgeComponent } from './shared/alert-modal-bridge.component';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet],
+  imports: [RouterOutlet, AlertModalBridgeComponent],
   templateUrl: './app.html',
   styleUrl: './app.css'
 })

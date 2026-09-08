@@ -124,7 +124,7 @@ class ParametersRepository extends StoredProcedureRepository
 
     public function systemParametersList(): array
     {
-        return $this->call('SP_BBF_PARAMETROS_LISTAR');
+        return $this->call('SP_BBF_PARAMETROS_LISTAR', [null, null, 1]);
     }
 
     public function saveSystemParameter($id, string $codigo, string $nombre, string $grupo, ?string $descripcion, string $tipoDato, $valor, ?string $unidadMedida, ?string $vigenciaDesde, ?string $vigenciaHasta, bool $activo, bool $editable, int $idUsuario): array

@@ -139,6 +139,19 @@ class ContractingController extends ApiController
     }
 
     /**
+     * Eliminar logicamente un contrato, conservando archivos y trazabilidad.
+     *
+     * Permiso requerido: CONTRATACION_ELIMINAR.
+     */
+    public function deleteContract(Request $request, int $employeeId, int $employeeContractId): JsonResponse
+    {
+        return $this->success(
+            $this->contracting->deleteContract($employeeId, $employeeContractId, $this->actorId($request), $this->context($request)),
+            'Contrato eliminado correctamente',
+        );
+    }
+
+    /**
      * Obtener datos para generacion de contrato
      *
      * Permiso requerido: CONTRATACION_VER.

@@ -10,6 +10,7 @@ use App\Http\Requests\RegisterEmployeeDocumentRequest;
 use App\Http\Requests\SaveContractingProfileRequest;
 use App\Http\Requests\SaveSocialSecurityRequest;
 use App\Http\Requests\SignEmployeeContractRequest;
+use App\Http\Requests\UpdateEmployeeDocumentRequest;
 use App\Http\Resources\ContractGenerationDataResource;
 use App\Services\ContractingService;
 use Dedoc\Scramble\Attributes\Group;
@@ -236,6 +237,22 @@ class ContractingController extends ApiController
         );
     }
 
+    public function updateMedicalExam(CreateMedicalExamRequest $request, int $employeeId, int $examId): JsonResponse
+    {
+        return $this->success(
+            $this->contracting->updateMedicalExam($employeeId, $examId, $this->actorId($request), $request->validated(), $this->context($request)),
+            'Examen medico actualizado correctamente',
+        );
+    }
+
+    public function deleteMedicalExam(Request $request, int $employeeId, int $examId): JsonResponse
+    {
+        return $this->success(
+            $this->contracting->deleteMedicalExam($employeeId, $examId, $this->actorId($request), $this->context($request)),
+            'Examen medico eliminado correctamente',
+        );
+    }
+
     /**
      * Listar documentos laborales
      *
@@ -260,6 +277,22 @@ class ContractingController extends ApiController
             $this->contracting->registerDocument($employeeId, $this->actorId($request), $request->validated(), $this->context($request)),
             'Documento laboral del empleado registrado correctamente',
             201,
+        );
+    }
+
+    public function updateDocument(UpdateEmployeeDocumentRequest $request, int $employeeId, int $documentId): JsonResponse
+    {
+        return $this->success(
+            $this->contracting->updateDocument($employeeId, $documentId, $this->actorId($request), $request->validated(), $this->context($request)),
+            'Documento laboral actualizado correctamente',
+        );
+    }
+
+    public function deleteDocument(Request $request, int $employeeId, int $documentId): JsonResponse
+    {
+        return $this->success(
+            $this->contracting->deleteDocument($employeeId, $documentId, $this->actorId($request), $this->context($request)),
+            'Documento laboral eliminado correctamente',
         );
     }
 

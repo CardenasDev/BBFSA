@@ -207,6 +207,19 @@ export class ContractingService {
       .pipe(map((response) => response.data));
   }
 
+  updateMedicalExam(employeeId: number, examId: number, payload: CreateMedicalExamRequest | FormData): Observable<EmployeeMedicalExam> {
+    return this.http.post<ApiResponse<EmployeeMedicalExam>>(
+      `${this.url}/employees/${employeeId}/medical-exams/${examId}`,
+      payload,
+    ).pipe(map((response) => response.data));
+  }
+
+  deleteMedicalExam(employeeId: number, examId: number): Observable<void> {
+    return this.http.delete<ApiResponse<unknown>>(
+      `${this.url}/employees/${employeeId}/medical-exams/${examId}`,
+    ).pipe(map(() => undefined));
+  }
+
   getDocuments(employeeId: number): Observable<EmployeeLaborDocument[]> {
     return this.http
       .get<ApiResponse<EmployeeLaborDocument[]>>(`${this.url}/employees/${employeeId}/documents`)
@@ -222,6 +235,19 @@ export class ContractingService {
         ApiResponse<EmployeeLaborDocument>
       >(`${this.url}/employees/${employeeId}/documents`, payload)
       .pipe(map((response) => response.data));
+  }
+
+  updateDocument(employeeId: number, documentId: number, payload: RegisterEmployeeDocumentRequest | FormData): Observable<EmployeeLaborDocument> {
+    return this.http.post<ApiResponse<EmployeeLaborDocument>>(
+      `${this.url}/employees/${employeeId}/documents/${documentId}`,
+      payload,
+    ).pipe(map((response) => response.data));
+  }
+
+  deleteDocument(employeeId: number, documentId: number): Observable<void> {
+    return this.http.delete<ApiResponse<unknown>>(
+      `${this.url}/employees/${employeeId}/documents/${documentId}`,
+    ).pipe(map(() => undefined));
   }
 
   downloadDocument(employeeId: number, documentId: number): Observable<Blob> {

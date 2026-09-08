@@ -222,6 +222,31 @@ class ContractingRepository extends StoredProcedureRepository
         ]) ?? [];
     }
 
+    public function findMedicalExam(int $employeeId, int $examId): ?array
+    {
+        $row = DB::table('bbf_empleado_examenes_medicos')->where('ID_EMPLEADO', $employeeId)
+            ->where('ID_EXAMEN_MEDICO', $examId)->where('ELIMINADO', 0)->first();
+        return $row ? (array) $row : null;
+    }
+
+    public function updateMedicalExam(int $employeeId, int $examId, array $data): int
+    {
+        return DB::table('bbf_empleado_examenes_medicos')->where('ID_EMPLEADO', $employeeId)
+            ->where('ID_EXAMEN_MEDICO', $examId)->where('ELIMINADO', 0)->update([
+                'ID_TIPO_EXAMEN_MEDICO' => $data['id_tipo_examen_medico'], 'FECHA_EXAMEN' => $data['fecha_examen'],
+                'ENTIDAD_REALIZA' => $data['entidad_realiza'] ?? null, 'RESULTADO_GENERAL' => $data['resultado_general'] ?? null,
+                'FECHA_VENCIMIENTO' => $data['fecha_vencimiento'] ?? null, 'ARCHIVO_URL' => $data['archivo_url'] ?? null,
+                'OBSERVACIONES' => $data['observaciones'] ?? null, 'UPDATED_AT' => now(),
+            ]);
+    }
+
+    public function deleteMedicalExam(int $employeeId, int $examId): int
+    {
+        return DB::table('bbf_empleado_examenes_medicos')->where('ID_EMPLEADO', $employeeId)
+            ->where('ID_EXAMEN_MEDICO', $examId)->where('ELIMINADO', 0)
+            ->update(['ELIMINADO' => 1, 'UPDATED_AT' => now()]);
+    }
+
     public function listDocuments(int $employeeId): array
     {
         return $this->call('SP_BBF_CONTRATACION_DOCUMENTOS_LISTAR', [$employeeId]);
@@ -241,6 +266,45 @@ class ContractingRepository extends StoredProcedureRepository
             $data['observaciones'] ?? null,
             $userId,
         ]) ?? [];
+    }
+
+    public function findDocument(int $employeeId, int $documentId): ?array
+    {
+        $row = DB::table('bbf_empleado_documentos')
+            ->where('ID_EMPLEADO', $employeeId)
+            ->where('ID_EMPLEADO_DOCUMENTO', $documentId)
+            ->where('ELIMINADO', 0)
+            ->first();
+
+        return $row ? (array) $row : null;
+    }
+
+    public function updateDocument(int $employeeId, int $documentId, array $data): int
+    {
+        return DB::table('bbf_empleado_documentos')
+            ->where('ID_EMPLEADO', $employeeId)
+            ->where('ID_EMPLEADO_DOCUMENTO', $documentId)
+            ->where('ELIMINADO', 0)
+            ->update([
+                'ID_TIPO_DOCUMENTO_LABORAL' => $data['id_tipo_documento_laboral'],
+                'NOMBRE_ARCHIVO' => $data['nombre_archivo'],
+                'ARCHIVO_URL' => $data['archivo_url'],
+                'MIME_TYPE' => $data['mime_type'] ?? null,
+                'PESO_BYTES' => $data['peso_bytes'] ?? null,
+                'FECHA_VENCIMIENTO' => $data['fecha_vencimiento'] ?? null,
+                'ESTADO_DOCUMENTO' => $data['estado_documento'] ?? 'CARGADO',
+                'OBSERVACIONES' => $data['observaciones'] ?? null,
+                'UPDATED_AT' => now(),
+            ]);
+    }
+
+    public function deleteDocument(int $employeeId, int $documentId): int
+    {
+        return DB::table('bbf_empleado_documentos')
+            ->where('ID_EMPLEADO', $employeeId)
+            ->where('ID_EMPLEADO_DOCUMENTO', $documentId)
+            ->where('ELIMINADO', 0)
+            ->update(['ELIMINADO' => 1, 'UPDATED_AT' => now()]);
     }
 
     public function listAlerts(?int $days): array

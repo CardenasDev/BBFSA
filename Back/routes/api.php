@@ -265,8 +265,12 @@ Route::middleware('auth.jwt')->group(function (): void {
         Route::post('employees/{employeeId}/social-security', [ContractingController::class, 'saveSocialSecurity'])->whereNumber('employeeId')->middleware('permission:CONTRATACION_SEGURIDAD_SOCIAL_EDITAR');
         Route::get('employees/{employeeId}/medical-exams', [ContractingController::class, 'listMedicalExams'])->whereNumber('employeeId')->middleware('permission:CONTRATACION_EXAMENES_VER');
         Route::post('employees/{employeeId}/medical-exams', [ContractingController::class, 'createMedicalExam'])->whereNumber('employeeId')->middleware('permission:CONTRATACION_EXAMENES_CREAR');
+        Route::post('employees/{employeeId}/medical-exams/{examId}', [ContractingController::class, 'updateMedicalExam'])->whereNumber(['employeeId', 'examId'])->middleware('permission:CONTRATACION_EXAMENES_EDITAR');
+        Route::delete('employees/{employeeId}/medical-exams/{examId}', [ContractingController::class, 'deleteMedicalExam'])->whereNumber(['employeeId', 'examId'])->middleware('permission:CONTRATACION_EXAMENES_ELIMINAR');
         Route::get('employees/{employeeId}/documents', [ContractingController::class, 'listDocuments'])->whereNumber('employeeId')->middleware('permission:CONTRATACION_DOCUMENTOS_VER');
         Route::post('employees/{employeeId}/documents', [ContractingController::class, 'registerDocument'])->whereNumber('employeeId')->middleware('permission:CONTRATACION_DOCUMENTOS_SUBIR');
+        Route::post('employees/{employeeId}/documents/{documentId}', [ContractingController::class, 'updateDocument'])->whereNumber(['employeeId', 'documentId'])->middleware('permission:CONTRATACION_DOCUMENTOS_SUBIR');
+        Route::delete('employees/{employeeId}/documents/{documentId}', [ContractingController::class, 'deleteDocument'])->whereNumber(['employeeId', 'documentId'])->middleware('permission:CONTRATACION_DOCUMENTOS_ELIMINAR');
         Route::get('employees/{employeeId}/documents/{documentId}/file', [ContractingController::class, 'downloadDocument'])->whereNumber(['employeeId', 'documentId'])->middleware('permission:CONTRATACION_DOCUMENTOS_VER');
         Route::get('alerts', [ContractingController::class, 'listAlerts'])->middleware('permission:CONTRATACION_ALERTAS_VER');
     });

@@ -370,6 +370,40 @@ class ContractingService
         return $created;
     }
 
+    public function updateMedicalExam(int $employeeId, int $examId, int $userId, array $data, array $context): array
+    {
+        $before = $this->contracting->findMedicalExam($employeeId, $examId)
+            ?? throw new ApiException('Examen medico no encontrado.', 404);
+        $payload = $this->buildMedicalExamPayload($employeeId, $data);
+        $newFile = $payload['archivo_local'] ?? null;
+        unset($payload['archivo_local']);
+        if (! array_key_exists('archivo_url', $payload)) $payload['archivo_url'] = $before['ARCHIVO_URL'];
+
+        try {
+            $this->contracting->updateMedicalExam($employeeId, $examId, $payload);
+        } catch (Throwable $exception) {
+            $this->deleteMedicalExamFile($newFile);
+            throw $exception;
+        }
+
+        $updated = collect($this->contracting->listMedicalExams($employeeId))->first(
+            fn (array $item): bool => (int) ($item['id_examen_medico'] ?? 0) === $examId
+        ) ?? throw new ApiException('No fue posible consultar el examen actualizado.', 422);
+        $this->audit->record($userId, 'CONTRATACION', 'CONTRATACION_EXAMEN_ACTUALIZAR', 'EXAMEN_MEDICO_EMPLEADO', $examId, $before, $updated, $context);
+        return $updated;
+    }
+
+    public function deleteMedicalExam(int $employeeId, int $examId, int $userId, array $context): array
+    {
+        $before = $this->contracting->findMedicalExam($employeeId, $examId)
+            ?? throw new ApiException('Examen medico no encontrado.', 404);
+        if ($this->contracting->deleteMedicalExam($employeeId, $examId) !== 1) {
+            throw new ApiException('No fue posible eliminar el examen medico.', 422);
+        }
+        $this->audit->record($userId, 'CONTRATACION', 'CONTRATACION_EXAMEN_ELIMINAR', 'EXAMEN_MEDICO_EMPLEADO', $examId, $before, ['eliminado' => true], $context);
+        return ['id_examen_medico' => $examId, 'eliminado' => true];
+    }
+
     public function listDocuments(int $employeeId): array
     {
         return $this->contracting->listDocuments($employeeId);
@@ -400,6 +434,56 @@ class ContractingService
         ], $context);
 
         return $registered;
+    }
+
+    public function updateDocument(int $employeeId, int $documentId, int $userId, array $data, array $context): array
+    {
+        $before = $this->contracting->findDocument($employeeId, $documentId)
+            ?? throw new ApiException('Documento laboral no encontrado.', 404);
+        $payload = $this->buildEmployeeDocumentPayload($employeeId, $data);
+        $newFile = $payload['archivo_local'] ?? null;
+        unset($payload['archivo_local']);
+
+        if (! isset($payload['archivo_url'])) {
+            $payload['archivo_url'] = $before['ARCHIVO_URL'];
+            $payload['mime_type'] = $before['MIME_TYPE'];
+            $payload['peso_bytes'] = $before['PESO_BYTES'];
+        }
+
+        try {
+            $updatedCount = $this->contracting->updateDocument($employeeId, $documentId, $payload);
+        } catch (Throwable $exception) {
+            $this->deleteEmployeeDocumentFile($newFile);
+            throw $exception;
+        }
+
+        if ($updatedCount !== 1) {
+            $this->deleteEmployeeDocumentFile($newFile);
+            throw new ApiException('No fue posible actualizar el documento laboral.', 422);
+        }
+
+        $updated = collect($this->contracting->listDocuments($employeeId))->first(
+            fn (array $item): bool => (int) ($item['id_empleado_documento_laboral'] ?? $item['id_empleado_documento'] ?? 0) === $documentId
+        ) ?? throw new ApiException('No fue posible consultar el documento actualizado.', 422);
+
+        $this->audit->record($userId, 'CONTRATACION', 'CONTRATACION_DOCUMENTO_ACTUALIZAR', 'DOCUMENTO_LABORAL_EMPLEADO', $documentId, $before, $updated, $context);
+        if ($newFile && is_string($before['ARCHIVO_URL'] ?? null) && str_starts_with($before['ARCHIVO_URL'], 'private://')) {
+            $this->deleteEmployeeDocumentFile(substr($before['ARCHIVO_URL'], strlen('private://')));
+        }
+        return $updated;
+    }
+
+    public function deleteDocument(int $employeeId, int $documentId, int $userId, array $context): array
+    {
+        $before = $this->contracting->findDocument($employeeId, $documentId)
+            ?? throw new ApiException('Documento laboral no encontrado.', 404);
+
+        if ($this->contracting->deleteDocument($employeeId, $documentId) !== 1) {
+            throw new ApiException('No fue posible eliminar el documento laboral.', 422);
+        }
+
+        $this->audit->record($userId, 'CONTRATACION', 'CONTRATACION_DOCUMENTO_ELIMINAR', 'DOCUMENTO_LABORAL_EMPLEADO', $documentId, $before, ['eliminado' => true], $context);
+        return ['id_empleado_documento' => $documentId, 'eliminado' => true];
     }
 
     public function employeeDocumentFile(int $employeeId, int $documentId): array

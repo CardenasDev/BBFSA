@@ -29,7 +29,7 @@ La entidad funcional central del sistema es el empleado, pero esto no significa 
 
 ## 3. Problema que resuelve
 
-El negocio requiere un sistema administrativo que centralice la gestión de talento, nómina operativa y documentación laboral que acompaña el ciclo de la persona dentro de la organización. El sistema actual resuelve la necesidad de registrar aspirantes, aprobarlos para contratación, crear empleados, controlar documentación, manejar entregas, realizar seguimientos periódicos y cerrar procesos de retiro. Aunque el producto ya está en operación, la base funcional muestra áreas de madurez distinta: algunas áreas están consolidadas y otras aún dependen de catalogación, novedad o procedimientos no formalizados.
+El negocio requiere un sistema administrativo para gestionar el ciclo de vida de las personas vinculadas a Barro Blanco Farms, con foco en la entrada, contratación, permanencia, documentación y salida del empleado. El sistema actual resuelve la necesidad de registrar aspirantes, aprobarlos para contratación, crear empleados, controlar documentación, manejar entregas, realizar seguimientos periódicos y cerrar procesos de retiro. Aunque el producto ya está en operación, la base funcional muestra áreas de madurez distinta: algunas áreas están consolidadas y otras aún dependen de catalogación, novedad o procedimientos no formalizados.
 
 ## 4. Objetivos
 
@@ -48,6 +48,23 @@ El negocio requiere un sistema administrativo que centralice la gestión de tale
 - Definir de manera formal módulos de incapacidades, permisos, llamadas de atención y suspensiones como procesos propios.
 - Consolidar una estrategia de gobernanza documental uniforme y más segura.
 - Formalizar trazabilidad y metadatos de negocio más completos en áreas no centralizadas.
+
+### Pendientes originales del levantamiento RRHH (15)
+1. Lista completa de documentos requeridos para contratación.
+2. Tipos de contrato manejados por la empresa.
+3. Días de anticipación para notificación de vencimiento de contrato.
+4. Formatos oficiales de: contrato, llamados de atención, suspensión, carta de compromiso, solicitudes y retiro.
+5. Listado de dotaciones por cargo o área.
+6. Listado de herramientas por cargo o área.
+7. Campos exactos del Excel de incapacidades.
+8. Campos exactos del Excel de capacitaciones.
+9. Puntaje mínimo para aprobar capacitaciones.
+10. Reglas de negocio para generar carta de compromiso.
+11. Reglas para no renovación de contrato por bajo desempeño en capacitación.
+12. Flujo de aprobación para permisos y solicitudes económicas.
+13. Responsables de aprobar o rechazar solicitudes.
+14. Documentos obligatorios durante el retiro.
+15. Canales de notificación: sistema, correo, alerta interna y otro.
 
 ## 5. Alcance
 
@@ -68,19 +85,19 @@ Se demuestra alcance real en:
 - Novedades
 - Administración de parámetros y catálogos
 
-### Alcance no comprobado como módulo formal
-- Llamados de atención
-- Suspensiones
-- Solicitudes internas
-- Gestión de incapacidades como proceso independiente
-- Política documental centralizada y externa
+### Alcance con evidencia parcial y no consolidado como módulo formal
+- Llamados de atención: funcionalidad real dentro de novedades, pero no como módulo disciplinario independiente.
+- Suspensiones: funcionalidad real dentro de novedades y estado del empleado, pero no como proceso disciplinario completo.
+- Solicitudes internas: no hay módulo consolidado; tipos esperados incluyen adelantos de vacaciones, prima y sueldo.
+- Incapacidades: existe registro y seguimiento funcional, pero no evidencia de módulo independiente completo.
+- Política documental centralizada y externa: pendiente de definición formal.
 
 ## 6. Estado Brownfield
 
 El sistema es Brownfield porque:
 
-- Ya existe un contexto funcional operativoreal.
-- Fondo de negocio ya definido y parcialmente implementado.
+- Ya existe un contexto funcional operativo real.
+- El negocio ya está definido y parcialmente implementado.
 - La arquitectura actual está documentada en `architecture.md` y confirmada por código.
 - La funcionalidad no se está creando desde cero; se está reconstruyendo y formalizando a partir del AS-IS real.
 
@@ -101,7 +118,7 @@ El sistema es Brownfield porque:
 - Consulta sus entregas, tallas, capacitaciones, compromisos, novedades y perfil.
 - No puede modificar procesos críticos sin permisos adicionales.
 
-### 7.4 Usuario del sistema (generico)
+### 7.4 Usuario del sistema (genérico)
 - Se usa en autenticación y JWT como entidad base con roles, permisos y sesión.
 - Su acceso depende de permisos y del contexto del usuario autenticado.
 
@@ -126,8 +143,54 @@ La evidencia real del repositorio confirma los siguientes módulos con estado im
 | Notificaciones | IMPLEMENTADO | `NotificationController`, `/notifications` |
 | Retiro | IMPLEMENTADO | `RetirementController`, `/retirements` |
 | Novedades | IMPLEMENTADO | `NoveltyController`, rutas `/novelties` |
+| Autoservicio del empleado | PARCIAL | `my-tool-deliveries`, `dotations/my-sizes`, `dotations/my-deliveries`, `trainings/my/records` |
 
-### 8.2 Módulos parcialmente implementados
+### 8.2 Verificación AS-IS del autoservicio del empleado
+Existe un autoservicio funcional limitado, no un portal de empleado completo. La evidencia real muestra accesos específicos del empleado autenticado a:
+
+- Mis entregas de herramientas: `MyToolDeliveryController` y rutas `/api/my-tool-deliveries`
+- Mis tallas de dotación: `GET /api/dotations/my-sizes`, `POST /api/dotations/my-sizes`
+- Mis entregas de dotación: `GET /api/dotations/my-deliveries`
+- Mis registros de capacitación: `GET /api/trainings/my/records`
+
+Esto confirma acceso limitado a información y procesos propios, pero no un módulo de autoservicio completo para permisos, incapacidades, solicitudes internas o retiro autocontenido.
+
+### 8.3 Verificación AS-IS de novedades
+`NoveltyController` es una evidencia clara de que las novedades son un módulo real del sistema. No es solo un registro informal. Permite:
+
+- listar y consultar novedades
+- registrar general, permiso, llamado o suspensión
+- registrar incapacidad
+- actualizar estados y soportes
+- consultar seguimiento de incapacidad
+- exportar seguimiento
+
+La evidencia funcional sugiere que la novedad es el contenedor de eventos laborales más amplios, incluidos permisos, llamados, suspensiones e incapacidades. Por tanto, no se puede afirmar que esos subprocesos tengan un módulo independiente; sí existe un punto funcional común para administrarlos.
+
+### 8.4 Verificación AS-IS de notificaciones
+`NotificationController` confirma que la funcionalidad existe. El módulo permite:
+
+- consultar una lista de notificaciones del usuario autenticado,
+- consultar resumen del dashboard,
+- marcar como leídas o archivadas,
+- resolver una notificación para sus destinatarios,
+- filtrar por permisos del usuario.
+
+No obstante, el comportamiento de notificación está orientado a alertas operativas y dashboard del usuario, no a un motor documental completo de comunicaciones masivas o workflows de aprobación.
+
+### 8.5 Verificación AS-IS del retiro
+El retiro está implementado como proceso formal con múltiples etapas:
+
+- razones de retiro y tipos de documento,
+- creación del proceso de retiro,
+- control de actividades pendientes,
+- entrevista de retiro,
+- documentos de retiro,
+- finalización y cancelación.
+
+La evidencia real en `RetirementController` contradice la idea de que el retiro no existe o sea solo un cierre administrativo sin flujo. Es un proceso implementado y con trazabilidad funcional.
+
+### 8.6 Módulos parcialmente implementados
 
 | Módulo | Estado | Observación |
 |---|---|---|
@@ -136,16 +199,18 @@ La evidencia real del repositorio confirma los siguientes módulos con estado im
 | Documentación laboral | PARCIAL | Existente por procesos, pero sin política y estructura documental centralizada clara |
 | Trazabilidad operativa | PARCIAL | Existe auditoría, pero no está estandarizada transversalmente |
 
-### 8.3 Módulos no encontrados como funcionalidad formal
+### 8.7 Módulos con funcionalidad real pero no como proceso autónomo
 
-| Módulo | Estado |
-|---|---|
-| Llamados de atención | NO ENCONTRADO |
-| Suspensiones | NO ENCONTRADO |
-| Solicitudes internas | NO ENCONTRADO |
-| Flujo independiente de incapacidades | NO ENCONTRADO como módulo completo |
+| Módulo | Estado | AS-IS | TO-BE |
+|---|---|---|---|
+| Llamados de atención | PARCIAL | Gestionado dentro de `Novedades` y relacionado con eventos laborales/disciplinarios. | Formalizar flujo disciplinario, responsable, evidencia y seguimiento. |
+| Suspensiones | PARCIAL | Gestionado dentro de `Novedades` y relacionado con estado del empleado. | Formalizar inicio, finalización, duración, motivo, soporte, apelación y plazo. |
+| Solicitudes internas | PLANIFICADO | No existe módulo técnico consolidado; solo se documentan tipos del levantamiento original: adelanto de vacaciones, prima y sueldo. | Definir tipo, solicitud, estado, respuesta, trazabilidad y responsables. |
+| Incapacidad completa | PARCIAL | Existe registro, fechas, diagnóstico, soporte y seguimiento funcional dentro de novedades. | Separar proceso independiente con historial, pago, documentación y cierre. |
 
-### 8.4 Modelo funcional central
+> Importante: `Empleado.estado = INCAPACITADO` o `SUSPENDIDO` no equivale automáticamente a un módulo disciplinario o médico completo; evidencian un estado del empleado, no la existencia total del proceso de negocio.
+
+### 8.8 Modelo funcional central
 La evidencia confirma que el empleado es la entidad funcional central del sistema. No porque el prompt lo diga, sino porque el código, los permisos y los módulos están estructurados alrededor de la persona como eje de dotación, herramientas, capacitación, contratación, reintegro de documentos, roles, novedades y retiro.
 
 ## 9. Producto objetivo TO-BE
@@ -160,11 +225,67 @@ El producto objetivo es consolidar la gestión de RRHH operativa como un sistema
 - Unificar o documentar claramente dónde termina la lógica de negocio en MySQL y dónde continúa en Laravel.
 - Mejorar la trazabilidad para decisiones de aprobación, rechazo, atención y retiros laborales.
 
-### 9.3 Requerimientos pendientes de decisión
-- Definir modelo de solicitud interna y aprobación.
-- Definir si las incapacidades son procesos con seguimiento médico, fechas, documentación y acciones de retorno.
-- Definir flujo operativo para suspensiones y llamados de atención.
-- Definir explícitamente políticas de notificaciones masivas o personalizadas.
+### 9.3 TO-BE funcional del módulo de incapacidades
+- Definir incapacidad como proceso de negocio independiente, con identificación del empleado, diagnóstico, fechas, entidad responsable y documentos soporte.
+- Incluir flujo de alta, seguimiento de días, pago, revisión y cierre del caso.
+- Determinar obligaciones de notificación a RRHH y responsables de gestión.
+- Definir estados de incapacidad y políticas de retorno a labores.
+- Registrar evidencia documental y observaciones para auditoría y trazabilidad.
+
+### 9.4 TO-BE funcional del módulo de permisos
+- Establecer solicitud, aprobación y registro de permisos o licencias permitidos por tipo.
+- Definir documento requerido, fechas, duración y responsable de aprobación.
+- Diferenciar permiso y ausencia, con validación de solapamiento y cobertura funcional.
+- Registrar impactos operativos y la obligación de informar a las áreas afectadas.
+
+### 9.5 TO-BE funcional del módulo de llamados de atención
+- Crear un registro disciplinario con responsable, motivo, evidencia y nivel de gravedad.
+- Definir flujo de aviso, revisión y cierre del llamado de atención.
+- Incluir evidencia documental y fecha de seguimiento.
+- Vincular el evento con la persona, el proceso y el historial laboral.
+
+### 9.6 TO-BE funcional del módulo de suspensiones
+- Definir suspensión como evento disciplinario o administrativo con fechas, causa y responsable.
+- Establecer estados de activa, levantada, vencida o anulada.
+- Registrar impacto sobre salario, actividades y permisos vinculados.
+- Definir reingreso o cierre del caso con revisión.
+- Mantener el plazo de apelación de 5 días siguientes como requisito del levantamiento original, pendiente de validación formal.
+
+### 9.7 TO-BE funcional del módulo de solicitudes internas
+- Definir una solicitud formal con causa, solicitante, responsable, aprobación y resolución.
+- Tipos esperados: adelanto de vacaciones, adelanto de prima y adelanto de sueldo.
+- Especificar flujo completo: apertura, revisión, aprobación/rechazo, cierre y comunicación.
+- Registrar carta de solicitud, carta de respuesta, fecha de respuesta, responsable y trazabilidad.
+- Clasificar solicitudes por tipo y prioridad.
+
+### 9.8 TO-BE funcional del módulo de notificaciones
+- Consolidar alertas por criticidad, vencimiento, revisión y cumplimiento de procesos.
+- Definir destinatarios, lectura, resolución y archivado de notificaciones.
+- Mantener los eventos levantados originalmente: vencimiento próximo de contratos, evaluaciones pendientes, capacitación no aprobada, plazo de apelación de suspensión, aumento salarial (si se valida). 
+- Separar el concepto de notificación de novedad, con reglas de generación y priorización.
+- Mantener pendientes los canales: sistema, correo, alerta interna y otro, sin inventar un motor más amplio no aprobado.
+
+### 9.9 TO-BE funcional del módulo de retiro
+- Completar el flujo de retiro con actividades, entrevista, documentos y cierre formal.
+- Definir estados de: en proceso, pendiente, finalizado, cancelado.
+- Mantener explícitamente: fecha de retiro, motivo, carta de renuncia cuando aplique, aceptación, formato de entrega de documentos, certificado laboral, últimas tres planillas de seguridad social, documentos entregados y entrevista de retiro.
+- Permitir revisión documental, actas y certificación.
+- Mantener historial de decisiones, observaciones y cierre legal o administrativo.
+
+### 9.10 Requerimientos propuestos / pendientes de validación
+- PROPUESTA / PENDIENTE DE VALIDACIÓN: evaluar si el proceso de incapacidad debe incluir seguimiento de pago.
+- PROPUESTA / PENDIENTE DE VALIDACIÓN: evaluar si la suspensión debe impactar el salario o la remuneración, según la normativa y el caso.
+- PROPUESTA / PENDIENTE DE VALIDACIÓN: definir si las solicitudes internas requieren prioridad operativa o jerárquica.
+- PROPUESTA / PENDIENTE DE VALIDACIÓN: definir la cobertura funcional por área, cargo o usuario para solicitudes, notificaciones y novedades.
+- PROPUESTA / PENDIENTE DE VALIDACIÓN: evaluar comunicaciones externas o masivas, si el negocio las requiere y si se aprueba su alcance.
+- PROPUESTA / PENDIENTE DE VALIDACIÓN: evaluar reglas para notificaciones automatizadas más allá del sistema actual.
+- PENDIENTE DE DEFINICIÓN: puntaje mínimo de aprobación para capacitación, reglas exactas para carta de compromiso y condiciones de no renovación por bajo desempeño.
+
+### 9.11 Requerimientos de capacitación que deben conservarse
+- Capacitación, participantes, asistencia, evaluación, calificación, resultado y notificación de evaluación pendiente.
+- Resultado no aprobado, carta de compromiso y seguimiento del compromiso.
+- El puntaje mínimo, reglas exactas para carta de compromiso, reglas de no renovación contractual y campos del Excel existente permanecen como pendientes de definición.
+- La decisión sobre importar, reemplazar o mantener el Excel de capacitaciones queda pendiente de validación.
 
 ## 10. Módulos funcionales
 
@@ -185,9 +306,9 @@ El producto objetivo es consolidar la gestión de RRHH operativa como un sistema
 | Permisos / licencias | PARCIAL | Bajo novedades y permisos de acceso | Definir estados y flujo explicito |
 | Notificaciones | IMPLEMENTADO | `/api/notifications` | Mejorar personalización y cumplimiento |
 | Retiro | IMPLEMENTADO | `/api/retirements` | Definir cierre documental más integral |
-| Llamados de atención | NO ENCONTRADO | No hay módulo ni rutas dedicadas | PLANIFICADO / pendiente |
-| Suspensiones | NO ENCONTRADO | No hay evidencia funcional | PLANIFICADO / pendiente |
-| Solicitudes internas | NO ENCONTRADO | No hay evidencia de módulo | PENDIENTE DE DEFINICIÓN |
+| Llamados de atención | PARCIAL | Gestionado dentro de `Novedades` y eventos de HR | Formalizar flujo disciplinario, responsable y evidencia |
+| Suspensiones | PARCIAL | Gestionado dentro de `Novedades` y estado laboral del empleado | Definir duración, motivo, apelación y cierre |
+| Solicitudes internas | PLANIFICADO | No existe módulo técnico consolidado; solo se documentan tipos del levantamiento original: adelanto de vacaciones, prima y sueldo | Definir flujo, responsables, respuesta y trazabilidad |
 
 ## 11. Flujos principales
 
@@ -242,12 +363,15 @@ El producto objetivo es consolidar la gestión de RRHH operativa como un sistema
 - Historial y devoluciones
 
 ### 11.8 Capacitación
-- Tareas y sesiones
-- Participantes
-- Asistencia
-- Evaluación y resultados
-- Cartas de compromiso
-- Seguimiento de compromisos y alertas
+- Tareas y sesiones de capacitación
+- Participantes y control de asistencia
+- Evaluación y calificación
+- Resultado aprobado o no aprobado
+- Notificación de evaluación pendiente
+- Generación de carta de compromiso cuando aplica
+- Seguimiento del compromiso y cierre del caso
+- Importación o mantenimiento de la matriz Excel existente según definición del negocio
+- Pendiente de definición: puntaje mínimo, reglas de carta de compromiso, no renovación por bajo desempeño y formato exacto del Excel
 
 ## 12. Estados y transiciones
 
@@ -317,9 +441,18 @@ Los tipos de contrato se manejan por catálogo (`bbf_tipos_contrato`) y por `tip
 - Evidencias de participación / asistencia
 
 ### 13.6 Retiro
-- Certificado o documento de retiro
-- Documentos asociados
-- Entrevista y cierre de procesos
+- Fecha de retiro
+- Motivo de retiro
+- Carta de renuncia cuando aplique
+- Aceptación de renuncia
+- Formato de entrega de documentos
+- Certificado laboral
+- Últimas tres planillas de seguridad social
+- Documentos entregados
+- Entrevista de retiro
+- Registro histórico del proceso y cierre administrativo
+
+> El retiro ya está implementado como flujo, pero aún deben validarse detalles de formato, documentos obligatorios y políticas de cierre según el levantamiento original.
 
 > El almacenamiento físico se documenta en `architecture.md` y no se replica aquí; el PRD se centra en el tipo de documento que el proceso exige.
 
@@ -352,9 +485,9 @@ Los tipos de contrato se manejan por catálogo (`bbf_tipos_contrato`) y por `tip
 | RF-RET-001 | Retiro laboral | Proceso de retiro, actividades y documentos | RRHH / Admin | IMPLEMENTADO |
 | RF-INC-001 | Incapacidades | Seguimiento de inasistencia por enfermedad | RRHH / Admin | PARCIAL |
 | RF-PER-001 | Permisos y licencias | Solicitud y seguimiento de permisos | RRHH / Empleado | PARCIAL |
-| RF-LLA-001 | Llamados de atención | Gestión disciplinaria | RRHH / Admin | PLANIFICADO |
-| RF-SUS-001 | Suspensiones | Control disciplinario y seguimiento | RRHH / Admin | PLANIFICADO |
-| RF-SOL-001 | Solicitudes internas | Trámite interno de solicitudes y aprobación | Usuario / RRHH | PENDIENTE DE DEFINICIÓN |
+| RF-LLA-001 | Llamados de atención | Gestión disciplinaria | RRHH / Admin | PARCIAL |
+| RF-SUS-001 | Suspensiones | Control disciplinario y seguimiento | RRHH / Admin | PARCIAL |
+| RF-SOL-001 | Solicitudes internas | Trámite interno de solicitudes y aprobación | Usuario / RRHH | PLANIFICADO |
 
 ### 14.2 Trazabilidad sugerida
 - Módulo: aspirantes, empleados, contratación, dotación, herramientas, capacitaciones, retirados, notificaciones.
@@ -390,7 +523,7 @@ Los tipos de contrato se manejan por catálogo (`bbf_tipos_contrato`) y por `tip
 
 El sistema usa documentación funcional asociada a los procesos principales:
 
-- Aspirantes: documentos de vida, identidad y soporte de contratación.
+- Aspirantes: hoja de vida, identidad y soporte de contratación.
 - Empleados: horas, seguridad social, exámenes médicos, foto, documentos laborales.
 - Contratación: contrato, plantillas PDF y firmas en documento impreso.
 - Dotación: evidencia de entrega y historial de detalle.
@@ -451,13 +584,19 @@ No se observa una política formal de retención, clasificación, digitalizació
 
 ## 20. Fuera de alcance actual
 
-### FUERA DE ALCANCE ACTUAL
-- Llamados de atención formalizado como módulo independiente.
-- Suspensiones disciplinarias con flujo y documentos propios.
-- Solicitudes internas como flujo administrativo con aprobación y trazabilidad documental específica.
-- Política de almacenamiento documental externa o cloud.
-- Integración con sistemas externos no documentados en repositorio.
+### A. NO IMPLEMENTADO COMPLETAMENTE EN AS-IS / PENDIENTE DE EVOLUCIÓN
+- Llamados de atención como módulo disciplinario formal y autónomo.
+- Suspensiones disciplinarias con flujo, documentos y apelación definidos.
+- Solicitudes internas como flujo administrativo formal con aprobación y trazabilidad documental específica.
+- Incapacidades como módulo formal y autónomo independiente de Novedades.
+
+### B. FUERA DE ALCANCE DEL PRODUCTO ACTUAL
+- Política de almacenamiento documental externa o cloud no aprobada.
+- Integración con sistemas externos no definidos en el repositorio.
 - Microservicios o arquitectura distribuida.
+- Cambios de infraestructura no contemplados como requerimiento funcional del producto.
+
+> No se incluyen dentro de fuera de alcance elementos que formen parte del TO-BE del producto; solo se catalogan los elementos que no cuentan con aprobación funcional ni alcance definido para el producto actual.
 
 ## 21. Riesgos funcionales
 
@@ -477,7 +616,7 @@ No se observa una política formal de retención, clasificación, digitalizació
 
 ## 23. Pendientes de definición
 
-- Modelo de incapacidades con flujo, documentos, certifcados y estados.
+- Modelo de incapacidades con flujo, documentos, certificados y estados.
 - Permisos y licencias con estado, aprobación y calendarización.
 - Llamados de atención disciplinarios y suspensión formal.
 - Solicitudes internas y su flujo de aprobación.
@@ -545,9 +684,9 @@ La ruta correcta para la evolución del producto no es iniciar de cero. Debe ser
 | Notificaciones | IMPLEMENTADO | Código/API | Personalización y alertas |
 | Incapacidades | PARCIAL | Novedades y seguimiento | Formalizar módulo independiente |
 | Permisos / licencias | PARCIAL | Novedades y permisos de acceso | Definir flujo y documentación |
-| Llamados de atención | PLANIFICADO / NO ENCONTRADO | Requerimientos | Pendiente de validación |
-| Suspensiones | PLANIFICADO / NO ENCONTRADO | Requerimientos | Pendiente de validación |
-| Solicitudes internas | PENDIENTE DE DEFINICIÓN | Requerimientos | Definición funcional faltante |
+| Llamados de atención | PARCIAL | `Novedades` + estado del empleado | Formalizar flujo disciplinario |
+| Suspensiones | PARCIAL | `Novedades` + estado del empleado | Definir plazo de apelación y cierre |
+| Solicitudes internas | PLANIFICADO | Tipos esperados del levantamiento original, pero sin módulo técnico evidenciado | Definir aprobación y responsables |
 | Retiro laboral | IMPLEMENTADO | Código/API | Mejorar cierre documental |
 
 ## 29. Resumen de cierre para BMAD

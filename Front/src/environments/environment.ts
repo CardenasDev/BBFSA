@@ -1,5 +1,5 @@
 export const environment = {
- production: false,
-  apiUrl: 'http://127.0.0.1:8000/api',
-  backendUrl: 'http://127.0.0.1:8000',
+  production: false,
+  apiUrl: 'https://barroblancofarms.com.co/SA/Back/public/index.php/api',
+  backendUrl: 'https://barroblancofarms.com.co/SA/Back/public',
 };

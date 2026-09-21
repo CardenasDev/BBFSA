@@ -1,5 +1,5 @@
 export const environment = {
   production: true,
-  apiUrl: 'https://cardenas.com.co/Demos/SA/Back/public/index.php/api',
-  backendUrl: 'https://cardenas.com.co/Demos/SA/Back/public',
+  apiUrl: 'https://barroblancofarms.com.co/SA/Back/public/index.php/api',
+  backendUrl: 'https://barroblancofarms.com.co/SA/Back/public',
 };

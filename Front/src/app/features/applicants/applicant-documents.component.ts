@@ -1,7 +1,7 @@
 import { NgClass } from '@angular/common';
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { finalize, forkJoin } from 'rxjs';
 import { ApplicantDetail, ApplicantDocument, ApplicantDocumentOrigin, ApplicantDocumentStatus, LaborDocumentType, RegisterApplicantDocumentRequest } from '../../core/models/api.models';
 import { ApplicantService } from '../../core/services/applicant.service';
@@ -33,6 +33,7 @@ interface DocumentOriginOption {
 export class ApplicantDocumentsComponent implements OnInit {
   readonly auth = inject(AuthService);
   private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
   private readonly service = inject(ApplicantService);
   private readonly catalogs = inject(CatalogService);
   readonly applicant = signal<ApplicantDetail | null>(null);
@@ -74,6 +75,13 @@ export class ApplicantDocumentsComponent implements OnInit {
       this.loadingLaborDocumentTypes.set(false);
     })).subscribe({
       next: ({ applicant, documents, laborDocumentTypes }) => {
+        if (applicant.id_empleado_generado) {
+          void this.router.navigate(
+            ['/admin/contracting/employees', applicant.id_empleado_generado, 'documents'],
+            { replaceUrl: true },
+          );
+          return;
+        }
         this.applicant.set(applicant);
         this.documents.set(documents ?? []);
         this.laborDocumentTypes.set(laborDocumentTypes ?? []);

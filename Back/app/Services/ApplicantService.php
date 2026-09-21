@@ -119,6 +119,7 @@ class ApplicantService
 
     public function registerDocument(int $applicantId, array $data, int $userId, array $context): array
     {
+        $this->ensureApplicantDocumentsAreEditable($applicantId);
         $normalized = $this->normalizeData($data);
         $payload = $this->buildDocumentPayload($applicantId, $normalized);
         $storedPath = $payload['archivo_ruta'] ?? null;
@@ -150,6 +151,7 @@ class ApplicantService
 
     public function updateDocument(int $applicantId, int $documentId, array $data, int $userId, array $context): array
     {
+        $this->ensureApplicantDocumentsAreEditable($applicantId);
         $current = $this->applicants->getDocument($applicantId, $documentId);
         if (! $current) {
             throw new ApiException('El documento del aspirante no existe.', 404);
@@ -215,6 +217,17 @@ class ApplicantService
 
             return is_string($value) ? $this->blankToNull($value) : $value;
         }, $data);
+    }
+
+    private function ensureApplicantDocumentsAreEditable(int $applicantId): void
+    {
+        $applicant = $this->getApplicant($applicantId);
+        if (! empty($applicant['id_empleado_generado'] ?? null)) {
+            throw new ApiException(
+                'El aspirante ya fue convertido. Administra sus documentos desde la ficha del empleado.',
+                409,
+            );
+        }
     }
 
     private function blankToNull(?string $value): ?string

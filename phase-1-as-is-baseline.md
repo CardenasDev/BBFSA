@@ -106,19 +106,24 @@ No se identifican GAPs abiertos reales de Fase 1 que requieran cierre funcional 
 - Firma documental de contrato vs firma digital: aclarado y cerrado como alcance real.
 - Notificaciones internas del sistema: validado dentro del alcance AS-IS.
 
-### Reclasificados como TO-BE
+### Reclasificados como FUERA DEL ALCANCE DE FASE 1 / POSIBLE EVOLUCIÓN FUTURA
 - Flexibilización de obligatoriedad documental en retiros.
-- Mayor cobertura de canales de notificación externos.
-- Posibles mejoras de personalización y reglas de disparo si son requeridas en una evolución posterior.
+- Correo electrónico.
+- SMS.
+- WhatsApp.
+- Push.
+- Otros canales externos de notificación.
+- Personalización o expansión de disparadores de notificaciones.
+- Automatismos operativos adicionales no aprobados.
 
 ## 6. Oportunidades futuras
 
-Las oportunidades futuras se registran como TO-BE y no como fallas del AS-IS de Fase 1.
+Las posibilidades futuras se registran como FUERA DEL ALCANCE DE FASE 1 / POSIBLE EVOLUCIÓN FUTURA y no como fallas del AS-IS de Fase 1 ni como requisitos ya aprobados.
 
-- flexibilizar la obligatoriedad documental para ciertos retiros;
-- ampliar la cobertura de notificaciones a canales externos;
-- ampliar el catálogo de disparadores de notificaciones si se define un negocio más completo;
-- revisar la necesidad de automatismos más exigentes en estados y alertas, solo si existe un requerimiento formal posterior.
+- flexibilización de la obligatoriedad documental para ciertos retiros;
+- canales externos de notificación no implementados: correo electrónico, SMS, WhatsApp, push y otros canales externos;
+- personalización o ampliación del catálogo de disparadores de notificaciones;
+- automatismos operativos adicionales no aprobados.
 
 No se diseñan soluciones en este documento.
 

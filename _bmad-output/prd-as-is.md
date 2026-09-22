@@ -17,7 +17,11 @@ Este documento describe únicamente el estado funcional verificado del sistema a
 
 No se incluyen requisitos futuros, recomendaciones, TO-BE ni funcionalidad inferida.
 
-## 2. Modelo real de seguridad y autorización
+## 2. Propósito funcional real del producto
+
+BBF SisAdmin administra el ciclo operativo del empleado dentro del alcance actual del proyecto: ingreso y contratación, estado laboral, dotación, herramientas, capacitaciones, novedades, notificaciones y retiro. El sistema soporta la gestión documental y operativa asociada a esas etapas, pero no incorpora automatismos no evidenciados ni módulos funcionales que no formen parte del alcance actual.
+
+## 3. Modelo real de seguridad y autorización
 
 ### 2.1 Entidad de seguridad real
 
@@ -124,6 +128,37 @@ Estos conceptos pueden aparecer como funcionalidades, pero no cuentan con un mó
 - nómina operativa como módulo funcional implementado;
 - integración externa no documentada.
 
+### 3.3 Flujo funcional principal AS-IS
+
+La evidencia disponible permite describir el flujo funcional principal del producto como un recorrido operativo real y acotado:
+
+Aspirante → Contratación → Empleado → Gestión laboral → Retiro
+
+Dentro de la gestión laboral del empleado se verifican, con evidencia real, las siguientes capacidades:
+
+- dotación;
+- herramientas y devoluciones;
+- capacitación;
+- novedades y seguimiento;
+- notificaciones operativas;
+- cambios de estado laboral y cierre de proceso de retiro.
+
+Este flujo es funcionalmente real, pero no implica automatización completa ni cambios de estado no autorizados. La operación de cambio de estado del empleado se presenta como una acción explícita del sistema, separada del registro del hecho que originó la situación.
+
+### 3.4 Relaciones funcionales confirmadas
+
+Las relaciones más claras verificadas en el sistema actual son:
+
+- Aspirante → Empleado, a partir del proceso de contratación.
+- Empleado → Contratación, como registro documental y seguimiento laboral.
+- Empleado → Dotación, por gestión de tallas, entregas y entregas de dotación.
+- Empleado → Herramientas, por entrega, uso y devolución.
+- Empleado → Capacitación, por inscripción, seguimiento y registro de cumplimiento.
+- Empleado → Novedades, por permisos, llamados de atención, suspensiones e incapacidades.
+- Empleado → Retiro, por gestión del proceso, cierre y documentación asociada.
+
+Estas relaciones son funcionales y observables; no deben confundirse con automatizaciones no evidenciadas ni procesos no implementados.
+
 ## 4. Flujos y capacidades verificadas
 
 ### 4.1 Autenticación y sesión
@@ -208,8 +243,10 @@ Capacidades reales:
 - listado de plantillas de contrato;
 - consulta de datos de generación de contrato;
 - creación y actualización de contrato;
-- firma de contrato;
+- firma de contrato como registro documental del documento firmado;
 - gestión de documentos, seguridad social y exámenes médicos.
+
+La firma del contrato en el sistema actual se soporta como carga o asociación del contrato firmado, junto con la ruta/URL del archivo y metadatos del documento. No existe evidencia de firma digital certificada, validación criptográfica ni e-signature real dentro del alcance implementado.
 
 ### 4.6 Dotación
 
@@ -290,7 +327,10 @@ Esto demuestra que:
 - existe funcionalidad real de novedad general;
 - existe funcionalidad real para permisos, llamados de atención y suspensiones dentro de `Novedades`;
 - existe funcionalidad real de incapacidad dentro de `Novedades`;
-- no existe un módulo independiente de llamados de atención, suspensiones o incapacidades como entidad separada.
+- no existe un módulo independiente de llamados de atención, suspensiones o incapacidades como entidad separada;
+- el registro de una novedad o incapacidad no modifica automáticamente el estado laboral del empleado; el cambio de estado se ejecuta como una operación independiente y autorizada.
+
+En el alcance actual, un empleado puede quedar con un estado como `ACTIVO`, `RETIRADO`, `SUSPENDIDO`, `INCAPACITADO` o `EN_PROCESO_RETIRO`, pero esa evolución de estado no deriva automáticamente del alta de la novedad ni de la incapacidad; la acción de cambio de estado es separada del registro del evento.
 
 ### 4.10 Notificaciones
 
@@ -306,6 +346,8 @@ Capacidades reales:
 - `PATCH /api/notifications/{id}/read`
 - `PATCH /api/notifications/{id}/archive`
 - `PATCH /api/notifications/{id}/resolve`
+
+La consulta y gestión de notificaciones está implementada en el sistema actual. Sin embargo, el inventario completo de eventos o disparadores de negocio que originan cada notificación no queda completamente evidenciado en la revisión AS-IS; por tanto, la solución se describe como gestión funcional real de notificaciones y no como un catálogo completo de desencadenantes.
 
 ### 4.11 Retiro
 
@@ -326,6 +368,8 @@ Capacidades reales:
 - `POST /api/retirements/{id}/finalize`
 - `POST /api/retirements/{id}/cancel`
 
+El proceso de retiro existe como flujo funcional real de cierre del empleado, pero la finalización del retiro no se presenta como un cambio automático de estado laboral del empleado. La actualización del estado del empleado sigue siendo una operación separada y explícita, coherente con la lógica de estados validada en el sistema.
+
 ## 5. Reglas de negocio y estados verificables
 
 ### 5.1 Estados de empleado
@@ -342,7 +386,7 @@ Estados presentes en la validación real:
 - `INCAPACITADO`
 - `EN_PROCESO_RETIRO`
 
-Estos estados existen, pero no equivalen automáticamente a un módulo disciplinario completo ni a una política de retiro totalmente separada. La evidencia técnica es la validación del estado del empleado y el uso del mismo en el flujo de novedades.
+Estos estados existen como estados laborales reales del empleado. La evidencia confirma que el cambio de estado es una operación independiente y no se dispara automáticamente al registrar una novedad o una incapacidad. El sistema admite que el usuario con el permiso requerido modifique el estado del empleado de forma explícita, según el procedimiento del flujo del módulo correspondiente.
 
 ### 5.2 Tipo de novedad
 
@@ -485,8 +529,14 @@ Ejemplos de perfiles funcionales observados por permisos reales, no como roles e
 
 Estos perfiles se derivan de permisos reales del sistema y no de nombres de rol fijos obligatorios.
 
-## 10. Conclusión AS-IS
+## 10. Límites del alcance AS-IS
+
+El sistema actual no incorpora, en la versión evidenciada, una nómina operativa ni una integración externa formal como parte del alcance funcional implementado. Estos conceptos quedan fuera del alcance AS-IS documentado y no deben describirse como capacidades operativas actuales del producto.
+
+## 11. Conclusión AS-IS
 
 BBF SisAdmin en su estado actual implementa un conjunto real de funcionalidad de RRHH y administración interna. La evidencia técnica confirma módulos de autenticación, usuarios, roles, permisos, aspirantes, empleados, contratación, dotación, herramientas, devoluciones, capacitación, novedades, notificaciones y retiros.
 
 La distinción clave es que varios subprocesos no existen como módulos independientes. En cambio, aparecen como funcionalidades ejecutables dentro del módulo de Novedades o como capacidades específicas del empleado. Esto incluye permisos, llamados de atención, suspensiones e incapacidades. La lógica real del sistema se demuestra por rutas, middleware, controllers, repositories, requests y tablas/Stored Procedures; por ese motivo, el documento AS-IS debe describir la funcionalidad efectivamente implementada y no extrapolarla a módulos no comprobados.
+
+La versión actual del producto reconoce un modelo operativo basado en permisos, estados laborales y gestión documental real, sin convertir comportamientos manuales o procesos de decisión en automatizaciones no confirmadas. La firma de contrato queda definida como documentación de contrato asociado y firmado, la gestión de notificaciones se soporta funcionalmente con el alcance verificado, y el retiro se entiende como una operación de cierre con cambio de estado separado y explícito.

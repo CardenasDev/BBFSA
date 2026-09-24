@@ -10,6 +10,7 @@ import {
   TrainingAlert,
   TrainingCommitment,
   TrainingEvaluation,
+  TrainingEvidence,
   TrainingImportResult,
   TrainingParticipant,
   TrainingSession,
@@ -179,6 +180,24 @@ export class TrainingService {
     form.append('archivo', file);
     return this.http
       .post<ApiResponse<TrainingImportResult>>(`${this.url}/sessions/${sessionId}/import`, form)
+      .pipe(map((r) => r.data));
+  }
+  evidences(sessionId: number): Observable<TrainingEvidence[]> {
+    return this.http
+      .get<ApiResponse<TrainingEvidence[]>>(`${this.url}/sessions/${sessionId}/evidences`)
+      .pipe(map((r) => r.data));
+  }
+  uploadEvidence(sessionId: number, file: File, tipoEvidencia = 'OTRA'): Observable<TrainingEvidence> {
+    const form = new FormData();
+    form.append('archivo', file);
+    form.append('tipo_evidencia', tipoEvidencia);
+    return this.http
+      .post<ApiResponse<TrainingEvidence>>(`${this.url}/sessions/${sessionId}/evidences`, form)
+      .pipe(map((r) => r.data));
+  }
+  deleteEvidence(sessionId: number, evidenceId: number): Observable<unknown> {
+    return this.http
+      .delete<ApiResponse<unknown>>(`${this.url}/sessions/${sessionId}/evidences/${evidenceId}`)
       .pipe(map((r) => r.data));
   }
 }

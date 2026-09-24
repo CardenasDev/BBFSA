@@ -143,6 +143,20 @@ export interface TrainingCommitment {
   lugar?: string | null;
   creado_por?: string | null;
 }
+export interface TrainingEvidence {
+  id_capacitacion_evidencia: number;
+  id_capacitacion_sesion?: number | null;
+  tipo_evidencia?: 'ASISTENCIA' | 'CONFIRMACION' | 'EVALUACION' | 'FIRMA' | 'COMPROMISO' | 'OTRA';
+  nombre_archivo?: string | null;
+  nombre_original?: string | null;
+  archivo_url?: string | null;
+  archivo_ruta?: string | null;
+  archivo_url_publica?: string | null;
+  mime_type?: string | null;
+  peso_bytes?: number | null;
+  id_cargado_por?: number | null;
+  created_at?: string | null;
+}
 export interface TrainingImportResult {
   importacion?: {
     estado?: string;

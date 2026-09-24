@@ -10,6 +10,7 @@ use App\Http\Requests\SaveTrainingEvaluationRequest;
 use App\Http\Requests\SaveTrainingRequest;
 use App\Http\Requests\SaveTrainingResultRequest;
 use App\Http\Requests\SaveTrainingTaskRequest;
+use App\Http\Requests\StoreTrainingEvidenceRequest;
 use App\Http\Requests\UpdateTrainingCommitmentRequest;
 use App\Services\TrainingService;
 use Dedoc\Scramble\Attributes\Group;
@@ -179,5 +180,23 @@ class TrainingController extends ApiController
     public function import(ImportTrainingMatrixRequest $request, int $sessionId): JsonResponse
     {
         return $this->success($this->training->importMatrix($sessionId, $request->file('archivo'), $this->actorId($request), $this->context($request)), 'Archivo procesado correctamente');
+    }
+
+    /** Listar anexos digitales asociados a una sesion. */
+    public function evidences(int $sessionId): JsonResponse
+    {
+        return $this->success($this->training->evidences($sessionId), 'Evidencias consultadas correctamente');
+    }
+
+    /** Guardar un anexo de la sesion. */
+    public function addEvidence(StoreTrainingEvidenceRequest $request, int $sessionId): JsonResponse
+    {
+        return $this->success($this->training->addEvidence($sessionId, $request->validated() + ['archivo' => $request->file('archivo')], $this->actorId($request), $this->context($request)), 'Evidencia registrada correctamente', 201);
+    }
+
+    /** Eliminar un anexo digital de la sesion. */
+    public function deleteEvidence(int $sessionId, int $evidenceId): JsonResponse
+    {
+        return $this->success($this->training->deleteEvidence($sessionId, $evidenceId), 'Evidencia eliminada correctamente');
     }
 }

@@ -199,6 +199,65 @@ class TrainingService
         }
     }
 
+    public function evidences(int $sessionId): array
+    {
+        $this->session($sessionId);
+
+        return $this->withEvidenceUrls($this->repository->sessionEvidences($sessionId));
+    }
+
+    public function addEvidence(int $sessionId, array $data, int $actor, array $context): array
+    {
+        $this->session($sessionId);
+        $file = $data['archivo'] ?? null;
+        if (! $file instanceof UploadedFile) {
+            throw new ApiException('Debe adjuntar un archivo válido.', 422);
+        }
+        $meta = $this->storeEvidenceFile($file);
+        $payload = [
+            'tipo_evidencia' => strtoupper((string) ($data['tipo_evidencia'] ?? 'OTRA')),
+            'nombre_archivo' => $meta['nombre_archivo'],
+            'nombre_original' => $meta['nombre_original'],
+            'archivo_ruta' => $meta['archivo_ruta'],
+            'archivo_url' => $meta['archivo_url'],
+            'mime_type' => $meta['mime_type'],
+            'peso_bytes' => $meta['peso_bytes'],
+            'id_capacitacion_participante' => $data['id_capacitacion_participante'] ?? null,
+            'id_capacitacion_compromiso' => $data['id_capacitacion_compromiso'] ?? null,
+        ];
+
+        try {
+            $result = $this->repository->createEvidence($sessionId, $payload, $actor);
+            if (! $result) {
+                throw new ApiException('No fue posible registrar la evidencia.', 422);
+            }
+        } catch (Throwable $exception) {
+            File::delete(public_path($meta['archivo_ruta']));
+            throw $exception;
+        }
+
+        $this->audit->record($actor, 'CAPACITACIONES', 'EVIDENCIA_AGREGAR', 'CAPACITACION_SESION', $sessionId, null, $result, $context);
+
+        return $this->withEvidenceUrls([$result])[0];
+    }
+
+    public function deleteEvidence(int $sessionId, int $evidenceId): array
+    {
+        $record = $this->repository->evidence($sessionId, $evidenceId);
+        if (! $record) {
+            throw new ApiException('La evidencia no existe en la sesion.', 404);
+        }
+        $deleted = $this->repository->deleteEvidence($sessionId, $evidenceId);
+        if (! $deleted) {
+            throw new ApiException('No fue posible eliminar la evidencia.', 422);
+        }
+        if (! empty($record['archivo_ruta'])) {
+            File::delete(public_path($record['archivo_ruta']));
+        }
+
+        return $deleted;
+    }
+
     private function parseMatrix(string $path, array $detail): array
     {
         $session = $detail['session'];
@@ -296,6 +355,53 @@ class TrainingService
             throw new ApiException('El XLSX contiene demasiados archivos internos.', 422);
         }
         $zip->close();
+    }
+
+    private function storeEvidenceFile(UploadedFile $file): array
+    {
+        if (! $file->isValid()) {
+            throw new ApiException('El archivo no es válido.', 422);
+        }
+        $extension = strtolower($file->getClientOriginalExtension());
+        $allowed = ['pdf', 'jpg', 'jpeg', 'png'];
+        if (! in_array($extension, $allowed, true)) {
+            throw new ApiException('El tipo de archivo no está permitido para evidencias.', 422);
+        }
+
+        $originalName = $file->getClientOriginalName();
+        $mimeType = $file->getMimeType() ?: $file->getClientMimeType() ?: 'application/octet-stream';
+        $sizeBytes = $file->getSize();
+
+        $directory = 'uploads/trainings/evidences/'.now()->format('Ym');
+        File::ensureDirectoryExists(public_path($directory), 0755, true);
+        $name = Str::uuid().'.'.$extension;
+        $relative = $directory.'/'.$name;
+        $file->move(public_path($directory), $name);
+
+        return [
+            'nombre_archivo' => $name,
+            'nombre_original' => $originalName,
+            'archivo_ruta' => $relative,
+            'archivo_url' => url($relative),
+            'mime_type' => $mimeType,
+            'peso_bytes' => $sizeBytes,
+        ];
+    }
+
+    private function withEvidenceUrls(array $rows): array
+    {
+        return array_map(function (array $row): array {
+            $normalized = [];
+            foreach ($row as $key => $value) {
+                $normalized[strtolower((string) $key)] = $value;
+            }
+
+            $publicUrl = ! empty($normalized['archivo_ruta']) ? url($normalized['archivo_ruta']) : ($normalized['archivo_url'] ?? null);
+            $normalized['archivo_url_publica'] = $publicUrl;
+            $normalized['archivo_url'] ??= $publicUrl;
+
+            return $normalized;
+        }, $rows);
     }
 
     private function mutate(string $action, ?array $row, int $actor, array $context): array

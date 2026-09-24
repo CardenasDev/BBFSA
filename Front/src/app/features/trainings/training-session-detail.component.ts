@@ -4,8 +4,10 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { forkJoin } from 'rxjs';
 import { Employee, EmployeeFilters } from '../../core/models/api.models';
+import { environment } from '../../../environments/environment';
 import {
   TrainingEvaluation,
+  TrainingEvidence,
   TrainingParticipant,
   TrainingSessionDetail,
   TrainingTask,
@@ -43,7 +45,8 @@ import { TrainingService } from '../../core/services/training.service';
       <nav class="tabs">
         <button (click)="tab.set('matrix')" [class.on]="tab() === 'matrix'">Matriz de evaluacion</button
         ><button (click)="tab.set('people')" [class.on]="tab() === 'people'">Participantes</button
-        ><button (click)="tab.set('import')" [class.on]="tab() === 'import'">Importar XLSX</button>
+        ><button (click)="tab.set('import')" [class.on]="tab() === 'import'">Importar XLSX</button
+        ><button (click)="tab.set('evidences')" [class.on]="tab() === 'evidences'">Evidencias</button>
       </nav>
       @if (tab() === 'people') {
         <article class="card">
@@ -222,6 +225,51 @@ import { TrainingService } from '../../core/services/training.service';
           }
         </article>
       }
+      @if (tab() === 'evidences') {
+        <article class="card import">
+          <h2>Evidencias de sesión</h2>
+          <p>Se aceptan PDF, JPG, JPEG y PNG. Las evidencias se guardan en la sesión y quedan enlazadas al documento.</p>
+          <div class="toolbar evidence-toolbar">
+            <input type="file" accept=".pdf,.jpg,.jpeg,.png" (change)="pickEvidenceFile($event)" />
+            <select [(ngModel)]="evidenceType">
+              <option value="OTRA">OTRA</option>
+              <option value="ASISTENCIA">ASISTENCIA</option>
+              <option value="CONFIRMACION">CONFIRMACION</option>
+              <option value="EVALUACION">EVALUACION</option>
+              <option value="FIRMA">FIRMA</option>
+              <option value="COMPROMISO">COMPROMISO</option>
+            </select>
+            <button class="btn primary" (click)="uploadEvidence()" [disabled]="!evidenceFile || !canAdmin">
+              Subir evidencia
+            </button>
+          </div>
+          @if (evidenceList().length) {
+            <ul class="evidence-list">
+              @for (e of evidenceList(); track e.id_capacitacion_evidencia) {
+                <li>
+                  <div>
+                    <strong>{{ e.tipo_evidencia || 'OTRA' }}</strong>
+                    <div>{{ e.nombre_original || e.nombre_archivo }}</div>
+                  </div>
+                  <div class="evidence-actions">
+                    <button
+                      class="btn tiny"
+                      type="button"
+                      (click)="openEvidence(e)"
+                      [disabled]="!canOpenEvidence(e)"
+                    >
+                      Ver
+                    </button>
+                    <button class="btn tiny danger" (click)="deleteEvidence(e)">Eliminar</button>
+                  </div>
+                </li>
+              }
+            </ul>
+          } @else {
+            <p class="hint">Todavía no hay evidencias cargadas para esta sesión.</p>
+          }
+        </article>
+      }
     }
     @if (resultParticipant()) {
       <div class="modal">
@@ -369,6 +417,37 @@ import { TrainingService } from '../../core/services/training.service';
         gap: 8px;
         margin-bottom: 14px;
       }
+      .evidence-toolbar {
+        align-items: center;
+        flex-wrap: wrap;
+      }
+      .evidence-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        display: grid;
+        gap: 12px;
+      }
+      .evidence-list li {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border: 1px solid #dce5e1;
+        border-radius: 8px;
+        padding: 10px 12px;
+      }
+      .evidence-actions {
+        display: flex;
+        gap: 8px;
+      }
+      .danger {
+        border-color: #c86565;
+        color: #8a1f1f;
+      }
+      .disabled {
+        pointer-events: none;
+        opacity: 0.5;
+      }
       select,
       input {
         padding: 8px;
@@ -508,14 +587,17 @@ export class TrainingSessionDetailComponent {
   detail = signal<TrainingSessionDetail | null>(null);
   tasks = signal<TrainingTask[]>([]);
   employees = signal<Employee[]>([]);
-  tab = signal<'matrix' | 'people' | 'import'>('matrix');
+  tab = signal<'matrix' | 'people' | 'import' | 'evidences'>('matrix');
   message = signal('');
   error = signal('');
   saving = signal(false);
   employeeId: number | null = null;
   newStatus: any = 'EN_EJECUCION';
   file?: File;
+  evidenceFile?: File;
+  evidenceType = 'OTRA';
   importResult = signal<any>(null);
+  evidenceList = signal<TrainingEvidence[]>([]);
   resultParticipant = signal<TrainingParticipant | null>(null);
   resultForm: any = {};
   commitmentParticipant = signal<TrainingParticipant | null>(null);
@@ -535,6 +617,10 @@ export class TrainingSessionDetailComponent {
     this.api.session(this.id).subscribe({
       next: (d) => {
         this.detail.set(d);
+        this.api.evidences(this.id).subscribe({
+          next: (rows) => this.evidenceList.set(rows),
+          error: () => this.evidenceList.set([]),
+        });
         forkJoin({
           tasks: this.api.attachedTasks(d.session.id_capacitacion),
           employees: this.employeesApi.listEmployees({ estado: 'ACTIVO' } as EmployeeFilters),
@@ -693,6 +779,21 @@ export class TrainingSessionDetailComponent {
       observaciones: '',
     };
   }
+  canOpenEvidence(e: TrainingEvidence): boolean {
+    return !!this.resolveEvidenceUrl(e);
+  }
+  resolveEvidenceUrl(e: TrainingEvidence): string | null {
+    const raw = e.archivo_url_publica?.trim() || e.archivo_url?.trim() || e.archivo_ruta?.trim();
+    if (!raw) return null;
+    if (/^https?:\/\//i.test(raw)) return raw;
+    if (raw.startsWith('/')) return `${environment.backendUrl}${raw}`;
+    return `${environment.backendUrl}/${raw}`;
+  }
+  openEvidence(e: TrainingEvidence) {
+    const url = this.resolveEvidenceUrl(e);
+    if (!url) return;
+    window.open(url, '_blank', 'noopener,noreferrer');
+  }
   createCommitment() {
     if (!this.commitmentParticipant() || !this.commitmentForm.motivo?.trim()) {
       this.error.set('El motivo del compromiso es obligatorio.');
@@ -710,6 +811,9 @@ export class TrainingSessionDetailComponent {
   pickFile(e: Event) {
     this.file = (e.target as HTMLInputElement).files?.[0] ?? undefined;
   }
+  pickEvidenceFile(e: Event) {
+    this.evidenceFile = (e.target as HTMLInputElement).files?.[0] ?? undefined;
+  }
   importFile() {
     if (!this.file) return;
     this.api.import(this.id, this.file).subscribe({
@@ -719,6 +823,27 @@ export class TrainingSessionDetailComponent {
           this.message.set('Archivo importado sin errores.');
           this.load();
         }
+      },
+      error: (e) => this.fail(e),
+    });
+  }
+  uploadEvidence() {
+    if (!this.evidenceFile) return;
+    this.api.uploadEvidence(this.id, this.evidenceFile, this.evidenceType).subscribe({
+      next: () => {
+        this.message.set('Evidencia cargada correctamente.');
+        this.evidenceFile = undefined;
+        this.evidenceType = 'OTRA';
+        this.load();
+      },
+      error: (e) => this.fail(e),
+    });
+  }
+  deleteEvidence(item: TrainingEvidence) {
+    this.api.deleteEvidence(this.id, item.id_capacitacion_evidencia).subscribe({
+      next: () => {
+        this.message.set('Evidencia eliminada.');
+        this.load();
       },
       error: (e) => this.fail(e),
     });

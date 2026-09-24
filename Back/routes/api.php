@@ -194,6 +194,9 @@ Route::middleware('auth.jwt')->group(function (): void {
         Route::get('sessions/{sessionId}', [TrainingController::class, 'session'])->whereNumber('sessionId')->middleware('permission:CAPACITACIONES_VER');
         Route::patch('sessions/{sessionId}/status', [TrainingController::class, 'changeStatus'])->whereNumber('sessionId')->middleware('permission:CAPACITACIONES_ADMINISTRAR');
         Route::post('sessions/{sessionId}/participants', [TrainingController::class, 'participant'])->whereNumber('sessionId')->middleware('permission:CAPACITACIONES_ADMINISTRAR');
+        Route::get('sessions/{sessionId}/evidences', [TrainingController::class, 'evidences'])->whereNumber('sessionId')->middleware('permission:CAPACITACIONES_VER');
+        Route::post('sessions/{sessionId}/evidences', [TrainingController::class, 'addEvidence'])->whereNumber('sessionId')->middleware('permission:CAPACITACIONES_ADMINISTRAR');
+        Route::delete('sessions/{sessionId}/evidences/{evidenceId}', [TrainingController::class, 'deleteEvidence'])->whereNumber(['sessionId', 'evidenceId'])->middleware('permission:CAPACITACIONES_ADMINISTRAR');
         Route::post('sessions/{sessionId}/import', [TrainingController::class, 'import'])->whereNumber('sessionId')->middleware('permission:CAPACITACIONES_IMPORTAR');
         Route::patch('participants/{participantId}/attendance', [TrainingController::class, 'attendance'])->whereNumber('participantId')->middleware('permission:CAPACITACIONES_ADMINISTRAR');
         Route::post('evaluations', [TrainingController::class, 'evaluation'])->middleware('permission:CAPACITACIONES_EVALUAR');

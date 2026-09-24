@@ -117,6 +117,61 @@ class TrainingRepository extends StoredProcedureRepository
         return $this->first('SP_BBF_CAPACITACION_COMPROMISO_ACTUALIZAR', [$id, $data['estado'], $data['documento_url'] ?? null, $data['documento_ruta'] ?? null, $data['firma_url'] ?? null, $data['observaciones'] ?? null, $actorId]);
     }
 
+    public function sessionEvidences(int $sessionId): array
+    {
+        try {
+            return $this->call('SP_BBF_CAPACITACION_EVIDENCIAS_LISTAR', [$sessionId]);
+        } catch (\Throwable $exception) {
+            if (! str_contains($exception->getMessage(), '1305') && ! str_contains($exception->getMessage(), 'does not exist')) {
+                throw $exception;
+            }
+
+            return DB::table('bbf_capacitacion_evidencias')
+                ->where('ID_CAPACITACION_SESION', $sessionId)
+                ->orderByDesc('CREATED_AT')
+                ->orderByDesc('ID_CAPACITACION_EVIDENCIA')
+                ->get()
+                ->map(fn ($row): array => (array) $row)
+                ->all();
+        }
+    }
+
+    public function evidence(int $sessionId, int $evidenceId): ?array
+    {
+        try {
+            return $this->first('SP_BBF_CAPACITACION_EVIDENCIA_OBTENER', [$sessionId, $evidenceId]);
+        } catch (\Throwable $exception) {
+            if (! str_contains($exception->getMessage(), '1305') && ! str_contains($exception->getMessage(), 'does not exist')) {
+                throw $exception;
+            }
+
+            return DB::table('bbf_capacitacion_evidencias')
+                ->where('ID_CAPACITACION_SESION', $sessionId)
+                ->where('ID_CAPACITACION_EVIDENCIA', $evidenceId)
+                ->first();
+        }
+    }
+
+    public function createEvidence(int $sessionId, array $data, int $actorId): ?array
+    {
+        return $this->first('SP_BBF_CAPACITACION_EVIDENCIA_CREAR', [
+            $sessionId,
+            $data['tipo_evidencia'] ?? 'OTRA',
+            $data['nombre_archivo'],
+            $data['nombre_original'] ?? null,
+            $data['archivo_url'] ?? null,
+            $data['archivo_ruta'] ?? null,
+            $data['mime_type'] ?? null,
+            $data['peso_bytes'] ?? null,
+            $actorId,
+        ]);
+    }
+
+    public function deleteEvidence(int $sessionId, int $evidenceId): ?array
+    {
+        return $this->first('SP_BBF_CAPACITACION_EVIDENCIA_ELIMINAR', [$sessionId, $evidenceId]);
+    }
+
     public function createImport(int $sessionId, array $file, int $actorId): ?array
     {
         return $this->first('SP_BBF_CAPACITACION_IMPORTACION_CREAR', [$sessionId, $file['nombre_archivo'], $file['nombre_original'], $file['ruta'], $file['mime'], $file['peso'], $actorId]);

@@ -35,6 +35,14 @@ class TrainingApiTest extends TestCase
         $this->withToken($this->token(['CAPACITACIONES_IMPORTAR']))->post('/api/trainings/sessions/1/import', ['archivo' => UploadedFile::fake()->create('matrix.csv', 10, 'text/csv')], ['Accept' => 'application/json'])->assertUnprocessable()->assertJsonValidationErrors(['archivo']);
     }
 
+    public function test_evidence_upload_rejects_unsupported_file_types(): void
+    {
+        $this->withToken($this->token(['CAPACITACIONES_ADMINISTRAR']))
+            ->post('/api/trainings/sessions/1/evidences', ['archivo' => UploadedFile::fake()->create('anexo.exe', 10, 'application/x-msdownload')], ['Accept' => 'application/json'])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['archivo']);
+    }
+
     public function test_commitment_generation_data_is_read_from_stored_procedure(): void
     {
         DB::shouldReceive('select')->once()->with('CALL SP_BBF_CAPACITACION_COMPROMISO_OBTENER(?)', [7])->andReturn([(object) [

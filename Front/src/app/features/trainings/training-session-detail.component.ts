@@ -840,10 +840,15 @@ export class TrainingSessionDetailComponent {
     });
   }
   deleteEvidence(item: TrainingEvidence) {
+    if (!this.canAdmin || !window.confirm('¿Eliminar esta evidencia?')) return;
+    this.error.set('');
+    this.message.set('');
     this.api.deleteEvidence(this.id, item.id_capacitacion_evidencia).subscribe({
       next: () => {
-        this.message.set('Evidencia eliminada.');
-        this.load();
+        this.evidenceList.update((rows) =>
+          rows.filter((row) => row.id_capacitacion_evidencia !== item.id_capacitacion_evidencia),
+        );
+        this.message.set('Evidencia eliminada correctamente.');
       },
       error: (e) => this.fail(e),
     });

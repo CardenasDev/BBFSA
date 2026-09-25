@@ -1,0 +1,5 @@
+{
+  "extends": "C:/D/Repo/BBFSA/Front/tsconfig.spec.json",
+  "files": [],
+  "include": ["C:/D/Repo/BBFSA/Front/src/app/features/trainings/training-evidence-deletion.spec.ts"]
+}

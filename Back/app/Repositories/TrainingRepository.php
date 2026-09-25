@@ -138,18 +138,7 @@ class TrainingRepository extends StoredProcedureRepository
 
     public function evidence(int $sessionId, int $evidenceId): ?array
     {
-        try {
-            return $this->first('SP_BBF_CAPACITACION_EVIDENCIA_OBTENER', [$sessionId, $evidenceId]);
-        } catch (\Throwable $exception) {
-            if (! str_contains($exception->getMessage(), '1305') && ! str_contains($exception->getMessage(), 'does not exist')) {
-                throw $exception;
-            }
-
-            return DB::table('bbf_capacitacion_evidencias')
-                ->where('ID_CAPACITACION_SESION', $sessionId)
-                ->where('ID_CAPACITACION_EVIDENCIA', $evidenceId)
-                ->first();
-        }
+        return $this->first('SP_BBF_CAPACITACION_EVIDENCIA_OBTENER', [$evidenceId]);
     }
 
     public function createEvidence(int $sessionId, array $data, int $actorId): ?array
@@ -169,7 +158,7 @@ class TrainingRepository extends StoredProcedureRepository
 
     public function deleteEvidence(int $sessionId, int $evidenceId): ?array
     {
-        return $this->first('SP_BBF_CAPACITACION_EVIDENCIA_ELIMINAR', [$sessionId, $evidenceId]);
+        return $this->first('SP_BBF_CAPACITACION_EVIDENCIA_ELIMINAR', [$evidenceId]);
     }
 
     public function createImport(int $sessionId, array $file, int $actorId): ?array

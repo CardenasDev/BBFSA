@@ -244,15 +244,34 @@ class TrainingService
     public function deleteEvidence(int $sessionId, int $evidenceId): array
     {
         $record = $this->repository->evidence($sessionId, $evidenceId);
-        if (! $record) {
-            throw new ApiException('La evidencia no existe en la sesion.', 404);
+        if (! $record || (int) ($record['id_capacitacion_sesion'] ?? 0) !== $sessionId) {
+            throw new ApiException('La evidencia no existe en la sesión.', 404);
         }
+
+        $relative = str_replace('\\', '/', (string) ($record['archivo_ruta'] ?? ''));
+        if ($relative !== '') {
+            if (str_starts_with($relative, '/') || str_contains($relative, ':')
+                || str_contains($relative, "\0") || in_array('..', explode('/', $relative), true)) {
+                throw new ApiException('La ruta de la evidencia no es válida.', 422);
+            }
+            $path = public_path($relative);
+            if (File::exists($path)) {
+                $publicRoot = realpath(public_path());
+                $resolved = realpath($path);
+                if ($publicRoot === false || $resolved === false
+                    || ! str_starts_with($resolved, $publicRoot.DIRECTORY_SEPARATOR)
+                    || ! File::isFile($path)) {
+                    throw new ApiException('La ruta de la evidencia no es válida.', 422);
+                }
+                if (! File::delete($path) && File::exists($path)) {
+                    throw new ApiException('No fue posible eliminar el archivo de la evidencia.', 422);
+                }
+            }
+        }
+
         $deleted = $this->repository->deleteEvidence($sessionId, $evidenceId);
-        if (! $deleted) {
+        if (! $deleted || (int) ($deleted['registros_eliminados'] ?? 0) < 1) {
             throw new ApiException('No fue posible eliminar la evidencia.', 422);
-        }
-        if (! empty($record['archivo_ruta'])) {
-            File::delete(public_path($record['archivo_ruta']));
         }
 
         return $deleted;

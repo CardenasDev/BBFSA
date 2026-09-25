@@ -4,7 +4,11 @@
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
-    "build": "ng build",
+    "start:qa": "ng serve --configuration=staging",
+    "start:prod": "ng serve --configuration=production",
+    "build": "ng build --configuration=development",
+    "build:qa": "ng build --configuration=staging",
+    "build:prod": "ng build --configuration=production",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
     "generate:work-contract-pdf": "node scripts/generate-work-contract-pdf.mjs",

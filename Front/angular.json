@@ -35,6 +35,20 @@
             ]
           },
           "configurations": {
+            "development": {
+              "optimization": false,
+              "extractLicenses": false,
+              "sourceMap": true
+            },
+            "staging": {
+              "fileReplacements": [{
+                "replace": "src/environments/environment.ts",
+                "with": "src/environments/environment.staging.ts"
+              }],
+              "optimization": false,
+              "extractLicenses": false,
+              "sourceMap": true
+            },
             "production": {
               "fileReplacements": [{
                 "replace": "src/environments/environment.ts",
@@ -53,23 +67,21 @@
                 }
               ],
               "outputHashing": "all"
-            },
-            "development": {
-              "optimization": false,
-              "extractLicenses": false,
-              "sourceMap": true
             }
           },
-          "defaultConfiguration": "production"
+          "defaultConfiguration": "development"
         },
         "serve": {
           "builder": "@angular/build:dev-server",
           "configurations": {
-            "production": {
-              "buildTarget": "bbf-sisadmin:build:production"
-            },
             "development": {
               "buildTarget": "bbf-sisadmin:build:development"
+            },
+            "staging": {
+              "buildTarget": "bbf-sisadmin:build:staging"
+            },
+            "production": {
+              "buildTarget": "bbf-sisadmin:build:production"
             }
           },
           "defaultConfiguration": "development"

@@ -48,10 +48,12 @@ class CertificateApiTest extends TestCase
         $format = $this->format();
         $this->mock(CertificateRepository::class)->shouldReceive('listFormats')->once()->with('2026-10-06')->andReturn([
             $format, array_replace($format, ['clave_formato' => 'OTRO']),
+            array_replace($format, ['variante' => 'SALARIO_AFILIACIONES', 'clave_renderizador' => 'certificado-laboral-activo-salario-afiliaciones']),
             array_replace($format, ['variante' => 'OTRA']), array_replace($format, ['clave_renderizador' => 'otro']),
         ]);
-        $this->authorized()->getJson(self::URL)->assertOk()->assertJsonCount(1, 'data')
+        $this->authorized()->getJson(self::URL)->assertOk()->assertJsonCount(2, 'data')
             ->assertJsonPath('data.0.clave_renderizador', 'certificado-laboral-activo-funciones')
+            ->assertJsonPath('data.1.variante', 'SALARIO_AFILIACIONES')
             ->assertJsonMissingPath('data.0.firmantes_json');
     }
 
@@ -75,6 +77,13 @@ class CertificateApiTest extends TestCase
         foreach (['salario_base', 'fecha_nacimiento', 'direccion_residencia', 'correo', 'estado_contrato'] as $private) {
             $this->assertStringNotContainsString('"'.$private.'"', $response->getContent());
         }
+    }
+
+    public function test_general_ignores_salary_declarations_and_needs_no_affiliations(): void
+    {
+        $this->complete();
+        $this->authorized()->postJson(self::GENERATE, ['id_empleado_contrato' => 7, 'fondo_solidaridad' => '<valor irrelevante>', 'retencion_fuente' => null])
+            ->assertOk()->assertJsonMissingPath('data.afiliaciones')->assertJsonMissingPath('data.salario');
     }
 
     public function test_download_returns_a_real_pdf_with_the_official_certificate_content(): void
@@ -183,7 +192,11 @@ class CertificateApiTest extends TestCase
     private function complete(array $employee = [], array $contract = [], array $parameters = [], array $format = []): void
     {
         $this->employee(1, $employee);
-        $this->mock(CertificateRepository::class)->shouldReceive('getFormat')->once()->with('CERTIFICADO_LABORAL_ACTIVO', '2026-10-06')
+        $args = ['CERTIFICADO_LABORAL_ACTIVO', '2026-10-06'];
+        if (($format['variante'] ?? 'GENERAL') !== 'GENERAL') {
+            $args[] = $format['variante'];
+        }
+        $this->mock(CertificateRepository::class)->shouldReceive('getFormat')->once()->with(...$args)
             ->andReturn(array_replace($this->format(), $format));
         $repository = $this->mock(ContractingRepository::class);
         $repository->shouldReceive('getContractGenerationData')->once()->with(7)->andReturn(array_replace($this->contract(), $contract));
@@ -195,6 +208,89 @@ class CertificateApiTest extends TestCase
         ], $parameters) as $code => $row) {
             $repository->shouldReceive('getCurrentParameter')->zeroOrMoreTimes()->with($code, '2026-10-06')->andReturn($row);
         }
+    }
+
+    public function test_salary_variant_uses_official_sources_without_functions(): void
+    {
+        $this->salaryComplete(['auxilio_transporte' => '500000.00']);
+        $this->authorized()->postJson(self::GENERATE, $this->salaryRequest())->assertOk()
+            ->assertJsonPath('data.salario.decimal', '1750905.00')
+            ->assertJsonPath('data.salario.cifra', '$1.750.905,00')
+            ->assertJsonPath('data.afiliaciones.eps', 'EPS de prueba')
+            ->assertJsonPath('data.afiliaciones.arl', 'ARL de prueba')
+            ->assertJsonPath('data.afiliaciones.fondo_pension', 'Pensión de prueba')
+            ->assertJsonPath('data.afiliaciones.caja_compensacion', 'Caja de prueba')
+            ->assertJsonPath('data.afiliaciones.fondo_solidaridad', 'No aplica')
+            ->assertJsonMissingPath('data.funciones')
+            ->assertJsonPath('data.contrato.tipo_contrato', 'Indefinido');
+    }
+
+    public function test_salary_download_contains_selected_variant_and_declared_values(): void
+    {
+        $this->salaryComplete();
+        $response = $this->authorized()->postJson(self::DOWNLOAD, $this->salaryRequest())->assertOk()->assertHeader('Content-Type', 'application/pdf');
+        $this->assertStringContainsString('$1.750.905,00', $response->getContent());
+        $this->assertStringContainsString('EPS de prueba', $response->getContent());
+        $this->assertStringContainsString('No aplica', $response->getContent());
+        $this->assertStringNotContainsString('funciones principales', $response->getContent());
+    }
+
+    public function test_salary_missing_official_fields_are_actionable(): void
+    {
+        $this->salaryComplete(['salario_base' => null, 'tipo_contrato' => ''], ['eps' => '', 'arl' => null, 'fondo_pension' => '', 'caja_compensacion' => '']);
+        $this->authorized()->postJson(self::GENERATE, $this->salaryRequest())->assertUnprocessable()
+            ->assertJsonValidationErrors(['salario_base', 'tipo_contrato', 'eps', 'arl', 'fondo_pension', 'caja_compensacion']);
+    }
+
+    public function test_salary_declared_fields_and_post_authorization_are_enforced_before_sources(): void
+    {
+        $this->mock(EmployeeRepository::class)->shouldNotReceive('find');
+        foreach ([self::GENERATE, self::DOWNLOAD] as $url) {
+            $this->withHeader('Authorization', '')->postJson($url, $this->salaryRequest())->assertUnauthorized();
+            $this->withToken($this->token([]))->postJson($url, $this->salaryRequest())->assertForbidden();
+            foreach ([null, '', '<b>dato</b>', "dato\nextra", str_repeat('a', 201)] as $value) {
+                $this->authorized()->postJson($url, array_replace($this->salaryRequest(), ['fondo_solidaridad' => $value]))
+                    ->assertUnprocessable()->assertJsonValidationErrors('fondo_solidaridad');
+            }
+        }
+    }
+
+    public function test_salary_foreign_contract_is_not_disclosed(): void
+    {
+        $this->employee();
+        $this->mock(ContractingRepository::class)->shouldReceive('getContractGenerationData')->with(7)->once()->andReturn(['id_empleado' => 9, 'salario_base' => '999.00']);
+        $this->authorized()->postJson(self::GENERATE, $this->salaryRequest())->assertNotFound()->assertJsonMissing(['salario_base' => '999.00']);
+    }
+
+    private function salaryRequest(): array
+    {
+        return ['id_empleado_contrato' => 7, 'variante' => 'SALARIO_AFILIACIONES', 'fondo_solidaridad' => 'No aplica', 'retencion_fuente' => 'Declaración de prueba'];
+    }
+
+    public function test_unknown_and_disabled_salary_variant_never_fall_back_to_general(): void
+    {
+        $this->employee();
+        $this->mock(ContractingRepository::class)->shouldReceive('getContractGenerationData')->with(7)->once()->andReturn($this->contract());
+        $this->mock(CertificateRepository::class)->shouldReceive('getFormat')->with('CERTIFICADO_LABORAL_ACTIVO', '2026-10-06', 'SALARIO_AFILIACIONES')->once()->andReturn(null);
+        $this->authorized()->postJson(self::GENERATE, array_replace($this->salaryRequest(), ['variante' => 'OTRA']))
+            ->assertUnprocessable()->assertJsonValidationErrors('variante');
+        $this->authorized()->postJson(self::GENERATE, $this->salaryRequest())->assertNotFound();
+    }
+
+    public function test_salary_requires_json_post_and_rejects_inactive_contract(): void
+    {
+        $this->authorized()->getJson(self::GENERATE.'?'.http_build_query($this->salaryRequest()))->assertUnprocessable()->assertJsonValidationErrors('variante');
+        $this->employee();
+        $this->mock(ContractingRepository::class)->shouldReceive('getContractGenerationData')->with(7)->once()->andReturn(array_replace($this->contract(), ['estado_contrato' => 'ANULADO']));
+        $this->authorized()->postJson(self::GENERATE, $this->salaryRequest())->assertUnprocessable()->assertJsonValidationErrors('contrato');
+    }
+
+    private function salaryComplete(array $contract = [], array $security = []): void
+    {
+        $this->complete([], array_replace(['tipo_contrato' => 'Indefinido', 'salario_base' => '1750905.00', 'clausula_funciones' => ''], $contract), [],
+            ['variante' => 'SALARIO_AFILIACIONES', 'clave_renderizador' => 'certificado-laboral-activo-salario-afiliaciones']);
+        app(ContractingRepository::class)->shouldReceive('getSocialSecurity')->with(5)->once()->andReturn(array_replace([
+            'eps' => 'EPS de prueba', 'arl' => 'ARL de prueba', 'fondo_pension' => 'Pensión de prueba', 'caja_compensacion' => 'Caja de prueba'], $security));
     }
 
     private function employee(int $times = 1, array $changes = []): void

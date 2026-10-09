@@ -9,8 +9,8 @@ class CertificateRepository extends StoredProcedureRepository
         return $this->call('SP_BBF_DOCUMENTO_FORMATOS_LISTAR', ['EMPLEADO', $date]);
     }
 
-    public function getFormat(string $key, string $date): ?array
+    public function getFormat(string $key, string $date, string $variant = 'GENERAL'): ?array
     {
-        return $this->first('SP_BBF_DOCUMENTO_FORMATO_OBTENER', [$key, 'GENERAL', $date]);
+        return $this->first('SP_BBF_DOCUMENTO_FORMATO_OBTENER', [$key, $variant, $date]);
     }
 }

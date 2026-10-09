@@ -39,6 +39,8 @@ class ContractingApiTest extends TestCase
             'GET|HEAD api/contracting/employees/{employeeId}/certificates',
             'GET|HEAD api/contracting/employees/{employeeId}/certificates/{formatKey}/generation-data',
             'GET|HEAD api/contracting/employees/{employeeId}/certificates/{formatKey}/download',
+            'POST api/contracting/employees/{employeeId}/certificates/{formatKey}/generation-data',
+            'POST api/contracting/employees/{employeeId}/certificates/{formatKey}/download',
             'PUT api/contracting/employees/{employeeId}/contracts/{employeeContractId}',
             'DELETE api/contracting/employees/{employeeId}/contracts/{employeeContractId}',
             'POST api/contracting/employees/{employeeId}/medical-exams/{examId}',
@@ -660,5 +662,4 @@ class ContractingApiTest extends TestCase
         ])['token'];
     }
 }
-
 

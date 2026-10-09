@@ -8,6 +8,20 @@ use PHPUnit\Framework\TestCase;
 
 class CertificateRendererTest extends TestCase
 {
+    public function test_salary_affiliations_continue_without_loss_and_do_not_render_functions(): void
+    {
+        $data = $this->data();
+        $data['formato']['variante'] = 'SALARIO_AFILIACIONES';
+        $data['contrato']['tipo_contrato'] = 'Indefinido';
+        $data['salario'] = (new \App\Services\SalaryTextFormatter)->format('1750905.25');
+        $data['afiliaciones'] = array_fill_keys(['eps', 'arl', 'fondo_pension', 'caja_compensacion', 'fondo_solidaridad', 'retencion_fuente'], str_repeat('Entidad larga de prueba ', 180).'FIN_ENTIDAD');
+        $pdf = (new CertificateRenderer)->render($data);
+        $this->assertStringContainsString('$1.750.905,25', $pdf);
+        $this->assertSame(6, substr_count($pdf, 'FIN_ENTIDAD'));
+        $this->assertStringNotContainsString('Desarrollar software', $pdf);
+        preg_match('/\/Type \/Pages .*?\/Count (\d+)/', $pdf, $match);
+        $this->assertGreaterThan(1, (int) $match[1]);
+    }
     public function test_rejects_header_metadata_that_cannot_fit_in_its_cell(): void
     {
         $data = $this->data();

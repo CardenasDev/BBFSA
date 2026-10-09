@@ -106,10 +106,18 @@ class CertificateRenderer
             ['text' => 'La persona suscrita, responsable del área de Talento Humano de la compañía '.$company['razon_social'].'.', 'after' => 16],
             ['text' => 'CERTIFICA', 'bold' => true, 'center' => true, 'after' => 12],
             ['text' => 'Que '.$employee['nombre_completo'].', identificado(a) con '.$employee['tipo_documento'].' número '.$employee['numero_documento'].($place !== '' ? ' de '.$place : '').', labora en nuestra compañía desde '.$this->dateText($employee['fecha_ingreso']).', cumpliendo funciones correspondientes al cargo de '.$data['contrato']['cargo'].'.'],
-            ['text' => 'Durante el tiempo que ha laborado en nuestra empresa, el trabajador ha desempeñado las siguientes funciones principales:', 'keep_next' => 26],
         ];
-        foreach ($data['funciones'] as $function) {
-            $blocks[] = ['text' => $function, 'indent' => 10, 'bullet' => true, 'after' => 4];
+        if (($data['formato']['variante'] ?? 'GENERAL') === 'SALARIO_AFILIACIONES') {
+            $blocks[] = ['text' => 'Su contrato es de tipo '.$data['contrato']['tipo_contrato'].', con un salario mensual de '.$data['salario']['letras'].' ('.$data['salario']['cifra'].').'];
+            $blocks[] = ['text' => 'Tiene registradas las siguientes afiliaciones e información declarada:', 'keep_next' => 26];
+            foreach (['eps' => 'EPS', 'arl' => 'ARL', 'fondo_pension' => 'Fondo de pensión', 'caja_compensacion' => 'Caja de compensación', 'fondo_solidaridad' => 'Fondo de solidaridad', 'retencion_fuente' => 'Retención en la fuente'] as $key => $label) {
+                $blocks[] = ['text' => $label.': '.$data['afiliaciones'][$key], 'indent' => 10, 'bullet' => true, 'after' => 4];
+            }
+        } else {
+            $blocks[] = ['text' => 'Durante el tiempo que ha laborado en nuestra empresa, el trabajador ha desempeñado las siguientes funciones principales:', 'keep_next' => 26];
+            foreach ($data['funciones'] as $function) {
+                $blocks[] = ['text' => $function, 'indent' => 10, 'bullet' => true, 'after' => 4];
+            }
         }
         $blocks[] = ['text' => 'Este certificado se expide el '.$date.', a solicitud del colaborador, para los fines pertinentes que se requieran.', 'after' => 14];
         foreach ($data['firmantes'] as $signer) {

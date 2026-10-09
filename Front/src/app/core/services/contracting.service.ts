@@ -78,7 +78,15 @@ export class ContractingService {
     employeeId: number,
     formatKey: string,
     contractId: number,
+    variant = 'GENERAL',
+    supplied: { fondo_solidaridad: string; retencion_fuente: string } | undefined = undefined,
   ): Observable<Record<string, unknown>> {
+    if (variant !== 'GENERAL') {
+      return this.http.post<ApiResponse<Record<string, unknown>>>(
+        `${this.url}/employees/${employeeId}/certificates/${formatKey}/generation-data`,
+        { id_empleado_contrato: contractId, variante: variant, ...supplied },
+      ).pipe(map((response) => response.data));
+    }
     const params = new HttpParams().set('id_empleado_contrato', String(contractId));
     return this.http
       .get<ApiResponse<Record<string, unknown>>>(
@@ -92,7 +100,13 @@ export class ContractingService {
     employeeId: number,
     formatKey: string,
     contractId: number,
+    variant = 'GENERAL',
+    supplied: { fondo_solidaridad: string; retencion_fuente: string } | undefined = undefined,
   ): Observable<Blob> {
+    if (variant !== 'GENERAL') {
+      return this.http.post(`${this.url}/employees/${employeeId}/certificates/${formatKey}/download`,
+        { id_empleado_contrato: contractId, variante: variant, ...supplied }, { responseType: 'blob' });
+    }
     const params = new HttpParams().set('id_empleado_contrato', String(contractId));
     return this.http.get(
       `${this.url}/employees/${employeeId}/certificates/${formatKey}/download`,

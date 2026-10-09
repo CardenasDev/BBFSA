@@ -257,6 +257,8 @@ Route::middleware('auth.jwt')->group(function (): void {
         Route::get('employees/{employeeId}/certificates', [CertificateController::class, 'index'])->whereNumber('employeeId')->middleware('permission:CONTRATACION_VER');
         Route::get('employees/{employeeId}/certificates/{formatKey}/generation-data', [CertificateController::class, 'generationData'])->whereNumber('employeeId')->middleware('permission:CONTRATACION_VER');
         Route::get('employees/{employeeId}/certificates/{formatKey}/download', [CertificateController::class, 'download'])->whereNumber('employeeId')->middleware('permission:CONTRATACION_VER');
+        Route::post('employees/{employeeId}/certificates/{formatKey}/generation-data', [CertificateController::class, 'generationData'])->whereNumber('employeeId')->middleware('permission:CONTRATACION_VER');
+        Route::post('employees/{employeeId}/certificates/{formatKey}/download', [CertificateController::class, 'download'])->whereNumber('employeeId')->middleware('permission:CONTRATACION_VER');
         Route::get('employees', [ContractingController::class, 'indexEmployees'])->middleware('permission:CONTRATACION_VER');
         Route::get('contract-templates', [ContractingController::class, 'listContractTemplates'])->middleware('permission:CONTRATACION_VER');
         Route::get('parameters/minimum-salary', [ContractingController::class, 'minimumSalary'])->middleware('permission:CONTRATACION_CREAR');

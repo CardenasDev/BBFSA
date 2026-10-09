@@ -56,7 +56,7 @@ const FIRST_CERTIFICATE_CODE = 'F-002';
             <tr><th>Tipo</th><th>Codigo</th><th>Version</th><th>Proceso</th><th>Contrato</th><th>Acción</th></tr>
           </thead>
           <tbody>
-            @for (certificate of displayedCertificates(); track certificate.id_documento_formato || certificate.clave_formato) {
+            @for (certificate of displayedCertificates(); track certificate.clave_formato + ':' + certificate.variante) {
               <tr>
                 <td><strong>{{ certificate.nombre || certificate.titulo || certificate.clave_formato }}</strong></td>
                 <td><span class="badge">BBTH - {{ formatCode(certificate) }}</span></td>
@@ -65,11 +65,20 @@ const FIRST_CERTIFICATE_CODE = 'F-002';
                 <td>{{ selectedContractLabel() }}</td>
                 <td class="actions-cell">
                   @if (isFirstCertificate(certificate)) {
+                    @if (certificate.variante === 'SALARIO_AFILIACIONES') {
+                      <label>Fondo de solidaridad
+                        <input maxlength="200" [value]="solidarity()" (input)="updateSupplied('solidarity', $any($event.target).value)" [disabled]="generating() || downloading()" />
+                      </label>
+                      <label>Retención en la fuente
+                        <input maxlength="200" [value]="withholding()" (input)="updateSupplied('withholding', $any($event.target).value)" [disabled]="generating() || downloading()" />
+                      </label>
+                      <p class="muted">Ambos campos son obligatorios. Escriba «No aplica» solo cuando corresponda.</p>
+                    }
                     <button
                       class="btn small primary"
                       type="button"
                       (click)="generate(certificate)"
-                      [disabled]="generating() || !selectedContract() || !isConfigured(certificate)"
+                      [disabled]="generating() || downloading() || !selectedContract() || !isConfigured(certificate)"
                       [title]="isConfigured(certificate) ? 'Generar datos oficiales del certificado' : 'Configuración de generación pendiente'"
                     >
                       {{ generating() ? 'Cargando...' : 'Generar' }}
@@ -121,6 +130,11 @@ export class ContractingCertificatesComponent implements OnInit {
   readonly downloading = signal(false);
   readonly error = signal('');
   readonly firstCertificateCode = FIRST_CERTIFICATE_CODE;
+  readonly solidarity = signal('');
+  readonly withholding = signal('');
+  readonly selectedFormat = signal<CertificateFormat | null>(null);
+  private confirmed: { key: string; variant: string; contractId: number; supplied?: { fondo_solidaridad: string; retencion_fuente: string } } | null = null;
+  private contextRevision = 0;
   employeeId = 0;
 
   ngOnInit(): void {
@@ -129,9 +143,11 @@ export class ContractingCertificatesComponent implements OnInit {
   }
 
   load(): void {
+    this.contextRevision++;
     this.loading.set(true);
     this.error.set('');
     this.generationData.set(null);
+    this.confirmed = null;
     this.service.getCertificates(this.employeeId).pipe(finalize(() => this.loading.set(false))).subscribe({
       next: (certificates) => this.certificates.set(certificates),
       error: (error) => this.error.set(apiErrorMessage(error, 'No fue posible cargar los certificados.')),
@@ -143,6 +159,7 @@ export class ContractingCertificatesComponent implements OnInit {
   }
 
   generate(certificate: CertificateFormat): void {
+    const revision = ++this.contextRevision;
     const contract = this.selectedContract();
     if (!contract || !this.isFirstCertificate(certificate)) return;
     const contractId = contract.id_empleado_contrato ?? contract.id_contrato_empleado;
@@ -150,27 +167,41 @@ export class ContractingCertificatesComponent implements OnInit {
       this.error.set('No fue posible identificar el contrato seleccionado.');
       return;
     }
+    const variant = certificate.variante || 'GENERAL';
+    const supplied = variant === 'SALARIO_AFILIACIONES' ? { fondo_solidaridad: this.solidarity().trim(), retencion_fuente: this.withholding().trim() } : undefined;
+    if (supplied && Object.values(supplied).some(value => !value || value.length > 200 || /[<>\r\n]/.test(value))) {
+      this.error.set('Complete fondo de solidaridad y retención en la fuente: hasta 200 caracteres, sin HTML ni saltos de línea.');
+      this.generationData.set(null);
+      this.confirmed = null;
+      return;
+    }
+    const context = { key: certificate.clave_formato!, variant, contractId, supplied };
+    this.selectedFormat.set({ ...certificate });
+    this.confirmed = null;
     this.generating.set(true);
     this.error.set('');
     this.generationData.set(null);
     this.service
-      .getCertificateGenerationData(this.employeeId, FIRST_CERTIFICATE_KEY, contractId)
-      .pipe(finalize(() => this.generating.set(false)))
+      .getCertificateGenerationData(this.employeeId, context.key, contractId, variant, supplied)
+      .pipe(finalize(() => {
+        if (revision === this.contextRevision) this.generating.set(false);
+      }))
       .subscribe({
-        next: (data) => this.generationData.set(data),
-        error: (error) => this.error.set(apiErrorMessage(error, 'No fue posible generar los datos del certificado.')),
+        next: (data) => { if (revision === this.contextRevision) { this.confirmed = context; this.generationData.set(data); } },
+        error: (error) => {
+          if (revision === this.contextRevision) this.error.set(apiErrorMessage(error, 'No fue posible generar los datos del certificado.'));
+        },
       });
   }
 download(): void {
-    const contract = this.selectedContract();
-    const contractId = contract?.id_empleado_contrato ?? contract?.id_contrato_empleado;
-    if (!contractId) {
+    const context = this.confirmed;
+    if (!context || !this.generationData()) {
       this.error.set('No fue posible identificar el contrato seleccionado.');
       return;
     }
     this.downloading.set(true);
     this.error.set('');
-    this.service.downloadCertificate(this.employeeId, FIRST_CERTIFICATE_KEY, contractId).subscribe({
+    this.service.downloadCertificate(this.employeeId, context.key, context.contractId, context.variant, context.supplied).subscribe({
       next: async (blob) => {
         const header = new TextDecoder().decode(await blob.slice(0, 8).arrayBuffer());
         if (!header.startsWith('%PDF-')) {
@@ -213,13 +244,8 @@ download(): void {
   }
 
   isFirstCertificate(certificate: CertificateFormat): boolean {
-    const key = certificate.clave_formato?.trim().toUpperCase();
-    const code = certificate.codigo_formato?.trim().toUpperCase();
-    const normalizedCode = code?.replace(/^BBTH[-_]?/, '').trim();
-    return key === FIRST_CERTIFICATE_KEY
-      || code === FIRST_CERTIFICATE_CODE
-      || normalizedCode === FIRST_CERTIFICATE_CODE
-      || code === 'BBTH-F-002';
+    return certificate.clave_formato === FIRST_CERTIFICATE_KEY
+      && ['GENERAL', 'SALARIO_AFILIACIONES'].includes(certificate.variante || 'GENERAL');
   }
 
   isConfigured(certificate: CertificateFormat): boolean {
@@ -247,7 +273,14 @@ download(): void {
   }
 
   firstCertificateName(): string {
-    return 'BBTH - F-002 - CERTIFICADO LABORAL A COLABORADOR';
+    return this.selectedFormat()?.nombre || 'BBTH - F-002 - CERTIFICADO LABORAL A COLABORADOR';
+  }
+
+  updateSupplied(field: 'solidarity' | 'withholding', value: string): void {
+    this.contextRevision++;
+    this[field].set(value);
+    this.confirmed = null;
+    this.generationData.set(null);
   }
 
   get generationDataJson(): string {

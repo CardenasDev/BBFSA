@@ -12,6 +12,7 @@ class CertificateService
 {
     public const FORMAT_KEY = 'CERTIFICADO_LABORAL_ACTIVO';
     public const RENDERER_KEY = 'certificado-laboral-activo-funciones';
+    public const SALARY_RENDERER_KEY = 'certificado-laboral-activo-salario-afiliaciones';
 
     public function __construct(
         private CertificateRepository $certificates,
@@ -28,14 +29,14 @@ class CertificateService
             array_filter($this->certificates->listFormats($this->today()), fn (array $row): bool => $this->supported($row))));
     }
 
-    public function generateDocument(int $employeeId, string $key, int $contractId): string
+    public function generateDocument(int $employeeId, string $key, int $contractId, string $variant = 'GENERAL', array $supplied = []): string
     {
-        return $this->renderer->render($this->generationData($employeeId, $key, $contractId));
+        return $this->renderer->render($this->generationData($employeeId, $key, $contractId, $variant, $supplied));
     }
 
-    public function generationData(int $employeeId, string $key, int $contractId): array
+    public function generationData(int $employeeId, string $key, int $contractId, string $variant = 'GENERAL', array $supplied = []): array
     {
-        if ($key !== self::FORMAT_KEY) {
+        if ($key !== self::FORMAT_KEY || ! in_array($variant, ['GENERAL', 'SALARIO_AFILIACIONES'], true)) {
             throw new ApiException('Formato no implementado.', 404);
         }
         $employee = $this->activeEmployee($employeeId);
@@ -50,8 +51,8 @@ class CertificateService
             || (! empty($contract['fecha_fin']) && (! $end || $end < $today))) {
             throw new ApiException('El contrato debe estar activo y vigente.', 422, ['contrato' => ['Contrato inactivo o fuera de vigencia.']]);
         }
-        $format = $this->certificates->getFormat($key, $today);
-        if (! $format || ! $this->supported($format)) {
+        $format = $variant === 'GENERAL' ? $this->certificates->getFormat($key, $today) : $this->certificates->getFormat($key, $today, $variant);
+        if (! $format || ! $this->supported($format) || $format['variante'] !== $variant) {
             throw new ApiException('Formato no implementado o no disponible.', 404);
         }
         $identity = [
@@ -71,7 +72,28 @@ class CertificateService
             }
         }
         if (! $position) { $errors['cargo'] = ['Cargo obligatorio ausente.']; }
-        if (! $functions) { $errors['funciones'] = ['Funciones obligatorias ausentes.']; }
+        $salaryData = [];
+        if ($variant === 'GENERAL') {
+            if (! $functions) { $errors['funciones'] = ['Funciones obligatorias ausentes.']; }
+        } else {
+            $type = $this->text($contract['tipo_contrato'] ?? null);
+            if (! $type) { $errors['tipo_contrato'] = ['Complete el tipo del contrato.']; }
+            try { $salary = (new SalaryTextFormatter)->format($contract['salario_base'] ?? null); }
+            catch (\InvalidArgumentException $e) { $errors['salario_base'] = ['Complete el salario base decimal válido del contrato.']; $salary = null; }
+            $security = $this->contracting->getSocialSecurity($employeeId) ?? [];
+            $affiliations = [];
+            foreach (['eps', 'arl', 'fondo_pension', 'caja_compensacion'] as $field) {
+                $affiliations[$field] = $this->text($security[$field] ?? null);
+                if (! $affiliations[$field]) { $errors[$field] = ['Complete la afiliación '.$field.' del empleado.']; }
+            }
+            foreach (['fondo_solidaridad', 'retencion_fuente'] as $field) {
+                $value = $supplied[$field] ?? null;
+                if (! is_string($value) || trim($value) === '' || mb_strlen($value) > 200 || preg_match('/[<>\r\n\x00-\x1F\x7F]/u', $value)) {
+                    $errors[$field] = ['Indique un texto obligatorio de hasta 200 caracteres, sin HTML ni saltos de línea.'];
+                } else { $affiliations[$field] = trim($value); }
+            }
+            $salaryData = ['salario' => $salary, 'afiliaciones' => $affiliations];
+        }
         $company = [
             'razon_social' => $this->parameter('DOC_EMPRESA_RAZON_SOCIAL', 'TEXTO', $today, $errors),
             'ciudad' => $this->parameter('DOC_EMPRESA_CIUDAD', 'TEXTO', $today, $errors),
@@ -106,13 +128,14 @@ class CertificateService
 
         return [
             'empleado' => $identity,
-            'contrato' => ['id_empleado_contrato' => $contractId, 'cargo' => $position],
-            'funciones' => $functions,
+            'contrato' => array_merge(['id_empleado_contrato' => $contractId, 'cargo' => $position], $variant === 'GENERAL' ? [] : ['tipo_contrato' => $type]),
+            ...($variant === 'GENERAL' ? ['funciones' => $functions] : []),
             'empresa' => $company,
             'fecha_expedicion' => $today,
             'solicitud' => 'Se expide a solicitud del colaborador.',
             'formato' => $this->metadata($format),
             'firmantes' => $signers,
+            ...$salaryData,
         ];
     }
 
@@ -128,9 +151,10 @@ class CertificateService
 
     private function supported(array $row): bool
     {
+        $renderers = ['GENERAL' => self::RENDERER_KEY, 'SALARIO_AFILIACIONES' => self::SALARY_RENDERER_KEY];
         return ($row['clave_formato'] ?? null) === self::FORMAT_KEY
-            && ($row['variante'] ?? null) === 'GENERAL'
-            && ($row['clave_renderizador'] ?? null) === self::RENDERER_KEY;
+            && isset($renderers[$row['variante'] ?? ''])
+            && ($row['clave_renderizador'] ?? null) === $renderers[$row['variante']];
     }
 
     private function metadata(array $row): array

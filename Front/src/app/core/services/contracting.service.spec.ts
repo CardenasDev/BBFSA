@@ -99,4 +99,37 @@ describe('ContractingService signContract', () => {
     request.flush(new Blob(['document'], { type: 'application/pdf' }));
     http.verify();
   });
+
+  it('keeps GENERAL certificate calls on GET and sends salary declarations by POST', () => {
+    const { service, http } = setup();
+    const supplied = { fondo_solidaridad: 'No aplica', retencion_fuente: 'Declarado por RRHH' };
+
+    service.getCertificateGenerationData(5, 'CERTIFICADO_LABORAL_ACTIVO', 7).subscribe();
+    const generalData = http.expectOne(request => request.url.endsWith('/employees/5/certificates/CERTIFICADO_LABORAL_ACTIVO/generation-data'));
+    expect(generalData.request.method).toBe('GET');
+    expect(generalData.request.params.get('id_empleado_contrato')).toBe('7');
+    generalData.flush({ success: true, message: 'ok', data: {} });
+
+    service.getCertificateGenerationData(5, 'CERTIFICADO_LABORAL_ACTIVO', 7, 'SALARIO_AFILIACIONES', supplied).subscribe();
+    const salaryData = http.expectOne(request => request.url.endsWith('/employees/5/certificates/CERTIFICADO_LABORAL_ACTIVO/generation-data'));
+    expect(salaryData.request.method).toBe('POST');
+    expect(salaryData.request.body).toEqual({
+      id_empleado_contrato: 7,
+      variante: 'SALARIO_AFILIACIONES',
+      ...supplied,
+    });
+    salaryData.flush({ success: true, message: 'ok', data: {} });
+
+    service.downloadCertificate(5, 'CERTIFICADO_LABORAL_ACTIVO', 7, 'SALARIO_AFILIACIONES', supplied).subscribe();
+    const salaryDownload = http.expectOne(request => request.url.endsWith('/employees/5/certificates/CERTIFICADO_LABORAL_ACTIVO/download'));
+    expect(salaryDownload.request.method).toBe('POST');
+    expect(salaryDownload.request.body).toEqual({
+      id_empleado_contrato: 7,
+      variante: 'SALARIO_AFILIACIONES',
+      ...supplied,
+    });
+    expect(salaryDownload.request.responseType).toBe('blob');
+    salaryDownload.flush(new Blob(['%PDF-1.4']));
+    http.verify();
+  });
 });

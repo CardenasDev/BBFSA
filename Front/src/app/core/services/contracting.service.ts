@@ -68,6 +68,38 @@ export class ContractingService {
       .pipe(map((response) => response.data ?? null));
   }
 
+  getCertificates(employeeId: number): Observable<Record<string, unknown>[]> {
+    return this.http
+      .get<ApiResponse<Record<string, unknown>[]>>(`${this.url}/employees/${employeeId}/certificates`)
+      .pipe(map((response) => response.data ?? []));
+  }
+
+  getCertificateGenerationData(
+    employeeId: number,
+    formatKey: string,
+    contractId: number,
+  ): Observable<Record<string, unknown>> {
+    const params = new HttpParams().set('id_empleado_contrato', String(contractId));
+    return this.http
+      .get<ApiResponse<Record<string, unknown>>>(
+        `${this.url}/employees/${employeeId}/certificates/${formatKey}/generation-data`,
+        { params },
+      )
+      .pipe(map((response) => response.data));
+  }
+
+  downloadCertificate(
+    employeeId: number,
+    formatKey: string,
+    contractId: number,
+  ): Observable<Blob> {
+    const params = new HttpParams().set('id_empleado_contrato', String(contractId));
+    return this.http.get(
+      `${this.url}/employees/${employeeId}/certificates/${formatKey}/download`,
+      { params, responseType: 'blob' },
+    );
+  }
+
   saveProfile(
     employeeId: number,
     payload: SaveContractingProfileRequest,

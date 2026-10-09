@@ -24,6 +24,7 @@ import { apiErrorMessage } from '../../shared/api-error';
         <a class="btn small secondary" [routerLink]="['/admin/contracting/employees', employeeId, 'social-security']">Seguridad social</a>
         <a class="btn small ghost" [routerLink]="['/admin/contracting/employees', employeeId, 'medical-exams']">Examenes</a>
         <a class="btn small ghost" [routerLink]="['/admin/contracting/employees', employeeId, 'documents']">Documentos</a>
+        <a class="btn small ghost" [routerLink]="['/admin/contracting/employees', employeeId, 'certificates']">Certificados</a>
       </div>
 
       @if (success()) { <div class="alert success">{{ success() }}</div> }

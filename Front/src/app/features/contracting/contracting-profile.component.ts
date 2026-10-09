@@ -175,6 +175,11 @@ interface ContractingProfileForm extends SaveContractingProfileRequest {
           [routerLink]="['/admin/contracting/employees', employeeId, 'documents']"
           >Documentos</a
         >
+        <a
+          class="btn small ghost"
+          [routerLink]="['/admin/contracting/employees', employeeId, 'certificates']"
+          >Certificados</a
+        >
       </div>
 
       @if (success()) {

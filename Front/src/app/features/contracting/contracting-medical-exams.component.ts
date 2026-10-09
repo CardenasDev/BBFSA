@@ -29,6 +29,7 @@ import { FeedbackDialogComponent } from '../../shared/feedback-dialog.component'
         <a class="btn small ghost" [routerLink]="['/admin/contracting/employees', employeeId, 'social-security']">Seguridad social</a>
         <a class="btn small secondary" [routerLink]="['/admin/contracting/employees', employeeId, 'medical-exams']">Examenes</a>
         <a class="btn small ghost" [routerLink]="['/admin/contracting/employees', employeeId, 'documents']">Documentos</a>
+        <a class="btn small ghost" [routerLink]="['/admin/contracting/employees', employeeId, 'certificates']">Certificados</a>
       </div>
 
       @if (success()) { <app-feedback-dialog type="success" [message]="success()" (closed)="success.set('')" /> }

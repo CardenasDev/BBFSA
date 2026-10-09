@@ -35,28 +35,38 @@ class ContractingApiTest extends TestCase
             'GET|HEAD api/contracting/employees/{employeeId}/documents',
             'POST api/contracting/employees/{employeeId}/documents',
             'GET|HEAD api/contracting/alerts',
+            'GET|HEAD api/contracting/parameters/minimum-salary',
+            'GET|HEAD api/contracting/employees/{employeeId}/certificates',
+            'GET|HEAD api/contracting/employees/{employeeId}/certificates/{formatKey}/generation-data',
+            'GET|HEAD api/contracting/employees/{employeeId}/certificates/{formatKey}/download',
+            'PUT api/contracting/employees/{employeeId}/contracts/{employeeContractId}',
+            'DELETE api/contracting/employees/{employeeId}/contracts/{employeeContractId}',
+            'POST api/contracting/employees/{employeeId}/medical-exams/{examId}',
+            'DELETE api/contracting/employees/{employeeId}/medical-exams/{examId}',
+            'POST api/contracting/employees/{employeeId}/documents/{documentId}',
+            'DELETE api/contracting/employees/{employeeId}/documents/{documentId}',
+            'GET|HEAD api/contracting/employees/{employeeId}/documents/{documentId}/file',
         ], $routes);
     }
 
     public function test_contracting_routes_require_jwt(): void
     {
         foreach ($this->contractingEndpoints() as [$method, $uri]) {
-            $this->json($method, $uri)
-                ->assertUnauthorized()
-                ->assertJson([
-                    'success' => false,
-                    'message' => 'Token de acceso requerido.',
-                ]);
+            $response = $this->json($method, $uri);
+            $this->assertSame(401, $response->getStatusCode());
+            $response->assertJson([
+                'success' => false,
+                'message' => 'Token de acceso requerido.',
+            ]);
         }
     }
 
     public function test_contracting_routes_require_expected_permissions(): void
     {
         foreach ($this->contractingEndpoints() as [$method, $uri]) {
-            $this->withToken($this->tokenWithPermissions([]))
-                ->json($method, $uri)
-                ->assertForbidden()
-                ->assertJsonPath('success', false)
+            $response = $this->withToken($this->tokenWithPermissions([]))->json($method, $uri);
+            $this->assertSame(403, $response->getStatusCode(), "Ruta de permisos fallida: {$method} {$uri}");
+            $response->assertJsonPath('success', false)
                 ->assertJsonPath('message', 'No tiene el permiso requerido para esta operación.');
         }
     }
@@ -624,6 +634,16 @@ class ContractingApiTest extends TestCase
             ['GET', '/api/contracting/employees/5/documents'],
             ['POST', '/api/contracting/employees/5/documents'],
             ['GET', '/api/contracting/alerts'],
+            ['GET', '/api/contracting/parameters/minimum-salary'],
+            ['GET', '/api/contracting/employees/5/certificates'],
+            ['GET', '/api/contracting/employees/5/certificates/CERTIFICADO_LABORAL_ACTIVO/generation-data?id_empleado_contrato=7'],
+            ['PUT', '/api/contracting/employees/5/contracts/7'],
+            ['DELETE', '/api/contracting/employees/5/contracts/7'],
+            ['POST', '/api/contracting/employees/5/medical-exams/7'],
+            ['DELETE', '/api/contracting/employees/5/medical-exams/7'],
+            ['POST', '/api/contracting/employees/5/documents/7'],
+            ['DELETE', '/api/contracting/employees/5/documents/7'],
+            ['GET', '/api/contracting/employees/5/documents/7/file'],
         ];
     }
 
@@ -640,3 +660,5 @@ class ContractingApiTest extends TestCase
         ])['token'];
     }
 }
+
+

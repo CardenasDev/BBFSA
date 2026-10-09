@@ -412,6 +412,15 @@ export const routes: Routes = [
           ),
       },
       {
+        path: 'contracting/employees/:employeeId/certificates',
+        canActivate: [permissionGuard],
+        data: { permissions: ['CONTRATACION_VER'] },
+        loadComponent: () =>
+          import('./features/contracting/contracting-certificates.component').then(
+            (m) => m.ContractingCertificatesComponent,
+          ),
+      },
+      {
         path: 'contracting/alerts',
         canActivate: [permissionGuard],
         data: { permissions: ['CONTRATACION_ALERTAS_VER'] },

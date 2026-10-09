@@ -79,7 +79,7 @@ export class ContractingService {
     formatKey: string,
     contractId: number,
     variant = 'GENERAL',
-    supplied: { fondo_solidaridad: string; retencion_fuente: string } | undefined = undefined,
+    supplied: { fondo_solidaridad?: string; retencion_fuente?: string; fecha_inicio_labores?: string } | undefined = undefined,
   ): Observable<Record<string, unknown>> {
     if (variant !== 'GENERAL') {
       return this.http.post<ApiResponse<Record<string, unknown>>>(
@@ -101,7 +101,7 @@ export class ContractingService {
     formatKey: string,
     contractId: number,
     variant = 'GENERAL',
-    supplied: { fondo_solidaridad: string; retencion_fuente: string } | undefined = undefined,
+    supplied: { fondo_solidaridad?: string; retencion_fuente?: string; fecha_inicio_labores?: string } | undefined = undefined,
   ): Observable<Blob> {
     if (variant !== 'GENERAL') {
       return this.http.post(`${this.url}/employees/${employeeId}/certificates/${formatKey}/download`,

@@ -107,12 +107,17 @@ class CertificateRenderer
             ['text' => 'CERTIFICA', 'bold' => true, 'center' => true, 'after' => 12],
             ['text' => 'Que '.$employee['nombre_completo'].', identificado(a) con '.$employee['tipo_documento'].' número '.$employee['numero_documento'].($place !== '' ? ' de '.$place : '').', labora en nuestra compañía desde '.$this->dateText($employee['fecha_ingreso']).', cumpliendo funciones correspondientes al cargo de '.$data['contrato']['cargo'].'.'],
         ];
-        if (($data['formato']['variante'] ?? 'GENERAL') === 'SALARIO_AFILIACIONES') {
+        $variant = $data['formato']['variante'] ?? 'GENERAL';
+        if ($variant === 'SALARIO_AFILIACIONES') {
             $blocks[] = ['text' => 'Su contrato es de tipo '.$data['contrato']['tipo_contrato'].', con un salario mensual de '.$data['salario']['letras'].' ('.$data['salario']['cifra'].').'];
             $blocks[] = ['text' => 'Tiene registradas las siguientes afiliaciones e información declarada:', 'keep_next' => 26];
             foreach (['eps' => 'EPS', 'arl' => 'ARL', 'fondo_pension' => 'Fondo de pensión', 'caja_compensacion' => 'Caja de compensación', 'fondo_solidaridad' => 'Fondo de solidaridad', 'retencion_fuente' => 'Retención en la fuente'] as $key => $label) {
                 $blocks[] = ['text' => $label.': '.$data['afiliaciones'][$key], 'indent' => 10, 'bullet' => true, 'after' => 4];
             }
+        } elseif ($variant === 'HISTORIAL_CONTRACTUAL') {
+            $blocks[] = ['text' => 'Su contrato actual es de tipo '.$data['contrato']['tipo_contrato'].', con una duración de '.$data['duracion_meses'].' meses, iniciado el '.$this->dateText($data['contrato']['fecha_inicio']).($data['contrato']['fecha_fin'] ? ' y finaliza el '.$this->dateText($data['contrato']['fecha_fin']) : '').'.'];
+            $blocks[] = ['text' => 'Se desempeña en el cargo de '.$data['contrato']['cargo'].', con un salario mensual de '.$data['salario']['letras'].' ('.$data['salario']['cifra'].').'];
+            $blocks[] = ['text' => 'La fecha de inicio de labores certificada es el '.$this->dateText($data['fecha_inicio_labores']).'.', 'after' => 14];
         } else {
             $blocks[] = ['text' => 'Durante el tiempo que ha laborado en nuestra empresa, el trabajador ha desempeñado las siguientes funciones principales:', 'keep_next' => 26];
             foreach ($data['funciones'] as $function) {

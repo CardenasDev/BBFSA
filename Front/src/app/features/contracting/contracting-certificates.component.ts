@@ -74,6 +74,12 @@ const FIRST_CERTIFICATE_CODE = 'F-002';
                       </label>
                       <p class="muted">Ambos campos son obligatorios. Escriba «No aplica» solo cuando corresponda.</p>
                     }
+                    @if (certificate.variante === 'HISTORIAL_CONTRACTUAL') {
+                      <label>Fecha de inicio de labores
+                        <input type="date" [value]="workStartDate()" (input)="updateWorkStartDate($any($event.target).value)" [disabled]="generating() || downloading()" />
+                      </label>
+                      <p class="muted">Fecha autorizada para el certificado. No modifica el registro del empleado.</p>
+                    }
                     <button
                       class="btn small primary"
                       type="button"
@@ -132,8 +138,9 @@ export class ContractingCertificatesComponent implements OnInit {
   readonly firstCertificateCode = FIRST_CERTIFICATE_CODE;
   readonly solidarity = signal('');
   readonly withholding = signal('');
+  readonly workStartDate = signal('');
   readonly selectedFormat = signal<CertificateFormat | null>(null);
-  private confirmed: { key: string; variant: string; contractId: number; supplied?: { fondo_solidaridad: string; retencion_fuente: string } } | null = null;
+  private confirmed: { key: string; variant: string; contractId: number; supplied?: { fondo_solidaridad?: string; retencion_fuente?: string; fecha_inicio_labores?: string } } | null = null;
   private contextRevision = 0;
   employeeId = 0;
 
@@ -168,12 +175,24 @@ export class ContractingCertificatesComponent implements OnInit {
       return;
     }
     const variant = certificate.variante || 'GENERAL';
-    const supplied = variant === 'SALARIO_AFILIACIONES' ? { fondo_solidaridad: this.solidarity().trim(), retencion_fuente: this.withholding().trim() } : undefined;
-    if (supplied && Object.values(supplied).some(value => !value || value.length > 200 || /[<>\r\n]/.test(value))) {
-      this.error.set('Complete fondo de solidaridad y retención en la fuente: hasta 200 caracteres, sin HTML ni saltos de línea.');
-      this.generationData.set(null);
-      this.confirmed = null;
-      return;
+    let supplied: { fondo_solidaridad?: string; retencion_fuente?: string; fecha_inicio_labores?: string } | undefined;
+    if (variant === 'SALARIO_AFILIACIONES') {
+      supplied = { fondo_solidaridad: this.solidarity().trim(), retencion_fuente: this.withholding().trim() };
+      if (Object.values(supplied).some(value => !value || value.length > 200 || /[<>\r\n]/.test(value))) {
+        this.error.set('Complete fondo de solidaridad y retención en la fuente: hasta 200 caracteres, sin HTML ni saltos de línea.');
+        this.generationData.set(null);
+        this.confirmed = null;
+        return;
+      }
+    } else if (variant === 'HISTORIAL_CONTRACTUAL') {
+      const date = this.workStartDate().trim();
+      if (!date) {
+        this.error.set('Indique la fecha de inicio de labores.');
+        this.generationData.set(null);
+        this.confirmed = null;
+        return;
+      }
+      supplied = { fecha_inicio_labores: date };
     }
     const context = { key: certificate.clave_formato!, variant, contractId, supplied };
     this.selectedFormat.set({ ...certificate });
@@ -245,7 +264,7 @@ download(): void {
 
   isFirstCertificate(certificate: CertificateFormat): boolean {
     return certificate.clave_formato === FIRST_CERTIFICATE_KEY
-      && ['GENERAL', 'SALARIO_AFILIACIONES'].includes(certificate.variante || 'GENERAL');
+      && ['GENERAL', 'SALARIO_AFILIACIONES', 'HISTORIAL_CONTRACTUAL'].includes(certificate.variante || 'GENERAL');
   }
 
   isConfigured(certificate: CertificateFormat): boolean {
@@ -279,6 +298,13 @@ download(): void {
   updateSupplied(field: 'solidarity' | 'withholding', value: string): void {
     this.contextRevision++;
     this[field].set(value);
+    this.confirmed = null;
+    this.generationData.set(null);
+  }
+
+  updateWorkStartDate(value: string): void {
+    this.contextRevision++;
+    this.workStartDate.set(value);
     this.confirmed = null;
     this.generationData.set(null);
   }

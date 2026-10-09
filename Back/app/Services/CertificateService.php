@@ -13,6 +13,7 @@ class CertificateService
     public const FORMAT_KEY = 'CERTIFICADO_LABORAL_ACTIVO';
     public const RENDERER_KEY = 'certificado-laboral-activo-funciones';
     public const SALARY_RENDERER_KEY = 'certificado-laboral-activo-salario-afiliaciones';
+    public const HISTORICAL_RENDERER_KEY = 'certificado-laboral-activo-historial-contractual';
 
     public function __construct(
         private CertificateRepository $certificates,
@@ -36,7 +37,7 @@ class CertificateService
 
     public function generationData(int $employeeId, string $key, int $contractId, string $variant = 'GENERAL', array $supplied = []): array
     {
-        if ($key !== self::FORMAT_KEY || ! in_array($variant, ['GENERAL', 'SALARIO_AFILIACIONES'], true)) {
+        if ($key !== self::FORMAT_KEY || ! in_array($variant, ['GENERAL', 'SALARIO_AFILIACIONES', 'HISTORIAL_CONTRACTUAL'], true)) {
             throw new ApiException('Formato no implementado.', 404);
         }
         $employee = $this->activeEmployee($employeeId);
@@ -50,6 +51,9 @@ class CertificateService
         if (($contract['estado_contrato'] ?? null) !== 'ACTIVO' || ! $start || $start > $today
             || (! empty($contract['fecha_fin']) && (! $end || $end < $today))) {
             throw new ApiException('El contrato debe estar activo y vigente.', 422, ['contrato' => ['Contrato inactivo o fuera de vigencia.']]);
+        }
+        if ($variant === 'HISTORIAL_CONTRACTUAL' && ! $this->currentContractMatches($employeeId, $contractId)) {
+            throw new ApiException('Solo puede emitirse el contrato activo y vigente del empleado.', 422, ['contrato' => ['Seleccione el contrato actual activo y vigente.']]);
         }
         $format = $variant === 'GENERAL' ? $this->certificates->getFormat($key, $today) : $this->certificates->getFormat($key, $today, $variant);
         if (! $format || ! $this->supported($format) || $format['variante'] !== $variant) {
@@ -75,7 +79,7 @@ class CertificateService
         $salaryData = [];
         if ($variant === 'GENERAL') {
             if (! $functions) { $errors['funciones'] = ['Funciones obligatorias ausentes.']; }
-        } else {
+        } elseif ($variant === 'SALARIO_AFILIACIONES') {
             $type = $this->text($contract['tipo_contrato'] ?? null);
             if (! $type) { $errors['tipo_contrato'] = ['Complete el tipo del contrato.']; }
             try { $salary = (new SalaryTextFormatter)->format($contract['salario_base'] ?? null); }
@@ -93,6 +97,15 @@ class CertificateService
                 } else { $affiliations[$field] = trim($value); }
             }
             $salaryData = ['salario' => $salary, 'afiliaciones' => $affiliations];
+        } else {
+            $type = $this->text($contract['tipo_contrato'] ?? null);
+            if (! $type) { $errors['tipo_contrato'] = ['Complete el tipo del contrato.']; }
+            $historyDate = $this->suppliedHistoryDate($supplied, $errors);
+            try { $salary = (new SalaryTextFormatter)->format($contract['salario_base'] ?? null); }
+            catch (\InvalidArgumentException $e) { $errors['salario_base'] = ['Complete el salario base decimal válido del contrato.']; $salary = null; }
+            $duration = $this->text($contract['duracion_meses'] ?? null) ?? ($start && $end ? $this->durationInMonths($start, $end) : null);
+            if (! $duration) { $errors['duracion_meses'] = ['Complete la duración del contrato actual.']; }
+            $salaryData = ['salario' => $salary, 'fecha_inicio_labores' => $historyDate, 'duracion_meses' => $duration, 'fecha_inicio' => $start, 'fecha_fin' => $end];
         }
         $company = [
             'razon_social' => $this->parameter('DOC_EMPRESA_RAZON_SOCIAL', 'TEXTO', $today, $errors),
@@ -126,9 +139,19 @@ class CertificateService
         $profile = $this->contracting->getProfile($employeeId);
         $identity['lugar_expedicion_documento'] = $this->text($profile['lugar_expedicion_documento'] ?? null);
 
+        $contractPayload = ['id_empleado_contrato' => $contractId, 'cargo' => $position];
+        if ($variant !== 'GENERAL') {
+            $contractPayload['tipo_contrato'] = $type;
+        }
+        if ($variant === 'HISTORIAL_CONTRACTUAL') {
+            $contractPayload['fecha_inicio'] = $start;
+            $contractPayload['fecha_fin'] = $end;
+            $contractPayload['duracion_meses'] = $salaryData['duracion_meses'] ?? null;
+        }
+
         return [
             'empleado' => $identity,
-            'contrato' => array_merge(['id_empleado_contrato' => $contractId, 'cargo' => $position], $variant === 'GENERAL' ? [] : ['tipo_contrato' => $type]),
+            'contrato' => $variant === 'GENERAL' ? ['id_empleado_contrato' => $contractId, 'cargo' => $position] : $contractPayload,
             ...($variant === 'GENERAL' ? ['funciones' => $functions] : []),
             'empresa' => $company,
             'fecha_expedicion' => $today,
@@ -151,10 +174,63 @@ class CertificateService
 
     private function supported(array $row): bool
     {
-        $renderers = ['GENERAL' => self::RENDERER_KEY, 'SALARIO_AFILIACIONES' => self::SALARY_RENDERER_KEY];
+        $renderers = ['GENERAL' => self::RENDERER_KEY, 'SALARIO_AFILIACIONES' => self::SALARY_RENDERER_KEY, 'HISTORIAL_CONTRACTUAL' => self::HISTORICAL_RENDERER_KEY];
         return ($row['clave_formato'] ?? null) === self::FORMAT_KEY
             && isset($renderers[$row['variante'] ?? ''])
             && ($row['clave_renderizador'] ?? null) === $renderers[$row['variante']];
+    }
+
+    private function currentContractMatches(int $employeeId, int $contractId): bool
+    {
+        foreach ($this->contracting->listContracts($employeeId) as $row) {
+            if (($row['estado_contrato'] ?? null) !== 'ACTIVO') {
+                continue;
+            }
+            $start = $this->date($row['fecha_inicio'] ?? null);
+            $end = $this->date($row['fecha_fin'] ?? null);
+            $today = $this->today();
+            if (! $start || $start > $today || (! empty($row['fecha_fin']) && (! $end || $end < $today))) {
+                continue;
+            }
+            if ((int) ($row['id_empleado_contrato'] ?? 0) === $contractId) {
+                return true;
+            }
+            return false;
+        }
+
+        return false;
+    }
+
+    private function suppliedHistoryDate(array $supplied, array &$errors): ?string
+    {
+        $value = $supplied['fecha_inicio_labores'] ?? $supplied['fecha_vinculacion'] ?? $supplied['inicio_labores'] ?? null;
+        if (! is_string($value) || trim($value) === '') {
+            $errors['fecha_inicio_labores'] = ['Indique la fecha de inicio de labores.'];
+            return null;
+        }
+        $date = $this->date(trim($value));
+        if (! $date) {
+            $errors['fecha_inicio_labores'] = ['La fecha de inicio de labores debe ser una fecha válida YYYY-MM-DD.'];
+            return null;
+        }
+        if ($date > $this->today()) {
+            $errors['fecha_inicio_labores'] = ['La fecha de inicio de labores no puede ser futura.'];
+            return null;
+        }
+
+        return $date;
+    }
+
+    private function durationInMonths(string $start, string $end): ?string
+    {
+        $startDate = new \DateTimeImmutable($start);
+        $endDate = new \DateTimeImmutable($end);
+        $months = (($endDate->format('Y') - $startDate->format('Y')) * 12) + ($endDate->format('n') - $startDate->format('n'));
+        if ($startDate->format('d') > $endDate->format('d')) {
+            $months--;
+        }
+
+        return $months > 0 ? (string) $months : null;
     }
 
     private function metadata(array $row): array
@@ -182,7 +258,7 @@ class CertificateService
         if (! is_string($value)) { return []; }
         return array_values(array_filter(array_map(static function (string $line): string {
             return trim(preg_replace('/^\s*(?:[-*•]\s*|\d+[.)]\s+|[a-zA-Z][.)]\s+)/u', '', $line));
-        }, preg_split('/\R/u', $value) ?: []), static fn (string $line): bool => $line !== '' && ! preg_match('/^(?:sin dato|funciones\.?)$/iu', $line)));
+        }, preg_split('/\R/u', $value) ?: []), static fn (string $line): bool => $line !== '' && ! preg_match('/^(?:sin dato|funciones\.?|\s*)$/iu', $line)));
     }
 
     private function text(mixed $value): ?string

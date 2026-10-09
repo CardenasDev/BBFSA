@@ -60,7 +60,8 @@ class CertificateController extends ApiController
     private function rules(): array
     {
         return ['id_empleado_contrato' => ['required', 'integer', 'min:1'],
-            'variante' => ['sometimes', 'required', 'string', 'in:GENERAL,SALARIO_AFILIACIONES'],
+            'variante' => ['sometimes', 'required', 'string', 'in:GENERAL,SALARIO_AFILIACIONES,HISTORIAL_CONTRACTUAL'],
+            'fecha_inicio_labores' => ['exclude_unless:variante,HISTORIAL_CONTRACTUAL', 'required', 'date_format:Y-m-d'],
             'fondo_solidaridad' => ['exclude_unless:variante,SALARIO_AFILIACIONES', 'required', 'string', 'max:200', 'not_regex:/[<>\r\n\x00-\x1F\x7F]/u'],
             'retencion_fuente' => ['exclude_unless:variante,SALARIO_AFILIACIONES', 'required', 'string', 'max:200', 'not_regex:/[<>\r\n\x00-\x1F\x7F]/u']];
     }

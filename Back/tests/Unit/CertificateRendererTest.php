@@ -1,0 +1,146 @@
+<?php
+
+namespace Tests\Unit;
+
+use App\Exceptions\ApiException;
+use App\Services\CertificateRenderer;
+use PHPUnit\Framework\TestCase;
+
+class CertificateRendererTest extends TestCase
+{
+    public function test_rejects_header_metadata_that_cannot_fit_in_its_cell(): void
+    {
+        $data = $this->data();
+        $data['formato']['titulo'] = str_repeat('Título documental extenso ', 100);
+        $this->expectException(ApiException::class);
+        $this->expectExceptionMessage('Los metadatos del formato exceden');
+        (new CertificateRenderer)->render($data);
+    }
+
+    public function test_rejects_footer_that_would_overlap_body_instead_of_emitting_a_broken_pdf(): void
+    {
+        $data = $this->data();
+        $data['formato']['control_documental']['motivo_revision'] = str_repeat('Revisión de prueba ', 1000);
+        $this->expectException(ApiException::class);
+        $this->expectExceptionMessage('El control documental excede');
+        (new CertificateRenderer)->render($data);
+    }
+
+    public function test_rejects_unsupported_characters_instead_of_changing_official_names(): void
+    {
+        $data = $this->data();
+        $data['empleado']['nombre_completo'] = 'Ana 李';
+        $this->expectException(ApiException::class);
+        $this->expectExceptionMessage('Hay caracteres');
+        (new CertificateRenderer)->render($data);
+    }
+
+    public function test_escapes_pdf_delimiters_in_official_content(): void
+    {
+        $data = $this->data();
+        $data['funciones'] = ['Verificar (calidad) y ruta C:\\documentos.'];
+        $pdf = (new CertificateRenderer)->render($data);
+        $this->assertStringContainsString('Verificar \\(calidad\\) y ruta C:\\\\documentos.', $pdf);
+    }
+
+    public function test_rejects_signature_too_large_to_remain_on_one_page(): void
+    {
+        $data = $this->data();
+        $data['firmantes'][0]['cargo'] = str_repeat('Responsable de talento humano ', 300);
+        $this->expectException(ApiException::class);
+        $this->expectExceptionMessage('Los datos del firmante exceden');
+        (new CertificateRenderer)->render($data);
+    }
+
+    public function test_every_text_command_sets_black_explicitly(): void
+    {
+        $pdf = (new CertificateRenderer)->render($this->data());
+        preg_match_all('/(?:^|\n)([^\n]*BT [^\n]* Tj ET)/', $pdf, $matches);
+        $this->assertNotEmpty($matches[1]);
+        foreach ($matches[1] as $command) {
+            $this->assertStringStartsWith('0 0 0 rg BT ', $command);
+        }
+        $this->assertStringNotContainsString('0.94 0.95 0.97 rg', $pdf);
+    }
+
+    public function test_all_functions_continue_on_numbered_pages_with_signature_at_the_end(): void
+    {
+        $data = $this->data();
+        $data['funciones'] = array_map(fn ($i) => 'FUNCION_'.$i.' '.str_repeat('Supervisar los procesos de calidad y reportar novedades. ', 4), range(1, 30));
+        $pdf = (new CertificateRenderer)->render($data);
+        preg_match('/\/Type \/Pages .*?\/Count (\d+)/', $pdf, $match);
+        $count = (int) $match[1];
+        $this->assertGreaterThan(1, $count);
+        foreach (range(1, 30) as $i) {
+            $this->assertStringContainsString('FUNCION_'.$i.' ', $pdf);
+        }
+        foreach (range(1, $count) as $i) {
+            $this->assertStringContainsString(mb_convert_encoding('Página '.$i.' de '.$count, 'Windows-1252', 'UTF-8'), $pdf);
+        }
+        $this->assertGreaterThan(strpos($pdf, 'FUNCION_30 '), strpos($pdf, 'Firmante de prueba'));
+        preg_match_all('/BT \/F[12] 10 Tf ([\d.]+) ([\d.]+) Td/', $pdf, $positions, PREG_SET_ORDER);
+        foreach ($positions as $position) {
+            $this->assertGreaterThanOrEqual(100, (float) $position[2]);
+            $this->assertLessThanOrEqual(646, (float) $position[2]);
+        }
+    }
+
+    public function test_company_city_and_employee_document_place_are_distinct_and_dates_are_readable(): void
+    {
+        $data = $this->data();
+        $data['empresa']['ciudad'] = 'Gachancipá';
+        $data['empleado']['lugar_expedicion_documento'] = 'Riohacha';
+        $pdf = (new CertificateRenderer)->render($data);
+        $this->assertStringContainsString(mb_convert_encoding('Gachancipá, 9 de octubre de 2026', 'Windows-1252', 'UTF-8'), $pdf);
+        $this->assertStringContainsString('de Riohacha', $pdf);
+        $this->assertStringContainsString('3 de febrero de 2020', $pdf);
+        $this->assertStringContainsString('Motivo de la', $pdf);
+        $this->assertStringNotContainsString('Yuliana', $pdf);
+    }
+
+    private function data(): array
+    {
+        return [
+            'empleado' => ['nombre_completo' => 'Ana Pérez', 'tipo_documento' => 'Cédula', 'numero_documento' => '123', 'fecha_ingreso' => '2020-02-03'],
+            'contrato' => ['cargo' => 'Analista'], 'funciones' => ['Desarrollar software'],
+            'empresa' => ['razon_social' => 'Empresa de prueba', 'ciudad' => 'Bogotá'],
+            'fecha_expedicion' => '2026-10-09', 'formato' => ['codigo_formato' => 'BBTH-F-002'],
+            'firmantes' => [['nombre' => 'Firmante de prueba', 'cargo' => 'RRHH', 'telefono' => '123']],
+        ];
+    }
+
+    public function test_renders_a_pdf_with_the_official_certificate_structure(): void
+    {
+        $renderer = new CertificateRenderer;
+        $content = $renderer->render([
+            'empleado' => [
+                'nombre_completo' => 'Ana Pérez',
+                'tipo_documento' => 'Cédula',
+                'numero_documento' => '123',
+                'fecha_ingreso' => '2020-02-03',
+                'lugar_expedicion_documento' => 'Bogotá',
+            ],
+            'contrato' => ['cargo' => 'Analista', 'id_empleado_contrato' => 7],
+            'funciones' => ['Desarrollar software'],
+            'empresa' => ['razon_social' => 'Empresa de prueba', 'ciudad' => 'Bogotá'],
+            'fecha_expedicion' => '2026-10-06',
+            'solicitud' => 'Se expide a solicitud del colaborador.',
+            'formato' => ['codigo_formato' => 'BBTH-F-002', 'nombre' => 'Certificado laboral a colaborador'],
+            'firmantes' => [[
+                'nombre' => 'Firmante de prueba',
+                'cargo' => 'RRHH',
+                'telefono' => '123',
+            ]],
+        ]);
+
+        $this->assertStringStartsWith('%PDF-1.4', $content);
+        $this->assertStringEndsWith('%%EOF', $content);
+        $this->assertStringContainsString('CERTIFICADO LABORAL A COLABORADOR ACTIVO', $content);
+        $this->assertStringContainsString(mb_convert_encoding('Ana Pérez', 'Windows-1252', 'UTF-8'), $content);
+        $this->assertStringContainsString(mb_convert_encoding('Analista', 'Windows-1252', 'UTF-8'), $content);
+        $this->assertStringContainsString(mb_convert_encoding('Desarrollar software', 'Windows-1252', 'UTF-8'), $content);
+        $this->assertStringContainsString(mb_convert_encoding('Empresa de prueba', 'Windows-1252', 'UTF-8'), $content);
+        $this->assertStringContainsString(mb_convert_encoding('Firmante de prueba', 'Windows-1252', 'UTF-8'), $content);
+        $this->assertStringContainsString('SUSCRITA TALENTO HUMANO', $content);
+    }
+}

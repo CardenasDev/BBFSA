@@ -22,6 +22,8 @@ const FIRST_CERTIFICATE_KEY = 'CERTIFICADO_LABORAL_ACTIVO';
 const FIRST_CERTIFICATE_CODE = 'F-002';
 const RETIREMENT_CERTIFICATE_KEY = 'CERTIFICADO_LABORAL_RETIRO';
 const RETIREMENT_CERTIFICATE_CODE = 'F-003';
+const CHECKLIST_CERTIFICATE_KEY = 'CONSTANCIA_ENTREGA_RETIRO';
+const CHECKLIST_CERTIFICATE_CODE = 'F-004';
 
 @Component({
   standalone: true,
@@ -88,6 +90,15 @@ const RETIREMENT_CERTIFICATE_CODE = 'F-003';
           [style.border-bottom-color]="activeTab() === 'F-003' ? '#3b82f6' : ''"
           [style.font-weight]="activeTab() === 'F-003' ? '600' : ''"
         >F-003</button>
+        <button
+          type="button"
+          class="tab-btn"
+          (click)="activeTab.set('F-004')"
+          style="padding:0.5rem 1rem;border:none;background:transparent;cursor:pointer;font-weight:500;color:#6b7280;border-bottom:2px solid transparent;margin-bottom:-2px"
+          [style.color]="activeTab() === 'F-004' ? '#111827' : ''"
+          [style.border-bottom-color]="activeTab() === 'F-004' ? '#3b82f6' : ''"
+          [style.font-weight]="activeTab() === 'F-004' ? '600' : ''"
+        >F-004</button>
       </div>
 
       @if (activeTab() === 'F-002') {
@@ -180,6 +191,38 @@ const RETIREMENT_CERTIFICATE_CODE = 'F-003';
         </div>
       }
 
+      @if (activeTab() === 'F-004') {
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>Tipo</th><th>Código</th><th>Versión</th><th>Retiro</th><th>Acción</th></tr>
+            </thead>
+            <tbody>
+              @for (certificate of checklistCertificates(); track certificate.clave_formato + ':' + certificate.variante) {
+                <tr>
+                  <td><strong>{{ certificate.nombre || certificate.titulo || certificate.clave_formato }}</strong></td>
+                  <td><span class="badge">BBTH - {{ formatCode(certificate) }}</span></td>
+                  <td>{{ certificate.version_formato || 'Sin versión' }}</td>
+                  <td>{{ selectedRetirement()?.motivo_retiro || 'Sin retiro' }}</td>
+                  <td class="actions-cell">
+                    <button
+                      class="btn small primary"
+                      type="button"
+                      (click)="generateChecklist(certificate)"
+                      [disabled]="generating() || downloading() || !selectedRetirement() || !isConfigured(certificate)"
+                    >
+                      {{ generating() ? 'Cargando...' : 'Generar' }}
+                    </button>
+                  </td>
+                </tr>
+              } @empty {
+                <tr><td colspan="5" class="empty">{{ loading() ? 'Cargando certificados...' : 'No hay checklist de retiro disponibles.' }}</td></tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+
       @if (generationData()) {
         <section class="panel" style="margin-top:1rem">
           <div class="section-title">
@@ -210,6 +253,7 @@ export class ContractingCertificatesComponent implements OnInit {
   private readonly retirementService = inject(RetirementService);
   readonly certificates = signal<CertificateFormat[]>([]);
   readonly retirementCertificates = signal<CertificateFormat[]>([]);
+  readonly checklistCertificates = signal<CertificateFormat[]>([]);
   readonly contracts = signal<EmployeeContract[]>([]);
   readonly retirements = signal<Array<{ id_retiro: number; motivo_retiro: string; fecha_retiro: string }>>([]);
   readonly generationData = signal<Record<string, unknown> | null>(null);
@@ -220,7 +264,8 @@ export class ContractingCertificatesComponent implements OnInit {
   readonly errorFields = signal<Record<string, string[]>>({});
   readonly firstCertificateCode = FIRST_CERTIFICATE_CODE;
   readonly retirementCertificateCode = RETIREMENT_CERTIFICATE_CODE;
-  readonly activeTab = signal<'F-002' | 'F-003'>('F-002');
+  readonly checklistCertificateCode = CHECKLIST_CERTIFICATE_CODE;
+  readonly activeTab = signal<'F-002' | 'F-003' | 'F-004'>('F-002');
   readonly solidarity = signal('');
   readonly withholding = signal('');
   readonly workStartDate = signal('');
@@ -297,6 +342,10 @@ export class ContractingCertificatesComponent implements OnInit {
     this.service.getRetirementCertificates(this.employeeId).subscribe({
       next: (certificates) => this.retirementCertificates.set(certificates),
       error: () => this.retirementCertificates.set([]),
+    });
+    this.service.getChecklistCertificates(this.employeeId).subscribe({
+      next: (certificates) => this.checklistCertificates.set(certificates),
+      error: () => this.checklistCertificates.set([]),
     });
     this.retirementService.list({ employee_id: this.employeeId }).subscribe({
       next: (retirements) => this.retirements.set(retirements),
@@ -391,6 +440,39 @@ export class ContractingCertificatesComponent implements OnInit {
       });
   }
 
+  generateChecklist(certificate: CertificateFormat): void {
+    const revision = ++this.contextRevision;
+    const retirement = this.selectedRetirement();
+    if (!retirement || !this.isChecklistCertificate(certificate)) return;
+    const retirementId = retirement.id_retiro;
+    if (!retirementId) {
+      this.error.set('No fue posible identificar el retiro seleccionado.');
+      return;
+    }
+    const context = { key: certificate.clave_formato!, variant: 'CHECKLIST', contractId: 0, retirementId, supplied: undefined };
+    this.selectedFormat.set({ ...certificate });
+    this.confirmed = null;
+    this.generating.set(true);
+    this.error.set('');
+    this.errorFields.set({});
+    this.generationData.set(null);
+    this.service
+      .getChecklistGenerationData(this.employeeId, retirementId)
+      .pipe(finalize(() => {
+        if (revision === this.contextRevision) this.generating.set(false);
+      }))
+      .subscribe({
+        next: (data) => { if (revision === this.contextRevision) { this.confirmed = context; this.generationData.set(data); } },
+        error: (error) => {
+          if (revision === this.contextRevision) this.handleError(error, 'No fue posible generar los datos del checklist de retiro.');
+        },
+      });
+  }
+
+  isChecklistCertificate(certificate: CertificateFormat): boolean {
+    return certificate.clave_formato === CHECKLIST_CERTIFICATE_KEY;
+  }
+
   download(): void {
     const context = this.confirmed;
     if (!context || !this.generationData()) {
@@ -400,9 +482,12 @@ export class ContractingCertificatesComponent implements OnInit {
     this.downloading.set(true);
     this.error.set('');
     const isRetirement = context.variant === 'RETIRO' && !!context.retirementId;
+    const isChecklist = context.variant === 'CHECKLIST' && !!context.retirementId;
     const request$ = isRetirement
       ? this.service.downloadRetirementCertificate(this.employeeId, context.retirementId!, context.supplied as { fondo_solidaridad: string; retencion_fuente: string; auxilio_transporte: string })
-      : this.service.downloadCertificate(this.employeeId, context.key, context.contractId, context.variant, context.supplied);
+      : isChecklist
+        ? this.service.downloadChecklist(this.employeeId, context.retirementId!)
+        : this.service.downloadCertificate(this.employeeId, context.key, context.contractId, context.variant, context.supplied);
     request$.subscribe({
       next: async (blob) => {
         const header = new TextDecoder().decode(await blob.slice(0, 8).arrayBuffer());
@@ -415,7 +500,7 @@ export class ContractingCertificatesComponent implements OnInit {
         const url = URL.createObjectURL(blob);
         const anchor = document.createElement('a');
         anchor.href = url;
-        anchor.download = isRetirement ? 'BBTH-F-003-CERTIFICADO-LABORAL-RETIRO.pdf' : 'BBTH-F-002-CERTIFICADO-LABORAL.pdf';
+        anchor.download = isRetirement ? 'BBTH-F-003-CERTIFICADO-LABORAL-RETIRO.pdf' : isChecklist ? 'BBTH-F-004-PAZ-Y-SALVO-ENTREGA-RETIRO.pdf' : 'BBTH-F-002-CERTIFICADO-LABORAL.pdf';
         anchor.style.display = 'none';
         document.body.appendChild(anchor);
         try {

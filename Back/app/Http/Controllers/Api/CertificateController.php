@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Services\CertificateService;
 use App\Services\RetirementCertificateService;
+use App\Services\RetirementChecklistService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -13,6 +14,7 @@ class CertificateController extends ApiController
     public function __construct(
         private CertificateService $service,
         private RetirementCertificateService $retirementService,
+        private RetirementChecklistService $checklistService,
     ) {}
 
     public function index(int $employeeId): JsonResponse
@@ -127,5 +129,39 @@ class CertificateController extends ApiController
             'retencion_fuente' => ['required', 'string', 'max:200', 'not_regex:/[<>\r\n\x00-\x1F\x7F]/u'],
             'auxilio_transporte' => ['required', 'string', 'max:200', 'not_regex:/[<>\r\n\x00-\x1F\x7F]/u'],
         ];
+    }
+
+    public function checklistAvailable(int $employeeId): JsonResponse
+    {
+        return $this->success($this->checklistService->available($employeeId), 'Documentos de paz y salvo consultados correctamente.');
+    }
+
+    public function checklistGenerationData(Request $request, int $employeeId): JsonResponse
+    {
+        $data = $request->validate(['id_retiro' => ['required', 'integer', 'min:1']], [
+            'id_retiro.required' => 'Indique el retiro del empleado.',
+            'id_retiro.integer' => 'El retiro debe ser un número entero.',
+            'id_retiro.min' => 'El retiro debe ser mayor que cero.',
+        ]);
+        return $this->success($this->checklistService->generationData($employeeId, (int) $data['id_retiro']),
+            'Datos del checklist de retiro consultados correctamente.');
+    }
+
+    public function checklistDownload(Request $request, int $employeeId): Response
+    {
+        $data = $request->validate(['id_retiro' => ['required', 'integer', 'min:1']], [
+            'id_retiro.required' => 'Indique el retiro del empleado.',
+            'id_retiro.integer' => 'El retiro debe ser un número entero.',
+            'id_retiro.min' => 'El retiro debe ser mayor que cero.',
+        ]);
+        $content = $this->checklistService->generateDocument($employeeId, (int) $data['id_retiro']);
+
+        return response($content, 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="BBTH-F-004-PAZ-Y-SALVO-ENTREGA-RETIRO.pdf"',
+            'Cache-Control' => 'no-store, private',
+            'Pragma' => 'no-cache',
+            'Expires' => '0',
+        ]);
     }
 }

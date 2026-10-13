@@ -157,4 +157,50 @@ class CertificateRendererTest extends TestCase
         $this->assertStringContainsString(mb_convert_encoding('Firmante de prueba', 'Windows-1252', 'UTF-8'), $content);
         $this->assertStringContainsString('SUSCRITA TALENTO HUMANO', $content);
     }
+
+    public function test_checklist_renders_five_pending_items_with_registered_motive(): void
+    {
+        $pdf = (new CertificateRenderer)->render($this->checklistData());
+        foreach (['Certificado laboral: Documento que certifica el tiempo de servicio', 'Planilla de seguridad social', 'Examen de egreso', 'Entrevista:'] as $item) {
+            $this->assertStringContainsString(mb_convert_encoding($item, 'Windows-1252', 'UTF-8'), $pdf);
+        }
+        $this->assertStringContainsString(mb_convert_encoding('Por medio de la presente, nos permitimos hacer entrega formal', 'Windows-1252', 'UTF-8'), $pdf);
+        $this->assertStringContainsString(mb_convert_encoding('Renuncia voluntaria', 'Windows-1252', 'UTF-8'), $pdf);
+        $this->assertStringContainsString(mb_convert_encoding('Carta de aceptación de renuncia', 'Windows-1252', 'UTF-8'), $pdf);
+        $this->assertStringContainsString(mb_convert_encoding('Reconocemos y agradecemos su compromiso', 'Windows-1252', 'UTF-8'), $pdf);
+        $this->assertStringContainsString('Para constancia firma,', $pdf);
+        $this->assertStringNotContainsString('se encuentra entregada al excolaborador', $pdf);
+    }
+
+    public function test_checklist_adapts_termination_reference_to_recorded_motive(): void
+    {
+        $data = $this->checklistData('Terminación con justa causa');
+        $pdf = (new CertificateRenderer)->render($data);
+        $this->assertStringContainsString(mb_convert_encoding('Notificación de terminación del contrato', 'Windows-1252', 'UTF-8'), $pdf);
+        $this->assertStringContainsString(mb_convert_encoding('Terminación con justa causa', 'Windows-1252', 'UTF-8'), $pdf);
+        $this->assertStringNotContainsString(mb_convert_encoding('Carta de aceptación de renuncia', 'Windows-1252', 'UTF-8'), $pdf);
+    }
+
+    private function checklistData(string $motivo = 'Renuncia voluntaria'): array
+    {
+        return [
+            'empleado' => [
+                'nombre_completo' => 'Ana Pérez',
+                'tipo_documento' => 'Cédula',
+                'numero_documento' => '123',
+                'fecha_ingreso' => '2023-01-16',
+            ],
+            'retiro' => ['id_retiro' => 3, 'fecha_retiro' => '2026-10-01', 'motivo_retiro' => $motivo],
+            'contrato' => ['tipo_contrato' => null, 'cargo' => 'Supervisor de Calidad'],
+            'empresa' => ['razon_social' => 'Empresa de prueba', 'ciudad' => 'Bogotá'],
+            'fecha_expedicion' => '2026-10-06',
+            'formato' => ['clave_formato' => 'CONSTANCIA_ENTREGA_RETIRO', 'codigo_formato' => 'BBTH-F-004', 'nombre' => 'Check list de retiro'],
+            'firmantes' => [[
+                'nombre' => 'Firmante de prueba',
+                'cargo' => 'RRHH',
+                'telefono' => '123',
+            ]],
+            'encabezado_talento_humano' => 'TALENTO HUMANO',
+        ];
+    }
 }

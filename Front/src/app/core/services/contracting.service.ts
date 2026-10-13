@@ -143,6 +143,27 @@ export class ContractingService {
     );
   }
 
+  getChecklistCertificates(employeeId: number): Observable<Record<string, unknown>[]> {
+    return this.http
+      .get<ApiResponse<Record<string, unknown>[]>>(`${this.url}/employees/${employeeId}/certificates/checklist`)
+      .pipe(map((response) => response.data ?? []));
+  }
+
+  getChecklistGenerationData(employeeId: number, retirementId: number): Observable<Record<string, unknown>> {
+    return this.http.post<ApiResponse<Record<string, unknown>>>(
+      `${this.url}/employees/${employeeId}/certificates/checklist/generation-data`,
+      { id_retiro: retirementId },
+    ).pipe(map((response) => response.data));
+  }
+
+  downloadChecklist(employeeId: number, retirementId: number): Observable<Blob> {
+    return this.http.post(
+      `${this.url}/employees/${employeeId}/certificates/checklist/download`,
+      { id_retiro: retirementId },
+      { responseType: 'blob' },
+    );
+  }
+
   saveProfile(
     employeeId: number,
     payload: SaveContractingProfileRequest,

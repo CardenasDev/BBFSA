@@ -100,6 +100,9 @@ class CertificateRenderer
         if ($formatKey === 'CERTIFICADO_LABORAL_RETIRO') {
             return $this->retirementBlocks($data);
         }
+        if ($formatKey === 'CONSTANCIA_ENTREGA_RETIRO') {
+            return $this->retirementChecklistBlocks($data);
+        }
 
         $employee = $data['empleado'];
         $company = $data['empresa'];
@@ -174,6 +177,45 @@ class CertificateRenderer
         }
 
         return $blocks;
+    }
+
+    private function retirementChecklistBlocks(array $data): array
+    {
+        $employee = $data['empleado'];
+        $retiro = $data['retiro'];
+        $company = $data['empresa'];
+        $date = $this->dateText($data['fecha_expedicion']);
+
+        $blocks = [
+            ['text' => $company['ciudad'].', '.$date, 'after' => 18],
+            ['text' => 'Señor(a)', 'after' => 2],
+            ['text' => $employee['nombre_completo'], 'bold' => true, 'after' => 2],
+            ['text' => 'Cargo '.$data['contrato']['cargo'], 'after' => 12],
+            ['text' => 'Por medio de la presente, nos permitimos hacer entrega formal de los documentos correspondientes a la finalización de su relación laboral con '.$company['razon_social'].'.', 'after' => 12],
+            ['text' => 'Certificado laboral: Documento que certifica el tiempo de servicio, el cargo desempeñado y las funciones realizadas en la empresa.', 'after' => 6],
+            ['text' => 'Planilla de seguridad social: Constancia de los últimos tres meses de aportes realizados al sistema de seguridad social durante su vinculación laboral.', 'after' => 6],
+            ['text' => $this->terminationDocumentDescription($retiro['motivo_retiro']), 'after' => 6],
+            ['text' => 'Examen de egreso: Remisión para realizar su debido examen.', 'after' => 6],
+            ['text' => 'Entrevista: ¿Razón de finalización de relación laboral con la compañía?', 'after' => 2],
+            ['text' => $retiro['motivo_retiro'], 'after' => 14],
+            ['text' => 'Reconocemos y agradecemos su compromiso, profesionalismo y dedicación durante el tiempo que formó parte de nuestro equipo. Le deseamos éxito en sus nuevos proyectos personales y profesionales.', 'after' => 16],
+            ['text' => 'Para constancia firma,', 'after' => 6],
+        ];
+
+        foreach ($data['firmantes'] as $signer) {
+            $blocks[] = ['text' => "____________________\n".$signer['nombre']."\nTEL. ".$signer['telefono']."\n".$signer['cargo'], 'signature' => true, 'after' => 14];
+        }
+
+        return $blocks;
+    }
+
+    private function terminationDocumentDescription(string $motivoRetiro): string
+    {
+        if (mb_stripos($motivoRetiro, 'renuncia') !== false) {
+            return 'Carta de aceptación de renuncia: Comunicación oficial donde consta que la empresa ha recibido y aceptado su renuncia voluntaria, dando por terminado el vínculo contractual.';
+        }
+
+        return 'Notificación de terminación del contrato: Comunicación oficial donde consta la terminación del vínculo contractual por '.$motivoRetiro.'.';
     }
 
     private function header(array $data, int $page, int $total): string

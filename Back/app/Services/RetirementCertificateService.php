@@ -69,13 +69,31 @@ class RetirementCertificateService
             $errors['fecha_retiro'] = ['La fecha de retiro debe ser una fecha válida y no futura.'];
         }
 
-        $position = $this->text($retirement['cargo'] ?? null);
+        $position = $this->text($retirement['cargo'] ?? null) ?? $this->text($contract['cargo'] ?? null);
+        if (! $position) {
+            $contracts = $this->contracting->listContracts($employeeId);
+            foreach ($contracts as $c) {
+                if (($c['estado_contrato'] ?? null) === 'ACTIVO' && ! empty($c['cargo'])) {
+                    $position = $this->text($c['cargo']);
+                    break;
+                }
+            }
+        }
         if (! $position) { $errors['cargo'] = ['Cargo obligatorio ausente.']; }
 
         $motivoRetiro = $this->text($retirement['motivo_retiro'] ?? null);
         if (! $motivoRetiro) { $errors['motivo_retiro'] = ['Motivo de retiro obligatorio ausente.']; }
 
         $contract = $this->contracting->getContractGenerationData((int) ($retirement['id_empleado_contrato'] ?? 0));
+        if (empty($contract['tipo_contrato']) || empty($contract['salario_base'])) {
+            $contracts = $this->contracting->listContracts($employeeId);
+            foreach ($contracts as $c) {
+                if (($c['estado_contrato'] ?? null) === 'ACTIVO' && ! empty($c['tipo_contrato'])) {
+                    $contract = $c;
+                    break;
+                }
+            }
+        }
         $tipoContrato = $this->text($contract['tipo_contrato'] ?? null);
         if (! $tipoContrato) { $errors['tipo_contrato'] = ['Complete el tipo del contrato.']; }
 
@@ -85,6 +103,9 @@ class RetirementCertificateService
             $errors['salario_base'] = ['Complete el salario base decimal válido del contrato.'];
             $salary = null;
         }
+
+        $position = $this->text($retirement['cargo'] ?? null) ?? $this->text($contract['cargo'] ?? null);
+        if (! $position) { $errors['cargo'] = ['Cargo obligatorio ausente.']; }
 
         $security = $this->contracting->getSocialSecurity($employeeId) ?? [];
         $affiliations = [];

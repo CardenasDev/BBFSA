@@ -47,14 +47,31 @@ const RETIREMENT_CERTIFICATE_CODE = 'F-003';
       </div>
 
       @if (error()) {
-        <div class="alert error" role="alert">
-          {{ error() }}
-          <button class="btn small ghost" type="button" (click)="load()" [disabled]="loading()">Reintentar</button>
+        <div class="alert error" role="alert" style="max-width:520px;margin:0 auto 1rem;padding:1.25rem 1.5rem;border-radius:8px">
+          <div style="display:flex;gap:0.75rem;align-items:flex-start">
+            <span style="flex-shrink:0;width:32px;height:32px;border-radius:50%;background:#fee2e2;color:#dc2626;display:flex;align-items:center;justify-content:center;font-weight:700">!</span>
+            <div style="flex:1">
+              <p style="margin:0 0 0.5rem;font-weight:600;color:#991b1b">Revisa la información</p>
+              @if (errorFieldEntries().length) {
+                <div style="margin:0.5rem 0;color:#7f1d1d;font-size:0.9rem;line-height:1.6">
+                  @for (entry of errorFieldEntries(); track entry.key) {
+                    <p style="margin:0.25rem 0"><strong>{{ fieldLabel(entry.key) }}:</strong> {{ entry.value.join(' ') }}</p>
+                  }
+                </div>
+              } @else {
+                <p style="margin:0.5rem 0;color:#7f1d1d;font-size:0.9rem">{{ error() }}</p>
+              }
+            </div>
+          </div>
+          <div style="margin-top:1rem;text-align:right">
+            <button class="btn small secondary" type="button" (click)="clearError()">Entendido</button>
+          </div>
         </div>
       }
 
       <div class="tabs" style="display:flex;gap:0.5rem;margin-bottom:1rem;border-bottom:2px solid #e5e7eb;padding-bottom:0">
         <button
+          type="button"
           class="tab-btn"
           (click)="activeTab.set('F-002')"
           style="padding:0.5rem 1rem;border:none;background:transparent;cursor:pointer;font-weight:500;color:#6b7280;border-bottom:2px solid transparent;margin-bottom:-2px"
@@ -63,6 +80,7 @@ const RETIREMENT_CERTIFICATE_CODE = 'F-003';
           [style.font-weight]="activeTab() === 'F-002' ? '600' : ''"
         >F-002</button>
         <button
+          type="button"
           class="tab-btn"
           (click)="activeTab.set('F-003')"
           style="padding:0.5rem 1rem;border:none;background:transparent;cursor:pointer;font-weight:500;color:#6b7280;border-bottom:2px solid transparent;margin-bottom:-2px"
@@ -199,6 +217,7 @@ export class ContractingCertificatesComponent implements OnInit {
   readonly generating = signal(false);
   readonly downloading = signal(false);
   readonly error = signal('');
+  readonly errorFields = signal<Record<string, string[]>>({});
   readonly firstCertificateCode = FIRST_CERTIFICATE_CODE;
   readonly retirementCertificateCode = RETIREMENT_CERTIFICATE_CODE;
   readonly activeTab = signal<'F-002' | 'F-003'>('F-002');
@@ -213,6 +232,45 @@ export class ContractingCertificatesComponent implements OnInit {
   private contextRevision = 0;
   employeeId = 0;
 
+  errorFieldEntries(): Array<{ key: string; value: string[] }> {
+    return Object.entries(this.errorFields()).map(([key, value]) => ({ key, value }));
+  }
+
+  fieldLabel(field: string): string {
+    const labels: Record<string, string> = {
+      cargo: 'Cargo',
+      tipo_contrato: 'Tipo de contrato',
+      salario_base: 'Salario base',
+      fecha_retiro: 'Fecha de retiro',
+      motivo_retiro: 'Motivo de retiro',
+      fecha_ingreso: 'Fecha de ingreso',
+      firmantes_json: 'Firmantes',
+      id_empleado_contrato: 'Contrato',
+      eps: 'EPS',
+      arl: 'ARL',
+      fondo_pension: 'Fondo de pensión',
+      caja_compensacion: 'Caja de compensación',
+    };
+    return labels[field] || field;
+  }
+
+  clearError(): void {
+    this.error.set('');
+    this.errorFields.set({});
+  }
+
+  handleError(error: unknown, genericMessage: string): void {
+    const err = error as { error?: { errors?: Record<string, string[]> } };
+    const fields = err.error?.errors;
+    if (fields && typeof fields === 'object' && Object.keys(fields).length) {
+      this.error.set('Faltan datos oficiales o configuración para generar el certificado.');
+      this.errorFields.set(fields);
+    } else {
+      this.error.set(apiErrorMessage(error, genericMessage));
+      this.errorFields.set({});
+    }
+  }
+
   ngOnInit(): void {
     this.employeeId = Number(this.route.snapshot.paramMap.get('employeeId'));
     this.load();
@@ -226,7 +284,11 @@ export class ContractingCertificatesComponent implements OnInit {
     this.confirmed = null;
     this.service.getCertificates(this.employeeId).pipe(finalize(() => this.loading.set(false))).subscribe({
       next: (certificates) => this.certificates.set(certificates),
-      error: (error) => this.error.set(apiErrorMessage(error, 'No fue posible cargar los certificados.')),
+      error: (error) => {
+        if (this.activeTab() === 'F-002') {
+          this.error.set(apiErrorMessage(error, 'No fue posible cargar los certificados.'));
+        }
+      },
     });
     this.service.getContracts(this.employeeId).subscribe({
       next: (contracts) => this.contracts.set(contracts),
@@ -285,7 +347,7 @@ export class ContractingCertificatesComponent implements OnInit {
       .subscribe({
         next: (data) => { if (revision === this.contextRevision) { this.confirmed = context; this.generationData.set(data); } },
         error: (error) => {
-          if (revision === this.contextRevision) this.error.set(apiErrorMessage(error, 'No fue posible generar los datos del certificado.'));
+          if (revision === this.contextRevision) this.handleError(error, 'No fue posible generar los datos del certificado.');
         },
       });
   }
@@ -324,7 +386,7 @@ export class ContractingCertificatesComponent implements OnInit {
       .subscribe({
         next: (data) => { if (revision === this.contextRevision) { this.confirmed = context; this.generationData.set(data); } },
         error: (error) => {
-          if (revision === this.contextRevision) this.error.set(apiErrorMessage(error, 'No fue posible generar los datos del certificado de retiro.'));
+          if (revision === this.contextRevision) this.handleError(error, 'No fue posible generar los datos del certificado de retiro.');
         },
       });
   }

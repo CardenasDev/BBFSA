@@ -13,4 +13,9 @@ class CertificateRepository extends StoredProcedureRepository
     {
         return $this->first('SP_BBF_DOCUMENTO_FORMATO_OBTENER', [$key, $variant, $date]);
     }
+
+    public function listAllFormats(string $date): array
+    {
+        return $this->call('SP_BBF_DOCUMENTO_FORMATOS_LISTAR', [null, $date]);
+    }
 }

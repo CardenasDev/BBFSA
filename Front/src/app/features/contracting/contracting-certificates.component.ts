@@ -1,8 +1,9 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+﻿import { Component, OnInit, inject, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { finalize } from 'rxjs';
 import { AuthService } from '../../core/services/auth.service';
 import { ContractingService } from '../../core/services/contracting.service';
+import { RetirementService } from '../../core/services/retirement.service';
 import { apiErrorMessage } from '../../shared/api-error';
 import { EmployeeContract } from '../../core/models/api.models';
 
@@ -19,6 +20,8 @@ export interface CertificateFormat {
 
 const FIRST_CERTIFICATE_KEY = 'CERTIFICADO_LABORAL_ACTIVO';
 const FIRST_CERTIFICATE_CODE = 'F-002';
+const RETIREMENT_CERTIFICATE_KEY = 'CERTIFICADO_LABORAL_RETIRO';
+const RETIREMENT_CERTIFICATE_CODE = 'F-003';
 
 @Component({
   standalone: true,
@@ -50,21 +53,40 @@ const FIRST_CERTIFICATE_CODE = 'F-002';
         </div>
       }
 
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr><th>Tipo</th><th>Codigo</th><th>Version</th><th>Proceso</th><th>Contrato</th><th>Acción</th></tr>
-          </thead>
-          <tbody>
-            @for (certificate of displayedCertificates(); track certificate.clave_formato + ':' + certificate.variante) {
-              <tr>
-                <td><strong>{{ certificate.nombre || certificate.titulo || certificate.clave_formato }}</strong></td>
-                <td><span class="badge">BBTH - {{ formatCode(certificate) }}</span></td>
-                <td>{{ certificate.version_formato || 'Sin version' }}</td>
-                <td>{{ certificate.proceso || 'Sin proceso' }}</td>
-                <td>{{ selectedContractLabel() }}</td>
-                <td class="actions-cell">
-                  @if (isFirstCertificate(certificate)) {
+      <div class="tabs" style="display:flex;gap:0.5rem;margin-bottom:1rem;border-bottom:2px solid #e5e7eb;padding-bottom:0">
+        <button
+          class="tab-btn"
+          (click)="activeTab.set('F-002')"
+          style="padding:0.5rem 1rem;border:none;background:transparent;cursor:pointer;font-weight:500;color:#6b7280;border-bottom:2px solid transparent;margin-bottom:-2px"
+          [style.color]="activeTab() === 'F-002' ? '#111827' : ''"
+          [style.border-bottom-color]="activeTab() === 'F-002' ? '#3b82f6' : ''"
+          [style.font-weight]="activeTab() === 'F-002' ? '600' : ''"
+        >F-002</button>
+        <button
+          class="tab-btn"
+          (click)="activeTab.set('F-003')"
+          style="padding:0.5rem 1rem;border:none;background:transparent;cursor:pointer;font-weight:500;color:#6b7280;border-bottom:2px solid transparent;margin-bottom:-2px"
+          [style.color]="activeTab() === 'F-003' ? '#111827' : ''"
+          [style.border-bottom-color]="activeTab() === 'F-003' ? '#3b82f6' : ''"
+          [style.font-weight]="activeTab() === 'F-003' ? '600' : ''"
+        >F-003</button>
+      </div>
+
+      @if (activeTab() === 'F-002') {
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>Tipo</th><th>Código</th><th>Versión</th><th>Proceso</th><th>Contrato</th><th>Acción</th></tr>
+            </thead>
+            <tbody>
+              @for (certificate of displayedCertificates(); track certificate.clave_formato + ':' + certificate.variante) {
+                <tr>
+                  <td><strong>{{ certificate.nombre || certificate.titulo || certificate.clave_formato }}</strong></td>
+                  <td><span class="badge">BBTH - {{ formatCode(certificate) }}</span></td>
+                  <td>{{ certificate.version_formato || 'Sin versión' }}</td>
+                  <td>{{ certificate.proceso || 'Sin proceso' }}</td>
+                  <td>{{ selectedContractLabel() }}</td>
+                  <td class="actions-cell">
                     @if (certificate.variante === 'SALARIO_AFILIACIONES') {
                       <label>Fondo de solidaridad
                         <input maxlength="200" [value]="solidarity()" (input)="updateSupplied('solidarity', $any($event.target).value)" [disabled]="generating() || downloading()" />
@@ -85,21 +107,60 @@ const FIRST_CERTIFICATE_CODE = 'F-002';
                       type="button"
                       (click)="generate(certificate)"
                       [disabled]="generating() || downloading() || !selectedContract() || !isConfigured(certificate)"
-                      [title]="isConfigured(certificate) ? 'Generar datos oficiales del certificado' : 'Configuración de generación pendiente'"
                     >
                       {{ generating() ? 'Cargando...' : 'Generar' }}
                     </button>
-                  } @else {
-                    <span class="muted">Próximamente</span>
-                  }
-                </td>
-              </tr>
-            } @empty {
-              <tr><td colspan="6" class="empty">{{ loading() ? 'Cargando certificados...' : 'No hay certificados disponibles para este empleado.' }}</td></tr>
-            }
-          </tbody>
-        </table>
-      </div>
+                  </td>
+                </tr>
+              } @empty {
+                <tr><td colspan="6" class="empty">{{ loading() ? 'Cargando certificados...' : 'No hay certificados disponibles para este empleado.' }}</td></tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+
+      @if (activeTab() === 'F-003') {
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>Tipo</th><th>Código</th><th>Versión</th><th>Retiro</th><th>Acción</th></tr>
+            </thead>
+            <tbody>
+              @for (certificate of retirementCertificates(); track certificate.clave_formato + ':' + certificate.variante) {
+                <tr>
+                  <td><strong>{{ certificate.nombre || certificate.titulo || certificate.clave_formato }}</strong></td>
+                  <td><span class="badge">BBTH - {{ formatCode(certificate) }}</span></td>
+                  <td>{{ certificate.version_formato || 'Sin versión' }}</td>
+                  <td>{{ selectedRetirement()?.motivo_retiro || 'Sin retiro' }}</td>
+                  <td class="actions-cell">
+                    <label>Fondo de solidaridad
+                      <input maxlength="200" [value]="retirementSolidarity()" (input)="updateRetirementSupplied('solidarity', $any($event.target).value)" [disabled]="generating() || downloading()" />
+                    </label>
+                    <label>Retención en la fuente
+                      <input maxlength="200" [value]="retirementWithholding()" (input)="updateRetirementSupplied('withholding', $any($event.target).value)" [disabled]="generating() || downloading()" />
+                    </label>
+                    <label>Auxilio de transporte
+                      <input maxlength="200" [value]="retirementTransport()" (input)="updateRetirementSupplied('transport', $any($event.target).value)" [disabled]="generating() || downloading()" />
+                    </label>
+                    <p class="muted">Campos obligatorios suministrados por el usuario autorizado.</p>
+                    <button
+                      class="btn small primary"
+                      type="button"
+                      (click)="generateRetirement(certificate)"
+                      [disabled]="generating() || downloading() || !selectedRetirement() || !isConfigured(certificate)"
+                    >
+                      {{ generating() ? 'Cargando...' : 'Generar' }}
+                    </button>
+                  </td>
+                </tr>
+              } @empty {
+                <tr><td colspan="5" class="empty">{{ loading() ? 'Cargando certificados...' : 'No hay certificados de retiro disponibles.' }}</td></tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
 
       @if (generationData()) {
         <section class="panel" style="margin-top:1rem">
@@ -128,19 +189,27 @@ export class ContractingCertificatesComponent implements OnInit {
   readonly auth = inject(AuthService);
   private readonly route = inject(ActivatedRoute);
   private readonly service = inject(ContractingService);
+  private readonly retirementService = inject(RetirementService);
   readonly certificates = signal<CertificateFormat[]>([]);
+  readonly retirementCertificates = signal<CertificateFormat[]>([]);
   readonly contracts = signal<EmployeeContract[]>([]);
+  readonly retirements = signal<Array<{ id_retiro: number; motivo_retiro: string; fecha_retiro: string }>>([]);
   readonly generationData = signal<Record<string, unknown> | null>(null);
   readonly loading = signal(false);
   readonly generating = signal(false);
   readonly downloading = signal(false);
   readonly error = signal('');
   readonly firstCertificateCode = FIRST_CERTIFICATE_CODE;
+  readonly retirementCertificateCode = RETIREMENT_CERTIFICATE_CODE;
+  readonly activeTab = signal<'F-002' | 'F-003'>('F-002');
   readonly solidarity = signal('');
   readonly withholding = signal('');
   readonly workStartDate = signal('');
+  readonly retirementSolidarity = signal('');
+  readonly retirementWithholding = signal('');
+  readonly retirementTransport = signal('');
   readonly selectedFormat = signal<CertificateFormat | null>(null);
-  private confirmed: { key: string; variant: string; contractId: number; supplied?: { fondo_solidaridad?: string; retencion_fuente?: string; fecha_inicio_labores?: string } } | null = null;
+  private confirmed: { key: string; variant: string; contractId: number; retirementId?: number; supplied?: { fondo_solidaridad?: string; retencion_fuente?: string; fecha_inicio_labores?: string; auxilio_transporte?: string } } | null = null;
   private contextRevision = 0;
   employeeId = 0;
 
@@ -162,6 +231,14 @@ export class ContractingCertificatesComponent implements OnInit {
     this.service.getContracts(this.employeeId).subscribe({
       next: (contracts) => this.contracts.set(contracts),
       error: () => this.contracts.set([]),
+    });
+    this.service.getRetirementCertificates(this.employeeId).subscribe({
+      next: (certificates) => this.retirementCertificates.set(certificates),
+      error: () => this.retirementCertificates.set([]),
+    });
+    this.retirementService.list({ employee_id: this.employeeId }).subscribe({
+      next: (retirements) => this.retirements.set(retirements),
+      error: () => this.retirements.set([]),
     });
   }
 
@@ -212,7 +289,47 @@ export class ContractingCertificatesComponent implements OnInit {
         },
       });
   }
-download(): void {
+
+  generateRetirement(certificate: CertificateFormat): void {
+    const revision = ++this.contextRevision;
+    const retirement = this.selectedRetirement();
+    if (!retirement || !this.isRetirementCertificate(certificate)) return;
+    const retirementId = retirement.id_retiro;
+    if (!retirementId) {
+      this.error.set('No fue posible identificar el retiro seleccionado.');
+      return;
+    }
+    const supplied = {
+      fondo_solidaridad: this.retirementSolidarity().trim(),
+      retencion_fuente: this.retirementWithholding().trim(),
+      auxilio_transporte: this.retirementTransport().trim(),
+    };
+    if (Object.values(supplied).some(value => !value || value.length > 200 || /[<>\r\n]/.test(value))) {
+      this.error.set('Complete fondo de solidaridad, retención en la fuente y auxilio de transporte: hasta 200 caracteres, sin HTML ni saltos de línea.');
+      this.generationData.set(null);
+      this.confirmed = null;
+      return;
+    }
+    const context = { key: certificate.clave_formato!, variant: 'RETIRO', contractId: 0, retirementId, supplied };
+    this.selectedFormat.set({ ...certificate });
+    this.confirmed = null;
+    this.generating.set(true);
+    this.error.set('');
+    this.generationData.set(null);
+    this.service
+      .getRetirementCertificateGenerationData(this.employeeId, retirementId, supplied)
+      .pipe(finalize(() => {
+        if (revision === this.contextRevision) this.generating.set(false);
+      }))
+      .subscribe({
+        next: (data) => { if (revision === this.contextRevision) { this.confirmed = context; this.generationData.set(data); } },
+        error: (error) => {
+          if (revision === this.contextRevision) this.error.set(apiErrorMessage(error, 'No fue posible generar los datos del certificado de retiro.'));
+        },
+      });
+  }
+
+  download(): void {
     const context = this.confirmed;
     if (!context || !this.generationData()) {
       this.error.set('No fue posible identificar el contrato seleccionado.');
@@ -220,7 +337,11 @@ download(): void {
     }
     this.downloading.set(true);
     this.error.set('');
-    this.service.downloadCertificate(this.employeeId, context.key, context.contractId, context.variant, context.supplied).subscribe({
+    const isRetirement = context.variant === 'RETIRO' && !!context.retirementId;
+    const request$ = isRetirement
+      ? this.service.downloadRetirementCertificate(this.employeeId, context.retirementId!, context.supplied as { fondo_solidaridad: string; retencion_fuente: string; auxilio_transporte: string })
+      : this.service.downloadCertificate(this.employeeId, context.key, context.contractId, context.variant, context.supplied);
+    request$.subscribe({
       next: async (blob) => {
         const header = new TextDecoder().decode(await blob.slice(0, 8).arrayBuffer());
         if (!header.startsWith('%PDF-')) {
@@ -232,7 +353,7 @@ download(): void {
         const url = URL.createObjectURL(blob);
         const anchor = document.createElement('a');
         anchor.href = url;
-        anchor.download = 'BBTH-F-002-CERTIFICADO-LABORAL.pdf';
+        anchor.download = isRetirement ? 'BBTH-F-003-CERTIFICADO-LABORAL-RETIRO.pdf' : 'BBTH-F-002-CERTIFICADO-LABORAL.pdf';
         anchor.style.display = 'none';
         document.body.appendChild(anchor);
         try {
@@ -250,7 +371,6 @@ download(): void {
     });
   }
 
-  
   selectedContract(): EmployeeContract | null {
     return this.contracts().find((contract) => contract.estado_contrato === 'ACTIVO') ?? this.contracts()[0] ?? null;
   }
@@ -265,6 +385,38 @@ download(): void {
   isFirstCertificate(certificate: CertificateFormat): boolean {
     return certificate.clave_formato === FIRST_CERTIFICATE_KEY
       && ['GENERAL', 'SALARIO_AFILIACIONES', 'HISTORIAL_CONTRACTUAL'].includes(certificate.variante || 'GENERAL');
+  }
+
+  isRetirementCertificate(certificate: CertificateFormat): boolean {
+    return certificate.clave_formato === RETIREMENT_CERTIFICATE_KEY;
+  }
+
+  selectedRetirement(): { id_retiro: number; motivo_retiro: string; fecha_retiro: string } | null {
+    return this.retirements()[0] ?? null;
+  }
+
+  updateSupplied(field: 'solidarity' | 'withholding', value: string): void {
+    this.contextRevision++;
+    if (field === 'solidarity') this.solidarity.set(value);
+    else this.withholding.set(value);
+    this.confirmed = null;
+    this.generationData.set(null);
+  }
+
+  updateWorkStartDate(value: string): void {
+    this.contextRevision++;
+    this.workStartDate.set(value);
+    this.confirmed = null;
+    this.generationData.set(null);
+  }
+
+  updateRetirementSupplied(field: 'solidarity' | 'withholding' | 'transport', value: string): void {
+    this.contextRevision++;
+    if (field === 'solidarity') this.retirementSolidarity.set(value);
+    else if (field === 'withholding') this.retirementWithholding.set(value);
+    else this.retirementTransport.set(value);
+    this.confirmed = null;
+    this.generationData.set(null);
   }
 
   isConfigured(certificate: CertificateFormat): boolean {
@@ -293,20 +445,6 @@ download(): void {
 
   firstCertificateName(): string {
     return this.selectedFormat()?.nombre || 'BBTH - F-002 - CERTIFICADO LABORAL A COLABORADOR';
-  }
-
-  updateSupplied(field: 'solidarity' | 'withholding', value: string): void {
-    this.contextRevision++;
-    this[field].set(value);
-    this.confirmed = null;
-    this.generationData.set(null);
-  }
-
-  updateWorkStartDate(value: string): void {
-    this.contextRevision++;
-    this.workStartDate.set(value);
-    this.confirmed = null;
-    this.generationData.set(null);
   }
 
   get generationDataJson(): string {

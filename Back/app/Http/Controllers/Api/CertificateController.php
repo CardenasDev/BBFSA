@@ -3,13 +3,17 @@
 namespace App\Http\Controllers\Api;
 
 use App\Services\CertificateService;
+use App\Services\RetirementCertificateService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 class CertificateController extends ApiController
 {
-    public function __construct(private CertificateService $service) {}
+    public function __construct(
+        private CertificateService $service,
+        private RetirementCertificateService $retirementService,
+    ) {}
 
     public function index(int $employeeId): JsonResponse
     {
@@ -71,5 +75,57 @@ class CertificateController extends ApiController
         if ($request->input('variante') === 'SALARIO_AFILIACIONES' && ! $request->isMethod('POST')) {
             throw \Illuminate\Validation\ValidationException::withMessages(['variante' => ['Para esta variante envíe los datos en el cuerpo JSON mediante POST.']]);
         }
+    }
+
+    public function retirementAvailable(int $employeeId): JsonResponse
+    {
+        return $this->success($this->retirementService->available($employeeId), 'Certificados de retiro disponibles consultados correctamente.');
+    }
+
+    public function retirementGenerationData(Request $request, int $employeeId): JsonResponse
+    {
+        $data = $request->validate($this->retirementRules(), [
+            'id_retiro.required' => 'Indique el retiro del empleado.',
+            'id_retiro.integer' => 'El retiro debe ser un número entero.',
+            'id_retiro.min' => 'El retiro debe ser mayor que cero.',
+            '*.required' => 'Complete fondo de solidaridad, retención en la fuente y auxilio de transporte.',
+            '*.string' => 'El campo debe ser un texto.',
+            '*.max' => 'El texto debe tener hasta 200 caracteres.',
+            '*.not_regex' => 'El texto no debe contener HTML ni saltos de línea.',
+        ]);
+        return $this->success($this->retirementService->generationData($employeeId, (int) $data['id_retiro'], $data),
+            'Datos del certificado de retiro consultados correctamente.');
+    }
+
+    public function retirementDownload(Request $request, int $employeeId): Response
+    {
+        $data = $request->validate($this->retirementRules(), [
+            'id_retiro.required' => 'Indique el retiro del empleado.',
+            'id_retiro.integer' => 'El retiro debe ser un número entero.',
+            'id_retiro.min' => 'El retiro debe ser mayor que cero.',
+            '*.required' => 'Complete fondo de solidaridad, retención en la fuente y auxilio de transporte.',
+            '*.string' => 'El campo debe ser un texto.',
+            '*.max' => 'El texto debe tener hasta 200 caracteres.',
+            '*.not_regex' => 'El texto no debe contener HTML ni saltos de línea.',
+        ]);
+        $content = $this->retirementService->generateDocument($employeeId, (int) $data['id_retiro'], $data);
+
+        return response($content, 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="BBTH-F-003-CERTIFICADO-LABORAL-RETIRO.pdf"',
+            'Cache-Control' => 'no-store, private',
+            'Pragma' => 'no-cache',
+            'Expires' => '0',
+        ]);
+    }
+
+    private function retirementRules(): array
+    {
+        return [
+            'id_retiro' => ['required', 'integer', 'min:1'],
+            'fondo_solidaridad' => ['required', 'string', 'max:200', 'not_regex:/[<>\r\n\x00-\x1F\x7F]/u'],
+            'retencion_fuente' => ['required', 'string', 'max:200', 'not_regex:/[<>\r\n\x00-\x1F\x7F]/u'],
+            'auxilio_transporte' => ['required', 'string', 'max:200', 'not_regex:/[<>\r\n\x00-\x1F\x7F]/u'],
+        ];
     }
 }

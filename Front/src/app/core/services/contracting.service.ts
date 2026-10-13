@@ -74,6 +74,12 @@ export class ContractingService {
       .pipe(map((response) => response.data ?? []));
   }
 
+  getRetirementCertificates(employeeId: number): Observable<Record<string, unknown>[]> {
+    return this.http
+      .get<ApiResponse<Record<string, unknown>[]>>(`${this.url}/employees/${employeeId}/certificates/retirement`)
+      .pipe(map((response) => response.data ?? []));
+  }
+
   getCertificateGenerationData(
     employeeId: number,
     formatKey: string,
@@ -111,6 +117,29 @@ export class ContractingService {
     return this.http.get(
       `${this.url}/employees/${employeeId}/certificates/${formatKey}/download`,
       { params, responseType: 'blob' },
+    );
+  }
+
+  getRetirementCertificateGenerationData(
+    employeeId: number,
+    retirementId: number,
+    supplied: { fondo_solidaridad: string; retencion_fuente: string; auxilio_transporte: string },
+  ): Observable<Record<string, unknown>> {
+    return this.http.post<ApiResponse<Record<string, unknown>>>(
+      `${this.url}/employees/${employeeId}/certificates/retirement/generation-data`,
+      { id_retiro: retirementId, ...supplied },
+    ).pipe(map((response) => response.data));
+  }
+
+  downloadRetirementCertificate(
+    employeeId: number,
+    retirementId: number,
+    supplied: { fondo_solidaridad: string; retencion_fuente: string; auxilio_transporte: string },
+  ): Observable<Blob> {
+    return this.http.post(
+      `${this.url}/employees/${employeeId}/certificates/retirement/download`,
+      { id_retiro: retirementId, ...supplied },
+      { responseType: 'blob' },
     );
   }
 

@@ -96,13 +96,19 @@ class CertificateRenderer
 
     private function blocks(array $data): array
     {
+        $formatKey = $data['formato']['clave_formato'] ?? '';
+        if ($formatKey === 'CERTIFICADO_LABORAL_RETIRO') {
+            return $this->retirementBlocks($data);
+        }
+
         $employee = $data['empleado'];
         $company = $data['empresa'];
         $date = $this->dateText($data['fecha_expedicion']);
         $place = $this->text($employee['lugar_expedicion_documento'] ?? null);
+        $encabezadoTalentoHumano = $data['encabezado_talento_humano'] ?? 'SUSCRITA TALENTO HUMANO';
         $blocks = [
             ['text' => $company['ciudad'].', '.$date, 'after' => 18],
-            ['text' => 'SUSCRITA TALENTO HUMANO', 'bold' => true, 'center' => true, 'after' => 12],
+            ['text' => $encabezadoTalentoHumano, 'bold' => true, 'center' => true, 'after' => 12],
             ['text' => 'La persona suscrita, responsable del área de Talento Humano de la compañía '.$company['razon_social'].'.', 'after' => 16],
             ['text' => 'CERTIFICA', 'bold' => true, 'center' => true, 'after' => 12],
             ['text' => 'Que '.$employee['nombre_completo'].', identificado(a) con '.$employee['tipo_documento'].' número '.$employee['numero_documento'].($place !== '' ? ' de '.$place : '').', labora en nuestra compañía desde '.$this->dateText($employee['fecha_ingreso']).', cumpliendo funciones correspondientes al cargo de '.$data['contrato']['cargo'].'.'],
@@ -125,6 +131,44 @@ class CertificateRenderer
             }
         }
         $blocks[] = ['text' => 'Este certificado se expide el '.$date.', a solicitud del colaborador, para los fines pertinentes que se requieran.', 'after' => 14];
+        foreach ($data['firmantes'] as $signer) {
+            $blocks[] = ['text' => "Cordialmente,\n\n____________________\n".$signer['nombre']."\nTEL. ".$signer['telefono']."\n".$signer['cargo'], 'signature' => true, 'after' => 14];
+        }
+
+        return $blocks;
+    }
+
+    private function retirementBlocks(array $data): array
+    {
+        $employee = $data['empleado'];
+        $retiro = $data['retiro'];
+        $contrato = $data['contrato'];
+        $company = $data['empresa'];
+        $date = $this->dateText($data['fecha_expedicion']);
+        $place = $this->text($employee['lugar_expedicion_documento'] ?? null);
+
+        $blocks = [
+            ['text' => $company['ciudad'].', '.$date, 'after' => 18],
+            ['text' => 'CERTIFICADO LABORAL', 'bold' => true, 'center' => true, 'after' => 12],
+            ['text' => 'La presente certifica que el(a) señor(a)', 'after' => 8],
+            ['text' => 'NOMBRE Y APELLIDO: '.$employee['nombre_completo'], 'after' => 6],
+            ['text' => 'CARGO: '.$contrato['cargo'], 'after' => 6],
+            ['text' => 'TIPO DE DOCUMENTO: '.$employee['tipo_documento'].' '.$employee['numero_documento'].($place !== '' ? ' de '.$place : ''), 'after' => 6],
+            ['text' => 'FECHA DE INGRESO: '.$this->shortDate($employee['fecha_ingreso']), 'after' => 6],
+            ['text' => 'FECHA DE RETIRO: '.$this->shortDate($retiro['fecha_retiro']), 'after' => 6],
+            ['text' => 'TIPO DE CONTRATO: '.$contrato['tipo_contrato'], 'after' => 6],
+            ['text' => 'SALARIO BASICO: '.$data['salario']['cifra'], 'after' => 6],
+            ['text' => 'AUXILIO DE TRANSPORTE: '.$data['afiliaciones']['auxilio_transporte'], 'after' => 6],
+            ['text' => 'EPS: '.$data['afiliaciones']['eps'], 'after' => 6],
+            ['text' => 'CAJA DE COMPENSACIÓN: '.$data['afiliaciones']['caja_compensacion'], 'after' => 6],
+            ['text' => 'ARL: '.$data['afiliaciones']['arl'], 'after' => 6],
+            ['text' => 'PENSIÓN: '.$data['afiliaciones']['fondo_pension'], 'after' => 6],
+            ['text' => 'FONDO DE SOLIDARIDAD: '.$data['afiliaciones']['fondo_solidaridad'], 'after' => 6],
+            ['text' => 'RETENCION EN LA FUENTE: '.$data['afiliaciones']['retencion_fuente'], 'after' => 6],
+            ['text' => 'TIPO DE RENUNCIA: '.$retiro['motivo_retiro'], 'after' => 18],
+            ['text' => 'Esta certificación se emite a solicitud del interesado y de acuerdo con las normas legales vigentes. Cualquier información adicional no dude en comunicarse a los teléfonos.', 'after' => 14],
+        ];
+
         foreach ($data['firmantes'] as $signer) {
             $blocks[] = ['text' => "Cordialmente,\n\n____________________\n".$signer['nombre']."\nTEL. ".$signer['telefono']."\n".$signer['cargo'], 'signature' => true, 'after' => 14];
         }

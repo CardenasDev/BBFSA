@@ -30,6 +30,8 @@ const CESANTIAS_CERTIFICATE_KEY = 'CESANTIAS_VIVIENDA';
 const CESANTIAS_CERTIFICATE_CODE = 'F-011';
 const CESANTIAS_END_CERTIFICATE_KEY = 'CESANTIAS_FIN_CONTRATO';
 const CESANTIAS_END_CERTIFICATE_CODE = 'F-012';
+const NON_RENEWAL_CERTIFICATE_KEY = 'NO_RENOVACION_CONTRATO';
+const NON_RENEWAL_CERTIFICATE_CODE = 'F-015';
 
 @Component({
   standalone: true,
@@ -132,6 +134,15 @@ const CESANTIAS_END_CERTIFICATE_CODE = 'F-012';
           [style.border-bottom-color]="activeTab() === 'F-012' ? '#3b82f6' : ''"
           [style.font-weight]="activeTab() === 'F-012' ? '600' : ''"
         >F-012</button>
+        <button
+          type="button"
+          class="tab-btn"
+          (click)="activeTab.set('F-015')"
+          style="padding:0.5rem 1rem;border:none;background:transparent;cursor:pointer;font-weight:500;color:#6b7280;border-bottom:2px solid transparent;margin-bottom:-2px"
+          [style.color]="activeTab() === 'F-015' ? '#111827' : ''"
+          [style.border-bottom-color]="activeTab() === 'F-015' ? '#3b82f6' : ''"
+          [style.font-weight]="activeTab() === 'F-015' ? '600' : ''"
+        >F-015</button>
       </div>
 
       @if (activeTab() === 'F-002') {
@@ -382,6 +393,49 @@ const CESANTIAS_END_CERTIFICATE_CODE = 'F-012';
         </div>
       }
 
+      @if (activeTab() === 'F-015') {
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>Tipo</th><th>Código</th><th>Versión</th><th>Acción</th></tr>
+            </thead>
+            <tbody>
+              @for (certificate of nonRenewalCertificates(); track certificate.clave_formato + ':' + certificate.variante) {
+                <tr>
+                  <td><strong>{{ certificate.nombre || certificate.titulo || certificate.clave_formato }}</strong></td>
+                  <td><span class="badge">BBTH - {{ formatCode(certificate) }}</span></td>
+                  <td>{{ certificate.version_formato || 'Sin versión' }}</td>
+                  <td class="actions-cell">
+                    <label>Contrato a término fijo
+                      <select [value]="nonRenewalContractId() ?? ''" (change)="updateNonRenewalContract($any($event.target).value)" [disabled]="generating() || downloading()">
+                        <option value="">Seleccione contrato</option>
+                        @for (contract of contracts(); track contract.id_empleado_contrato ?? contract.id_contrato_empleado) {
+                          <option [value]="contract.id_empleado_contrato ?? contract.id_contrato_empleado ?? ''">Contrato #{{ contract.id_empleado_contrato ?? contract.id_contrato_empleado }} — {{ contractLabel(contract) }}</option>
+                        }
+                      </select>
+                    </label>
+                    <label>NIT de la empresa
+                      <input maxlength="20" [value]="nonRenewalNit()" (input)="updateNonRenewalNit($any($event.target).value)" [disabled]="generating() || downloading()" />
+                    </label>
+                    <p class="muted">Seleccione el contrato a término fijo. El NIT es editable. No modifican registros del sistema.</p>
+                    <button
+                      class="btn small primary"
+                      type="button"
+                      (click)="generateNonRenewal(certificate)"
+                      [disabled]="generating() || downloading() || !nonRenewalContractId() || !isConfigured(certificate)"
+                    >
+                      {{ generating() ? 'Cargando...' : 'Generar' }}
+                    </button>
+                  </td>
+                </tr>
+              } @empty {
+                <tr><td colspan="4" class="empty">{{ loading() ? 'Cargando certificados...' : 'No hay cartas de no renovación disponibles.' }}</td></tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+
       @if (generationData()) {
         <section class="panel" style="margin-top:1rem">
           <div class="section-title">
@@ -416,6 +470,7 @@ export class ContractingCertificatesComponent implements OnInit {
   readonly acceptanceCertificates = signal<CertificateFormat[]>([]);
   readonly cesantiasCertificates = signal<CertificateFormat[]>([]);
   readonly cesantiasEndCertificates = signal<CertificateFormat[]>([]);
+  readonly nonRenewalCertificates = signal<CertificateFormat[]>([]);
   readonly contracts = signal<EmployeeContract[]>([]);
   readonly retirements = signal<Array<{ id_retiro: number; motivo_retiro: string; fecha_retiro: string }>>([]);
   readonly generationData = signal<Record<string, unknown> | null>(null);
@@ -430,7 +485,8 @@ export class ContractingCertificatesComponent implements OnInit {
   readonly acceptanceCertificateCode = ACCEPTANCE_CERTIFICATE_CODE;
   readonly cesantiasCertificateCode = CESANTIAS_CERTIFICATE_CODE;
   readonly cesantiasEndCertificateCode = CESANTIAS_END_CERTIFICATE_CODE;
-  readonly activeTab = signal<'F-002' | 'F-003' | 'F-004' | 'F-005' | 'F-011' | 'F-012'>('F-002');
+  readonly nonRenewalCertificateCode = NON_RENEWAL_CERTIFICATE_CODE;
+  readonly activeTab = signal<'F-002' | 'F-003' | 'F-004' | 'F-005' | 'F-011' | 'F-012' | 'F-015'>('F-002');
   readonly solidarity = signal('');
   readonly withholding = signal('');
   readonly workStartDate = signal('');
@@ -446,6 +502,8 @@ export class ContractingCertificatesComponent implements OnInit {
   readonly cesantiasEndNit = signal('900747203-1');
   readonly cesantiasEndEmail = signal('secretariabarroblanco@gmail.com');
   readonly cesantiasEndPhone = signal('3153188486');
+  readonly nonRenewalContractId = signal<number | null>(null);
+  readonly nonRenewalNit = signal('900747203');
   readonly selectedFormat = signal<CertificateFormat | null>(null);
   private confirmed: { key: string; variant: string; contractId: number; retirementId?: number; supplied?: { fondo_solidaridad?: string; retencion_fuente?: string; fecha_inicio_labores?: string; auxilio_transporte?: string; fecha_presentacion_renuncia?: string; modalidad?: string; concepto_retiro?: string; monto_retiro?: string; fecha_desde?: string; fecha_hasta?: string; nit_empresa?: string; correo_contacto?: string; telefono_contacto?: string } } | null = null;
   private contextRevision = 0;
@@ -460,6 +518,8 @@ export class ContractingCertificatesComponent implements OnInit {
       cargo: 'Cargo',
       tipo_contrato: 'Tipo de contrato',
       salario_base: 'Salario base',
+      fecha_inicio: 'Fecha de suscripción',
+      fecha_fin: 'Fecha de vencimiento',
       fecha_retiro: 'Fecha de retiro',
       fecha_presentacion_renuncia: 'Fecha de presentación',
       modalidad: 'Modalidad',
@@ -542,6 +602,10 @@ export class ContractingCertificatesComponent implements OnInit {
     this.service.getCesantiasTerminationCertificates(this.employeeId).subscribe({
       next: (certificates) => this.cesantiasEndCertificates.set(certificates),
       error: () => this.cesantiasEndCertificates.set([]),
+    });
+    this.service.getNonRenewalCertificates(this.employeeId).subscribe({
+      next: (certificates) => this.nonRenewalCertificates.set(certificates),
+      error: () => this.nonRenewalCertificates.set([]),
     });
     this.retirementService.list({ employee_id: this.employeeId }).subscribe({
       next: (retirements) => this.retirements.set(retirements),
@@ -679,6 +743,63 @@ export class ContractingCertificatesComponent implements OnInit {
 
   isCesantiasEndCertificate(certificate: CertificateFormat): boolean {
     return certificate.clave_formato === CESANTIAS_END_CERTIFICATE_KEY;
+  }
+
+  isNonRenewalCertificate(certificate: CertificateFormat): boolean {
+    return certificate.clave_formato === NON_RENEWAL_CERTIFICATE_KEY;
+  }
+
+  updateNonRenewalContract(value: string): void {
+    this.contextRevision++;
+    this.nonRenewalContractId.set(value ? Number(value) : null);
+    this.confirmed = null;
+    this.generationData.set(null);
+  }
+
+  updateNonRenewalNit(value: string): void {
+    this.contextRevision++;
+    this.nonRenewalNit.set(value);
+    this.confirmed = null;
+    this.generationData.set(null);
+  }
+
+  generateNonRenewal(certificate: CertificateFormat): void {
+    const revision = ++this.contextRevision;
+    if (!this.isNonRenewalCertificate(certificate)) return;
+    const contractId = this.nonRenewalContractId();
+    if (!contractId) {
+      this.error.set('Seleccione el contrato a término fijo.');
+      this.errorFields.set({});
+      this.generationData.set(null);
+      this.confirmed = null;
+      return;
+    }
+    const supplied = { nit_empresa: this.nonRenewalNit().trim() };
+    if (!/^\d{5,12}(-\d)?$/.test(supplied.nit_empresa)) {
+      this.error.set('Indique el NIT de la empresa con formato de dígitos y dígito de verificación opcional.');
+      this.errorFields.set({});
+      this.generationData.set(null);
+      this.confirmed = null;
+      return;
+    }
+    const context = { key: certificate.clave_formato!, variant: 'NON_RENEWAL', contractId, supplied };
+    this.selectedFormat.set({ ...certificate });
+    this.confirmed = null;
+    this.generating.set(true);
+    this.error.set('');
+    this.errorFields.set({});
+    this.generationData.set(null);
+    this.service
+      .getNonRenewalGenerationData(this.employeeId, contractId, supplied)
+      .pipe(finalize(() => {
+        if (revision === this.contextRevision) this.generating.set(false);
+      }))
+      .subscribe({
+        next: (data) => { if (revision === this.contextRevision) { this.confirmed = context; this.generationData.set(data); } },
+        error: (error) => {
+          if (revision === this.contextRevision) this.handleError(error, 'No fue posible generar los datos de la carta de no renovación.');
+        },
+      });
   }
 
   updateCesantiasEnd(field: 'from' | 'to' | 'nit' | 'email' | 'phone', value: string): void {
@@ -885,6 +1006,7 @@ export class ContractingCertificatesComponent implements OnInit {
     const isAcceptance = context.variant === 'ACCEPTANCE' && !!context.retirementId;
     const isCesantias = context.variant === 'CESANTIAS';
     const isCesantiasEnd = context.variant === 'CESANTIAS_END';
+    const isNonRenewal = context.variant === 'NON_RENEWAL';
     const request$ = isRetirement
       ? this.service.downloadRetirementCertificate(this.employeeId, context.retirementId!, context.supplied as { fondo_solidaridad: string; retencion_fuente: string; auxilio_transporte: string })
       : isChecklist
@@ -895,7 +1017,9 @@ export class ContractingCertificatesComponent implements OnInit {
             ? this.service.downloadCesantias(this.employeeId, context.supplied as { modalidad: string; concepto_retiro: string; monto_retiro: string })
             : isCesantiasEnd
               ? this.service.downloadCesantiasTermination(this.employeeId, context.supplied as { fecha_desde: string; fecha_hasta: string; nit_empresa: string; correo_contacto: string; telefono_contacto: string })
-              : this.service.downloadCertificate(this.employeeId, context.key, context.contractId, context.variant, context.supplied);
+              : isNonRenewal
+                ? this.service.downloadNonRenewal(this.employeeId, context.contractId, context.supplied as { nit_empresa: string })
+                : this.service.downloadCertificate(this.employeeId, context.key, context.contractId, context.variant, context.supplied);
     request$.subscribe({
       next: async (blob) => {
         const header = new TextDecoder().decode(await blob.slice(0, 8).arrayBuffer());
@@ -908,7 +1032,7 @@ export class ContractingCertificatesComponent implements OnInit {
         const url = URL.createObjectURL(blob);
         const anchor = document.createElement('a');
         anchor.href = url;
-        anchor.download = isRetirement ? 'BBTH-F-003-CERTIFICADO-LABORAL-RETIRO.pdf' : isChecklist ? 'BBTH-F-004-PAZ-Y-SALVO-ENTREGA-RETIRO.pdf' : isAcceptance ? 'BBTH-F-005-CARTA-ACEPTACION-RENUNCIA.pdf' : isCesantias ? 'BBTH-F-011-CARTA-RETIRO-CESANTIAS-VIVIENDA.pdf' : isCesantiasEnd ? 'BBTH-F-012-CARTA-RETIRO-CESANTIAS-FIN-CONTRATO.pdf' : 'BBTH-F-002-CERTIFICADO-LABORAL.pdf';
+        anchor.download = isRetirement ? 'BBTH-F-003-CERTIFICADO-LABORAL-RETIRO.pdf' : isChecklist ? 'BBTH-F-004-PAZ-Y-SALVO-ENTREGA-RETIRO.pdf' : isAcceptance ? 'BBTH-F-005-CARTA-ACEPTACION-RENUNCIA.pdf' : isCesantias ? 'BBTH-F-011-CARTA-RETIRO-CESANTIAS-VIVIENDA.pdf' : isCesantiasEnd ? 'BBTH-F-012-CARTA-RETIRO-CESANTIAS-FIN-CONTRATO.pdf' : isNonRenewal ? 'BBTH-F-015-NO-RENOVACION-CONTRATO.pdf' : 'BBTH-F-002-CERTIFICADO-LABORAL.pdf';
         anchor.style.display = 'none';
         document.body.appendChild(anchor);
         try {
@@ -935,6 +1059,11 @@ export class ContractingCertificatesComponent implements OnInit {
     return contract?.id_empleado_contrato || contract?.id_contrato_empleado
       ? `Contrato #${contract.id_empleado_contrato ?? contract.id_contrato_empleado}`
       : 'Sin contrato';
+  }
+
+  contractLabel(contract: EmployeeContract): string {
+    const parts = [contract.tipo_contrato, contract.fecha_fin].filter((part) => !!part);
+    return parts.length ? parts.join(' — ') : 'Sin detalle';
   }
 
   isFirstCertificate(certificate: CertificateFormat): boolean {

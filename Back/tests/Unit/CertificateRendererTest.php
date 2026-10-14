@@ -194,6 +194,17 @@ class CertificateRendererTest extends TestCase
         $this->assertStringContainsString('Cordialmente,', $pdf);
     }
 
+    public function test_non_renewal_renders_notice_with_subscription_and_expiry_dates(): void
+    {
+        $pdf = (new CertificateRenderer)->render($this->nonRenewalData());
+        $this->assertStringContainsString(mb_convert_encoding('no renovación de contrato de trabajo', 'Windows-1252', 'UTF-8'), $pdf);
+        $this->assertStringContainsString(mb_convert_encoding('NO será prorrogado ni renovado', 'Windows-1252', 'UTF-8'), $pdf);
+        $this->assertStringContainsString('900747203', $pdf);
+        $this->assertStringContainsString(mb_convert_encoding('1 de mayo de 2026', 'Windows-1252', 'UTF-8'), $pdf);
+        $this->assertStringContainsString(mb_convert_encoding('1 de agosto de 2026', 'Windows-1252', 'UTF-8'), $pdf);
+        $this->assertStringContainsString('Cordialmente,', $pdf);
+    }
+
     public function test_cesantias_renders_partial_withdrawal_letter(): void
     {
         $pdf = (new CertificateRenderer)->render($this->cesantiasData());
@@ -300,6 +311,28 @@ class CertificateRendererTest extends TestCase
             'empresa' => ['razon_social' => 'Empresa de prueba', 'ciudad' => 'Bogotá'],
             'fecha_expedicion' => '2026-10-06',
             'formato' => ['clave_formato' => 'ACEPTACION_RENUNCIA', 'codigo_formato' => 'BBTH-F-005', 'nombre' => 'Carta de aceptación de renuncia'],
+            'firmantes' => [[
+                'nombre' => 'Firmante de prueba',
+                'cargo' => 'RRHH',
+                'telefono' => '123',
+            ]],
+        ];
+    }
+
+    private function nonRenewalData(): array
+    {
+        return [
+            'empleado' => ['nombre_completo' => 'Ana Pérez'],
+            'contrato' => [
+                'id_empleado_contrato' => 7,
+                'tipo_contrato' => 'Fijo',
+                'fecha_inicio' => '2026-05-01',
+                'fecha_fin' => '2026-08-01',
+            ],
+            'empresa' => ['razon_social' => 'Empresa de prueba', 'ciudad' => 'Bogotá'],
+            'nit_empresa' => '900747203',
+            'fecha_expedicion' => '2026-10-06',
+            'formato' => ['clave_formato' => 'NO_RENOVACION_CONTRATO', 'codigo_formato' => 'BBTH-F-015', 'nombre' => 'Carta de notificación de no renovación'],
             'firmantes' => [[
                 'nombre' => 'Firmante de prueba',
                 'cargo' => 'RRHH',

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Services\CertificateService;
 use App\Services\CesantiasTerminationService;
 use App\Services\CesantiasWithdrawalService;
+use App\Services\ContractNonRenewalService;
 use App\Services\ResignationAcceptanceService;
 use App\Services\RetirementCertificateService;
 use App\Services\RetirementChecklistService;
@@ -21,6 +22,7 @@ class CertificateController extends ApiController
         private ResignationAcceptanceService $acceptanceService,
         private CesantiasWithdrawalService $cesantiasService,
         private CesantiasTerminationService $cesantiasTerminationService,
+        private ContractNonRenewalService $nonRenewalService,
     ) {}
 
     public function index(int $employeeId): JsonResponse
@@ -326,6 +328,52 @@ class CertificateController extends ApiController
             'nit_empresa' => ['required', 'string', 'max:20', 'regex:/^\d{5,12}-\d$/'],
             'correo_contacto' => ['required', 'email:rfc', 'max:150'],
             'telefono_contacto' => ['required', 'string', 'max:30', 'regex:/^[\d\s\-+]{6,30}$/'],
+        ];
+    }
+
+    public function nonRenewalAvailable(int $employeeId): JsonResponse
+    {
+        return $this->success($this->nonRenewalService->available($employeeId), 'Cartas de no renovación de contrato consultadas correctamente.');
+    }
+
+    public function nonRenewalGenerationData(Request $request, int $employeeId): JsonResponse
+    {
+        $data = $request->validate($this->nonRenewalRules(), [
+            'id_empleado_contrato.required' => 'Indique el contrato del empleado.',
+            'id_empleado_contrato.integer' => 'El contrato debe ser un número entero.',
+            'id_empleado_contrato.min' => 'El contrato debe ser mayor que cero.',
+            'nit_empresa.required' => 'Indique el NIT de la empresa.',
+            'nit_empresa.regex' => 'El NIT debe tener formato de dígitos con dígito de verificación opcional.',
+        ]);
+        return $this->success($this->nonRenewalService->generationData($employeeId, (int) $data['id_empleado_contrato'], $data),
+            'Datos de la carta de no renovación consultados correctamente.');
+    }
+
+    public function nonRenewalDownload(Request $request, int $employeeId): Response
+    {
+        $data = $request->validate($this->nonRenewalRules(), [
+            'id_empleado_contrato.required' => 'Indique el contrato del empleado.',
+            'id_empleado_contrato.integer' => 'El contrato debe ser un número entero.',
+            'id_empleado_contrato.min' => 'El contrato debe ser mayor que cero.',
+            'nit_empresa.required' => 'Indique el NIT de la empresa.',
+            'nit_empresa.regex' => 'El NIT debe tener formato de dígitos con dígito de verificación opcional.',
+        ]);
+        $content = $this->nonRenewalService->generateDocument($employeeId, (int) $data['id_empleado_contrato'], $data);
+
+        return response($content, 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="BBTH-F-015-NO-RENOVACION-CONTRATO.pdf"',
+            'Cache-Control' => 'no-store, private',
+            'Pragma' => 'no-cache',
+            'Expires' => '0',
+        ]);
+    }
+
+    private function nonRenewalRules(): array
+    {
+        return [
+            'id_empleado_contrato' => ['required', 'integer', 'min:1'],
+            'nit_empresa' => ['required', 'string', 'max:20', 'regex:/^\d{5,12}(-\d)?$/'],
         ];
     }
 }

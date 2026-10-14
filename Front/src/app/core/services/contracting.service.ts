@@ -247,6 +247,35 @@ export class ContractingService {
     );
   }
 
+  getNonRenewalCertificates(employeeId: number): Observable<Record<string, unknown>[]> {
+    return this.http
+      .get<ApiResponse<Record<string, unknown>[]>>(`${this.url}/employees/${employeeId}/certificates/non-renewal`)
+      .pipe(map((response) => response.data ?? []));
+  }
+
+  getNonRenewalGenerationData(
+    employeeId: number,
+    contractId: number,
+    supplied: { nit_empresa: string },
+  ): Observable<Record<string, unknown>> {
+    return this.http.post<ApiResponse<Record<string, unknown>>>(
+      `${this.url}/employees/${employeeId}/certificates/non-renewal/generation-data`,
+      { id_empleado_contrato: contractId, ...supplied },
+    ).pipe(map((response) => response.data));
+  }
+
+  downloadNonRenewal(
+    employeeId: number,
+    contractId: number,
+    supplied: { nit_empresa: string },
+  ): Observable<Blob> {
+    return this.http.post(
+      `${this.url}/employees/${employeeId}/certificates/non-renewal/download`,
+      { id_empleado_contrato: contractId, ...supplied },
+      { responseType: 'blob' },
+    );
+  }
+
   saveProfile(
     employeeId: number,
     payload: SaveContractingProfileRequest,

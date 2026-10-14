@@ -112,6 +112,9 @@ class CertificateRenderer
         if ($formatKey === 'CESANTIAS_FIN_CONTRATO') {
             return $this->cesantiasTerminationBlocks($data);
         }
+        if ($formatKey === 'NO_RENOVACION_CONTRATO') {
+            return $this->contractNonRenewalBlocks($data);
+        }
 
         $employee = $data['empleado'];
         $company = $data['empresa'];
@@ -291,6 +294,33 @@ class CertificateRenderer
         }
 
         return 'el retiro parcial de vivienda';
+    }
+
+    private function contractNonRenewalBlocks(array $data): array
+    {
+        $employee = $data['empleado'];
+        $contrato = $data['contrato'];
+        $company = $data['empresa'];
+        $date = $this->dateText($data['fecha_expedicion']);
+
+        $blocks = [
+            ['text' => $company['ciudad'].', '.$date, 'after' => 18],
+            ['text' => 'Señor(a):', 'after' => 2],
+            ['text' => $employee['nombre_completo'], 'bold' => true, 'after' => 2],
+            ['text' => $company['ciudad'].'.', 'after' => 8],
+            ['text' => 'Referencia: Notificación de no renovación de contrato de trabajo a término fijo', 'bold' => true, 'after' => 12],
+            ['text' => 'Por medio de la presente, la compañía '.$company['razon_social'].' identificada con NIT '.$data['nit_empresa'].', se permite informarle que el contrato de trabajo a término fijo suscrito entre las partes el día '.$this->dateText($contrato['fecha_inicio']).', cuyo vencimiento está previsto para el día '.$this->dateText($contrato['fecha_fin']).', NO será prorrogado ni renovado una vez finalice el término pactado.', 'after' => 12],
+            ['text' => 'Esta decisión se comunica de manera formal y dentro del término legal establecido en el artículo 46 del Código Sustantivo del Trabajo, mediante preaviso escrito con una anticipación no inferior a treinta (30) días calendario respecto de la fecha de vencimiento del contrato.', 'after' => 12],
+            ['text' => 'En consecuencia, la relación laboral finalizará el día '.$this->dateText($contrato['fecha_fin']).', fecha en la cual se realizará la liquidación definitiva de salarios, prestaciones sociales, vacaciones pendientes, aportes correspondientes y demás conceptos a que haya lugar conforme a la legislación laboral colombiana vigente.', 'after' => 12],
+            ['text' => 'Agradecemos los servicios prestados y su valiosa contribución durante el tiempo de vinculación laboral.', 'after' => 14],
+            ['text' => 'Cordialmente,', 'after' => 6],
+        ];
+
+        foreach ($data['firmantes'] as $signer) {
+            $blocks[] = ['text' => "____________________\n".$signer['nombre']."\nTEL. ".$signer['telefono']."\n".$signer['cargo'], 'signature' => true, 'after' => 14];
+        }
+
+        return $blocks;
     }
 
     private function cesantiasTerminationBlocks(array $data): array

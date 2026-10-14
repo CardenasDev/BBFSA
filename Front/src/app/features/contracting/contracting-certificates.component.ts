@@ -24,6 +24,8 @@ const RETIREMENT_CERTIFICATE_KEY = 'CERTIFICADO_LABORAL_RETIRO';
 const RETIREMENT_CERTIFICATE_CODE = 'F-003';
 const CHECKLIST_CERTIFICATE_KEY = 'CONSTANCIA_ENTREGA_RETIRO';
 const CHECKLIST_CERTIFICATE_CODE = 'F-004';
+const ACCEPTANCE_CERTIFICATE_KEY = 'ACEPTACION_RENUNCIA';
+const ACCEPTANCE_CERTIFICATE_CODE = 'F-005';
 
 @Component({
   standalone: true,
@@ -99,6 +101,15 @@ const CHECKLIST_CERTIFICATE_CODE = 'F-004';
           [style.border-bottom-color]="activeTab() === 'F-004' ? '#3b82f6' : ''"
           [style.font-weight]="activeTab() === 'F-004' ? '600' : ''"
         >F-004</button>
+        <button
+          type="button"
+          class="tab-btn"
+          (click)="activeTab.set('F-005')"
+          style="padding:0.5rem 1rem;border:none;background:transparent;cursor:pointer;font-weight:500;color:#6b7280;border-bottom:2px solid transparent;margin-bottom:-2px"
+          [style.color]="activeTab() === 'F-005' ? '#111827' : ''"
+          [style.border-bottom-color]="activeTab() === 'F-005' ? '#3b82f6' : ''"
+          [style.font-weight]="activeTab() === 'F-005' ? '600' : ''"
+        >F-005</button>
       </div>
 
       @if (activeTab() === 'F-002') {
@@ -191,8 +202,7 @@ const CHECKLIST_CERTIFICATE_CODE = 'F-004';
         </div>
       }
 
-      @if (activeTab() === 'F-004') {
-        <div class="table-wrap">
+      @if (activeTab() === 'F-004') {        <div class="table-wrap">
           <table>
             <thead>
               <tr><th>Tipo</th><th>Código</th><th>Versión</th><th>Retiro</th><th>Acción</th></tr>
@@ -217,6 +227,42 @@ const CHECKLIST_CERTIFICATE_CODE = 'F-004';
                 </tr>
               } @empty {
                 <tr><td colspan="5" class="empty">{{ loading() ? 'Cargando certificados...' : 'No hay checklist de retiro disponibles.' }}</td></tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+
+      @if (activeTab() === 'F-005') {
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>Tipo</th><th>Código</th><th>Versión</th><th>Retiro</th><th>Acción</th></tr>
+            </thead>
+            <tbody>
+              @for (certificate of acceptanceCertificates(); track certificate.clave_formato + ':' + certificate.variante) {
+                <tr>
+                  <td><strong>{{ certificate.nombre || certificate.titulo || certificate.clave_formato }}</strong></td>
+                  <td><span class="badge">BBTH - {{ formatCode(certificate) }}</span></td>
+                  <td>{{ certificate.version_formato || 'Sin versión' }}</td>
+                  <td>{{ selectedRetirement()?.motivo_retiro || 'Sin retiro' }}</td>
+                  <td class="actions-cell">
+                    <label>Fecha de presentación de la renuncia
+                      <input type="date" [value]="acceptancePresentationDate()" (input)="updateAcceptanceDate($any($event.target).value)" [disabled]="generating() || downloading()" />
+                    </label>
+                    <p class="muted">Fecha de la comunicación de renuncia. No modifica el registro del retiro.</p>
+                    <button
+                      class="btn small primary"
+                      type="button"
+                      (click)="generateAcceptance(certificate)"
+                      [disabled]="generating() || downloading() || !selectedRetirement() || !isConfigured(certificate)"
+                    >
+                      {{ generating() ? 'Cargando...' : 'Generar' }}
+                    </button>
+                  </td>
+                </tr>
+              } @empty {
+                <tr><td colspan="5" class="empty">{{ loading() ? 'Cargando certificados...' : 'No hay cartas de aceptación disponibles.' }}</td></tr>
               }
             </tbody>
           </table>
@@ -254,6 +300,7 @@ export class ContractingCertificatesComponent implements OnInit {
   readonly certificates = signal<CertificateFormat[]>([]);
   readonly retirementCertificates = signal<CertificateFormat[]>([]);
   readonly checklistCertificates = signal<CertificateFormat[]>([]);
+  readonly acceptanceCertificates = signal<CertificateFormat[]>([]);
   readonly contracts = signal<EmployeeContract[]>([]);
   readonly retirements = signal<Array<{ id_retiro: number; motivo_retiro: string; fecha_retiro: string }>>([]);
   readonly generationData = signal<Record<string, unknown> | null>(null);
@@ -265,15 +312,17 @@ export class ContractingCertificatesComponent implements OnInit {
   readonly firstCertificateCode = FIRST_CERTIFICATE_CODE;
   readonly retirementCertificateCode = RETIREMENT_CERTIFICATE_CODE;
   readonly checklistCertificateCode = CHECKLIST_CERTIFICATE_CODE;
-  readonly activeTab = signal<'F-002' | 'F-003' | 'F-004'>('F-002');
+  readonly acceptanceCertificateCode = ACCEPTANCE_CERTIFICATE_CODE;
+  readonly activeTab = signal<'F-002' | 'F-003' | 'F-004' | 'F-005'>('F-002');
   readonly solidarity = signal('');
   readonly withholding = signal('');
   readonly workStartDate = signal('');
   readonly retirementSolidarity = signal('');
   readonly retirementWithholding = signal('');
   readonly retirementTransport = signal('');
+  readonly acceptancePresentationDate = signal('');
   readonly selectedFormat = signal<CertificateFormat | null>(null);
-  private confirmed: { key: string; variant: string; contractId: number; retirementId?: number; supplied?: { fondo_solidaridad?: string; retencion_fuente?: string; fecha_inicio_labores?: string; auxilio_transporte?: string } } | null = null;
+  private confirmed: { key: string; variant: string; contractId: number; retirementId?: number; supplied?: { fondo_solidaridad?: string; retencion_fuente?: string; fecha_inicio_labores?: string; auxilio_transporte?: string; fecha_presentacion_renuncia?: string } } | null = null;
   private contextRevision = 0;
   employeeId = 0;
 
@@ -287,6 +336,7 @@ export class ContractingCertificatesComponent implements OnInit {
       tipo_contrato: 'Tipo de contrato',
       salario_base: 'Salario base',
       fecha_retiro: 'Fecha de retiro',
+      fecha_presentacion_renuncia: 'Fecha de presentación',
       motivo_retiro: 'Motivo de retiro',
       fecha_ingreso: 'Fecha de ingreso',
       firmantes_json: 'Firmantes',
@@ -346,6 +396,10 @@ export class ContractingCertificatesComponent implements OnInit {
     this.service.getChecklistCertificates(this.employeeId).subscribe({
       next: (certificates) => this.checklistCertificates.set(certificates),
       error: () => this.checklistCertificates.set([]),
+    });
+    this.service.getAcceptanceCertificates(this.employeeId).subscribe({
+      next: (certificates) => this.acceptanceCertificates.set(certificates),
+      error: () => this.acceptanceCertificates.set([]),
     });
     this.retirementService.list({ employee_id: this.employeeId }).subscribe({
       next: (retirements) => this.retirements.set(retirements),
@@ -473,6 +527,55 @@ export class ContractingCertificatesComponent implements OnInit {
     return certificate.clave_formato === CHECKLIST_CERTIFICATE_KEY;
   }
 
+  isAcceptanceCertificate(certificate: CertificateFormat): boolean {
+    return certificate.clave_formato === ACCEPTANCE_CERTIFICATE_KEY;
+  }
+
+  updateAcceptanceDate(value: string): void {
+    this.contextRevision++;
+    this.acceptancePresentationDate.set(value);
+    this.confirmed = null;
+    this.generationData.set(null);
+  }
+
+  generateAcceptance(certificate: CertificateFormat): void {
+    const revision = ++this.contextRevision;
+    const retirement = this.selectedRetirement();
+    if (!retirement || !this.isAcceptanceCertificate(certificate)) return;
+    const retirementId = retirement.id_retiro;
+    if (!retirementId) {
+      this.error.set('No fue posible identificar el retiro seleccionado.');
+      return;
+    }
+    const date = this.acceptancePresentationDate().trim();
+    if (!date) {
+      this.error.set('Indique la fecha de presentación de la renuncia.');
+      this.errorFields.set({});
+      this.generationData.set(null);
+      this.confirmed = null;
+      return;
+    }
+    const supplied = { fecha_presentacion_renuncia: date };
+    const context = { key: certificate.clave_formato!, variant: 'ACCEPTANCE', contractId: 0, retirementId, supplied };
+    this.selectedFormat.set({ ...certificate });
+    this.confirmed = null;
+    this.generating.set(true);
+    this.error.set('');
+    this.errorFields.set({});
+    this.generationData.set(null);
+    this.service
+      .getAcceptanceGenerationData(this.employeeId, retirementId, supplied)
+      .pipe(finalize(() => {
+        if (revision === this.contextRevision) this.generating.set(false);
+      }))
+      .subscribe({
+        next: (data) => { if (revision === this.contextRevision) { this.confirmed = context; this.generationData.set(data); } },
+        error: (error) => {
+          if (revision === this.contextRevision) this.handleError(error, 'No fue posible generar los datos de la carta de aceptación.');
+        },
+      });
+  }
+
   download(): void {
     const context = this.confirmed;
     if (!context || !this.generationData()) {
@@ -483,11 +586,14 @@ export class ContractingCertificatesComponent implements OnInit {
     this.error.set('');
     const isRetirement = context.variant === 'RETIRO' && !!context.retirementId;
     const isChecklist = context.variant === 'CHECKLIST' && !!context.retirementId;
+    const isAcceptance = context.variant === 'ACCEPTANCE' && !!context.retirementId;
     const request$ = isRetirement
       ? this.service.downloadRetirementCertificate(this.employeeId, context.retirementId!, context.supplied as { fondo_solidaridad: string; retencion_fuente: string; auxilio_transporte: string })
       : isChecklist
         ? this.service.downloadChecklist(this.employeeId, context.retirementId!)
-        : this.service.downloadCertificate(this.employeeId, context.key, context.contractId, context.variant, context.supplied);
+        : isAcceptance
+          ? this.service.downloadAcceptance(this.employeeId, context.retirementId!, context.supplied as { fecha_presentacion_renuncia: string })
+          : this.service.downloadCertificate(this.employeeId, context.key, context.contractId, context.variant, context.supplied);
     request$.subscribe({
       next: async (blob) => {
         const header = new TextDecoder().decode(await blob.slice(0, 8).arrayBuffer());
@@ -500,7 +606,7 @@ export class ContractingCertificatesComponent implements OnInit {
         const url = URL.createObjectURL(blob);
         const anchor = document.createElement('a');
         anchor.href = url;
-        anchor.download = isRetirement ? 'BBTH-F-003-CERTIFICADO-LABORAL-RETIRO.pdf' : isChecklist ? 'BBTH-F-004-PAZ-Y-SALVO-ENTREGA-RETIRO.pdf' : 'BBTH-F-002-CERTIFICADO-LABORAL.pdf';
+        anchor.download = isRetirement ? 'BBTH-F-003-CERTIFICADO-LABORAL-RETIRO.pdf' : isChecklist ? 'BBTH-F-004-PAZ-Y-SALVO-ENTREGA-RETIRO.pdf' : isAcceptance ? 'BBTH-F-005-CARTA-ACEPTACION-RENUNCIA.pdf' : 'BBTH-F-002-CERTIFICADO-LABORAL.pdf';
         anchor.style.display = 'none';
         document.body.appendChild(anchor);
         try {

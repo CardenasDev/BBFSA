@@ -164,6 +164,35 @@ export class ContractingService {
     );
   }
 
+  getAcceptanceCertificates(employeeId: number): Observable<Record<string, unknown>[]> {
+    return this.http
+      .get<ApiResponse<Record<string, unknown>[]>>(`${this.url}/employees/${employeeId}/certificates/acceptance`)
+      .pipe(map((response) => response.data ?? []));
+  }
+
+  getAcceptanceGenerationData(
+    employeeId: number,
+    retirementId: number,
+    supplied: { fecha_presentacion_renuncia: string },
+  ): Observable<Record<string, unknown>> {
+    return this.http.post<ApiResponse<Record<string, unknown>>>(
+      `${this.url}/employees/${employeeId}/certificates/acceptance/generation-data`,
+      { id_retiro: retirementId, ...supplied },
+    ).pipe(map((response) => response.data));
+  }
+
+  downloadAcceptance(
+    employeeId: number,
+    retirementId: number,
+    supplied: { fecha_presentacion_renuncia: string },
+  ): Observable<Blob> {
+    return this.http.post(
+      `${this.url}/employees/${employeeId}/certificates/acceptance/download`,
+      { id_retiro: retirementId, ...supplied },
+      { responseType: 'blob' },
+    );
+  }
+
   saveProfile(
     employeeId: number,
     payload: SaveContractingProfileRequest,

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Services\CertificateService;
+use App\Services\ResignationAcceptanceService;
 use App\Services\RetirementCertificateService;
 use App\Services\RetirementChecklistService;
 use Illuminate\Http\JsonResponse;
@@ -15,6 +16,7 @@ class CertificateController extends ApiController
         private CertificateService $service,
         private RetirementCertificateService $retirementService,
         private RetirementChecklistService $checklistService,
+        private ResignationAcceptanceService $acceptanceService,
     ) {}
 
     public function index(int $employeeId): JsonResponse
@@ -163,5 +165,51 @@ class CertificateController extends ApiController
             'Pragma' => 'no-cache',
             'Expires' => '0',
         ]);
+    }
+
+    public function acceptanceAvailable(int $employeeId): JsonResponse
+    {
+        return $this->success($this->acceptanceService->available($employeeId), 'Cartas de aceptación de renuncia consultadas correctamente.');
+    }
+
+    public function acceptanceGenerationData(Request $request, int $employeeId): JsonResponse
+    {
+        $data = $request->validate($this->acceptanceRules(), [
+            'id_retiro.required' => 'Indique el retiro del empleado.',
+            'id_retiro.integer' => 'El retiro debe ser un número entero.',
+            'id_retiro.min' => 'El retiro debe ser mayor que cero.',
+            'fecha_presentacion_renuncia.required' => 'Indique la fecha de presentación de la renuncia.',
+            'fecha_presentacion_renuncia.date_format' => 'La fecha de presentación debe tener formato YYYY-MM-DD.',
+        ]);
+        return $this->success($this->acceptanceService->generationData($employeeId, (int) $data['id_retiro'], $data),
+            'Datos de la carta de aceptación consultados correctamente.');
+    }
+
+    public function acceptanceDownload(Request $request, int $employeeId): Response
+    {
+        $data = $request->validate($this->acceptanceRules(), [
+            'id_retiro.required' => 'Indique el retiro del empleado.',
+            'id_retiro.integer' => 'El retiro debe ser un número entero.',
+            'id_retiro.min' => 'El retiro debe ser mayor que cero.',
+            'fecha_presentacion_renuncia.required' => 'Indique la fecha de presentación de la renuncia.',
+            'fecha_presentacion_renuncia.date_format' => 'La fecha de presentación debe tener formato YYYY-MM-DD.',
+        ]);
+        $content = $this->acceptanceService->generateDocument($employeeId, (int) $data['id_retiro'], $data);
+
+        return response($content, 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="BBTH-F-005-CARTA-ACEPTACION-RENUNCIA.pdf"',
+            'Cache-Control' => 'no-store, private',
+            'Pragma' => 'no-cache',
+            'Expires' => '0',
+        ]);
+    }
+
+    private function acceptanceRules(): array
+    {
+        return [
+            'id_retiro' => ['required', 'integer', 'min:1'],
+            'fecha_presentacion_renuncia' => ['required', 'date_format:Y-m-d'],
+        ];
     }
 }

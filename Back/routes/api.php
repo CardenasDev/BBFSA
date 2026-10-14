@@ -261,6 +261,9 @@ Route::middleware('auth.jwt')->group(function (): void {
         Route::get('employees/{employeeId}/certificates/checklist', [CertificateController::class, 'checklistAvailable'])->whereNumber('employeeId')->middleware('permission:CONTRATACION_VER');
         Route::post('employees/{employeeId}/certificates/checklist/generation-data', [CertificateController::class, 'checklistGenerationData'])->whereNumber('employeeId')->middleware('permission:CONTRATACION_VER');
         Route::post('employees/{employeeId}/certificates/checklist/download', [CertificateController::class, 'checklistDownload'])->whereNumber('employeeId')->middleware('permission:CONTRATACION_VER');
+        Route::get('employees/{employeeId}/certificates/acceptance', [CertificateController::class, 'acceptanceAvailable'])->whereNumber('employeeId')->middleware('permission:CONTRATACION_VER');
+        Route::post('employees/{employeeId}/certificates/acceptance/generation-data', [CertificateController::class, 'acceptanceGenerationData'])->whereNumber('employeeId')->middleware('permission:CONTRATACION_VER');
+        Route::post('employees/{employeeId}/certificates/acceptance/download', [CertificateController::class, 'acceptanceDownload'])->whereNumber('employeeId')->middleware('permission:CONTRATACION_VER');
         Route::get('employees/{employeeId}/certificates/{formatKey}/generation-data', [CertificateController::class, 'generationData'])->whereNumber('employeeId')->middleware('permission:CONTRATACION_VER');
         Route::get('employees/{employeeId}/certificates/{formatKey}/download', [CertificateController::class, 'download'])->whereNumber('employeeId')->middleware('permission:CONTRATACION_VER');
         Route::post('employees/{employeeId}/certificates/{formatKey}/generation-data', [CertificateController::class, 'generationData'])->whereNumber('employeeId')->middleware('permission:CONTRATACION_VER');

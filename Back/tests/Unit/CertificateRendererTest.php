@@ -181,6 +181,45 @@ class CertificateRendererTest extends TestCase
         $this->assertStringNotContainsString(mb_convert_encoding('Carta de aceptación de renuncia', 'Windows-1252', 'UTF-8'), $pdf);
     }
 
+    public function test_acceptance_renders_letter_with_presentation_and_effective_dates(): void
+    {
+        $pdf = (new CertificateRenderer)->render($this->acceptanceData());
+        $this->assertStringContainsString(mb_convert_encoding('RF. Carta de Aceptación de Renuncia', 'Windows-1252', 'UTF-8'), $pdf);
+        $this->assertStringContainsString(mb_convert_encoding('acepta la renuncia que usted ha presentado', 'Windows-1252', 'UTF-8'), $pdf);
+        $this->assertStringContainsString(mb_convert_encoding('1 de septiembre de 2026', 'Windows-1252', 'UTF-8'), $pdf);
+        $this->assertStringContainsString(mb_convert_encoding('1 de octubre de 2026', 'Windows-1252', 'UTF-8'), $pdf);
+        $this->assertStringContainsString(mb_convert_encoding('elementos suministrados por la compañía', 'Windows-1252', 'UTF-8'), $pdf);
+        $this->assertStringContainsString(mb_convert_encoding('acreencias laborales', 'Windows-1252', 'UTF-8'), $pdf);
+        $this->assertStringContainsString('Sin otro particular,', $pdf);
+        $this->assertStringContainsString('Cordialmente,', $pdf);
+    }
+
+    private function acceptanceData(): array
+    {
+        return [
+            'empleado' => [
+                'nombre_completo' => 'Ana Pérez',
+                'tipo_documento' => 'Cédula',
+                'numero_documento' => '123',
+            ],
+            'retiro' => [
+                'id_retiro' => 3,
+                'fecha_retiro' => '2026-10-01',
+                'motivo_retiro' => 'Renuncia voluntaria',
+                'fecha_presentacion_renuncia' => '2026-09-01',
+            ],
+            'contrato' => ['cargo' => 'Supervisor de Calidad'],
+            'empresa' => ['razon_social' => 'Empresa de prueba', 'ciudad' => 'Bogotá'],
+            'fecha_expedicion' => '2026-10-06',
+            'formato' => ['clave_formato' => 'ACEPTACION_RENUNCIA', 'codigo_formato' => 'BBTH-F-005', 'nombre' => 'Carta de aceptación de renuncia'],
+            'firmantes' => [[
+                'nombre' => 'Firmante de prueba',
+                'cargo' => 'RRHH',
+                'telefono' => '123',
+            ]],
+        ];
+    }
+
     private function checklistData(string $motivo = 'Renuncia voluntaria'): array
     {
         return [

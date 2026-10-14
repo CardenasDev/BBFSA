@@ -103,6 +103,9 @@ class CertificateRenderer
         if ($formatKey === 'CONSTANCIA_ENTREGA_RETIRO') {
             return $this->retirementChecklistBlocks($data);
         }
+        if ($formatKey === 'ACEPTACION_RENUNCIA') {
+            return $this->resignationAcceptanceBlocks($data);
+        }
 
         $employee = $data['empleado'];
         $company = $data['empresa'];
@@ -216,6 +219,32 @@ class CertificateRenderer
         }
 
         return 'Notificación de terminación del contrato: Comunicación oficial donde consta la terminación del vínculo contractual por '.$motivoRetiro.'.';
+    }
+
+    private function resignationAcceptanceBlocks(array $data): array
+    {
+        $employee = $data['empleado'];
+        $retiro = $data['retiro'];
+        $company = $data['empresa'];
+        $date = $this->dateText($data['fecha_expedicion']);
+
+        $blocks = [
+            ['text' => 'Fecha: '.$date, 'after' => 12],
+            ['text' => 'Señor(a):', 'after' => 2],
+            ['text' => $employee['nombre_completo'], 'bold' => true, 'after' => 2],
+            ['text' => $company['ciudad'].'.', 'after' => 8],
+            ['text' => 'RF. Carta de Aceptación de Renuncia', 'bold' => true, 'after' => 12],
+            ['text' => 'En respuesta a su comunicación fechada el '.$this->dateText($retiro['fecha_presentacion_renuncia']).', queremos informarle que la empresa acepta la renuncia que usted ha presentado en físico de manera irrevocable al cargo de '.$data['contrato']['cargo'].', la cual será efectiva hasta el día '.$this->dateText($retiro['fecha_retiro']).'.', 'after' => 12],
+            ['text' => 'Por otro lado, se recuerda que debe ser entregado todos los elementos suministrados por la compañía para sus labores. Agradecemos sinceramente los servicios que usted ha prestado a la empresa '.$company['razon_social'].' y le deseamos éxito en sus labores futuras. Asimismo, le informamos que el pago correspondiente a sus acreencias laborales será liquidado y cancelado a la cuenta de ahorros que usted tiene registrada con nosotros.', 'after' => 14],
+            ['text' => 'Sin otro particular,', 'after' => 2],
+            ['text' => 'Cordialmente,', 'after' => 6],
+        ];
+
+        foreach ($data['firmantes'] as $signer) {
+            $blocks[] = ['text' => $company['razon_social']."\n\n____________________\n".$signer['nombre']."\nTEL. ".$signer['telefono']."\n".$signer['cargo'], 'signature' => true, 'after' => 14];
+        }
+
+        return $blocks;
     }
 
     private function header(array $data, int $page, int $total): string

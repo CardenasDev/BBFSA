@@ -193,6 +193,33 @@ export class ContractingService {
     );
   }
 
+  getCesantiasCertificates(employeeId: number): Observable<Record<string, unknown>[]> {
+    return this.http
+      .get<ApiResponse<Record<string, unknown>[]>>(`${this.url}/employees/${employeeId}/certificates/cesantias`)
+      .pipe(map((response) => response.data ?? []));
+  }
+
+  getCesantiasGenerationData(
+    employeeId: number,
+    supplied: { modalidad: string; concepto_retiro: string; monto_retiro: string },
+  ): Observable<Record<string, unknown>> {
+    return this.http.post<ApiResponse<Record<string, unknown>>>(
+      `${this.url}/employees/${employeeId}/certificates/cesantias/generation-data`,
+      supplied,
+    ).pipe(map((response) => response.data));
+  }
+
+  downloadCesantias(
+    employeeId: number,
+    supplied: { modalidad: string; concepto_retiro: string; monto_retiro: string },
+  ): Observable<Blob> {
+    return this.http.post(
+      `${this.url}/employees/${employeeId}/certificates/cesantias/download`,
+      supplied,
+      { responseType: 'blob' },
+    );
+  }
+
   saveProfile(
     employeeId: number,
     payload: SaveContractingProfileRequest,

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Services\CertificateService;
+use App\Services\CesantiasWithdrawalService;
 use App\Services\ResignationAcceptanceService;
 use App\Services\RetirementCertificateService;
 use App\Services\RetirementChecklistService;
@@ -17,6 +18,7 @@ class CertificateController extends ApiController
         private RetirementCertificateService $retirementService,
         private RetirementChecklistService $checklistService,
         private ResignationAcceptanceService $acceptanceService,
+        private CesantiasWithdrawalService $cesantiasService,
     ) {}
 
     public function index(int $employeeId): JsonResponse
@@ -210,6 +212,59 @@ class CertificateController extends ApiController
         return [
             'id_retiro' => ['required', 'integer', 'min:1'],
             'fecha_presentacion_renuncia' => ['required', 'date_format:Y-m-d'],
+        ];
+    }
+
+    public function cesantiasAvailable(int $employeeId): JsonResponse
+    {
+        return $this->success($this->cesantiasService->available($employeeId), 'Cartas de retiro de cesantías consultadas correctamente.');
+    }
+
+    public function cesantiasGenerationData(Request $request, int $employeeId): JsonResponse
+    {
+        $data = $request->validate($this->cesantiasRules(), [
+            'modalidad.required' => 'Indique la modalidad del retiro.',
+            'modalidad.in' => 'La modalidad debe ser TOTAL o PARCIAL.',
+            'concepto_retiro.required' => 'Indique el concepto del retiro.',
+            'concepto_retiro.string' => 'El concepto debe ser un texto.',
+            'concepto_retiro.max' => 'El concepto debe tener hasta 200 caracteres.',
+            'concepto_retiro.not_regex' => 'El concepto no debe contener HTML ni saltos de línea.',
+            'monto_retiro.required' => 'Indique el monto a retirar.',
+            'monto_retiro.regex' => 'El monto debe ser un valor decimal mayor que cero, con hasta dos decimales.',
+        ]);
+        return $this->success($this->cesantiasService->generationData($employeeId, $data),
+            'Datos de la carta de retiro de cesantías consultados correctamente.');
+    }
+
+    public function cesantiasDownload(Request $request, int $employeeId): Response
+    {
+        $data = $request->validate($this->cesantiasRules(), [
+            'modalidad.required' => 'Indique la modalidad del retiro.',
+            'modalidad.in' => 'La modalidad debe ser TOTAL o PARCIAL.',
+            'concepto_retiro.required' => 'Indique el concepto del retiro.',
+            'concepto_retiro.string' => 'El concepto debe ser un texto.',
+            'concepto_retiro.max' => 'El concepto debe tener hasta 200 caracteres.',
+            'concepto_retiro.not_regex' => 'El concepto no debe contener HTML ni saltos de línea.',
+            'monto_retiro.required' => 'Indique el monto a retirar.',
+            'monto_retiro.regex' => 'El monto debe ser un valor decimal mayor que cero, con hasta dos decimales.',
+        ]);
+        $content = $this->cesantiasService->generateDocument($employeeId, $data);
+
+        return response($content, 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="BBTH-F-011-CARTA-RETIRO-CESANTIAS-VIVIENDA.pdf"',
+            'Cache-Control' => 'no-store, private',
+            'Pragma' => 'no-cache',
+            'Expires' => '0',
+        ]);
+    }
+
+    private function cesantiasRules(): array
+    {
+        return [
+            'modalidad' => ['required', 'string', 'in:TOTAL,PARCIAL'],
+            'concepto_retiro' => ['required', 'string', 'max:200', 'not_regex:/[<>\r\n\x00-\x1F\x7F]/u'],
+            'monto_retiro' => ['required', 'regex:/^\d{1,10}(\.\d{1,2})?$/'],
         ];
     }
 }

@@ -194,6 +194,54 @@ class CertificateRendererTest extends TestCase
         $this->assertStringContainsString('Cordialmente,', $pdf);
     }
 
+    public function test_cesantias_renders_partial_withdrawal_letter(): void
+    {
+        $pdf = (new CertificateRenderer)->render($this->cesantiasData());
+        $this->assertStringContainsString(mb_convert_encoding('ASUNTO: Retiro parcial', 'Windows-1252', 'UTF-8'), $pdf);
+        $this->assertStringContainsString(mb_convert_encoding('el retiro parcial', 'Windows-1252', 'UTF-8'), $pdf);
+        $this->assertStringContainsString('PORVENIR', $pdf);
+        $this->assertStringContainsString(mb_convert_encoding('Reparaciones locativas', 'Windows-1252', 'UTF-8'), $pdf);
+        $this->assertStringContainsString('$1.500.000,00', $pdf);
+        $this->assertStringContainsString(mb_convert_encoding('Firma del Empleador', 'Windows-1252', 'UTF-8'), $pdf);
+        $this->assertStringContainsString(mb_convert_encoding('Firma del Trabajador', 'Windows-1252', 'UTF-8'), $pdf);
+        $this->assertStringContainsString('Cordialmente,', $pdf);
+    }
+
+    public function test_cesantias_renders_total_withdrawal_letter(): void
+    {
+        $data = $this->cesantiasData();
+        $data['solicitud']['modalidad'] = 'TOTAL';
+        $pdf = (new CertificateRenderer)->render($data);
+        $this->assertStringContainsString(mb_convert_encoding('ASUNTO: Retiro total', 'Windows-1252', 'UTF-8'), $pdf);
+        $this->assertStringContainsString(mb_convert_encoding('el retiro total de las', 'Windows-1252', 'UTF-8'), $pdf);
+        $this->assertStringNotContainsString(mb_convert_encoding('retiro parcial de vivienda', 'Windows-1252', 'UTF-8'), $pdf);
+    }
+
+    private function cesantiasData(): array
+    {
+        return [
+            'empleado' => [
+                'nombre_completo' => 'Ana Pérez',
+                'tipo_documento' => 'Cédula',
+                'numero_documento' => '123',
+            ],
+            'fondo_cesantias' => 'PORVENIR',
+            'solicitud' => [
+                'modalidad' => 'PARCIAL',
+                'concepto_retiro' => 'Reparaciones locativas',
+                'monto' => ['decimal' => '1500000.00', 'cifra' => '$1.500.000,00', 'letras' => 'un millón quinientos mil pesos colombianos'],
+            ],
+            'empresa' => ['razon_social' => 'Empresa de prueba', 'ciudad' => 'Bogotá'],
+            'fecha_expedicion' => '2026-10-06',
+            'formato' => ['clave_formato' => 'CESANTIAS_VIVIENDA', 'codigo_formato' => 'BBTH-F-011', 'nombre' => 'Carta de retiro de cesantías para vivienda'],
+            'firmantes' => [[
+                'nombre' => 'Firmante de prueba',
+                'cargo' => 'RRHH',
+                'telefono' => '123',
+            ]],
+        ];
+    }
+
     private function acceptanceData(): array
     {
         return [

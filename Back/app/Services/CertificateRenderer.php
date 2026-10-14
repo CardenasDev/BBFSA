@@ -106,6 +106,9 @@ class CertificateRenderer
         if ($formatKey === 'ACEPTACION_RENUNCIA') {
             return $this->resignationAcceptanceBlocks($data);
         }
+        if ($formatKey === 'CESANTIAS_VIVIENDA') {
+            return $this->cesantiasWithdrawalBlocks($data);
+        }
 
         $employee = $data['empleado'];
         $company = $data['empresa'];
@@ -245,6 +248,46 @@ class CertificateRenderer
         }
 
         return $blocks;
+    }
+
+    private function cesantiasWithdrawalBlocks(array $data): array
+    {
+        $employee = $data['empleado'];
+        $solicitud = $data['solicitud'];
+        $company = $data['empresa'];
+        $date = $this->dateText($data['fecha_expedicion']);
+        $modalidad = strtolower($solicitud['modalidad'] === 'TOTAL' ? 'total' : 'parcial');
+
+        $blocks = [
+            ['text' => $company['ciudad'].', '.$date, 'after' => 18],
+            ['text' => 'Señores:', 'after' => 2],
+            ['text' => $data['fondo_cesantias'], 'bold' => true, 'after' => 2],
+            ['text' => $company['ciudad'].'.', 'after' => 8],
+            ['text' => 'ASUNTO: Retiro '.$modalidad.' de cesantías para mejoras de vivienda', 'bold' => true, 'after' => 12],
+            ['text' => 'Según lo dispuesto en el Artículo 21 de la Ley 1429 de 2010 (que modificó el Art. 256 del Código Sustantivo del Trabajo) y a la aclaración contenida en la Carta Circular 011 del 7 de febrero de 2011 del Ministerio de la Protección Social, nos permitimos informarles que hemos autorizado '.$this->cesantiasAuthorizationPhrase($solicitud['modalidad']).' del funcionario(a) señalado más adelante, en las siguientes condiciones:', 'after' => 12],
+            ['text' => 'Nombres del funcionario (a): '.$employee['nombre_completo'], 'after' => 6],
+            ['text' => 'Identificación: '.$employee['tipo_documento'].'. '.$employee['numero_documento'], 'after' => 6],
+            ['text' => 'Concepto del Retiro: '.$solicitud['concepto_retiro'], 'after' => 6],
+            ['text' => 'Monto para retirar: '.$solicitud['monto']['cifra'], 'after' => 12],
+            ['text' => 'El empleador ha verificado que el trabajador va a utilizar sus cesantías en las inversiones u operaciones permitidas por la ley.', 'after' => 14],
+            ['text' => 'Cordialmente,', 'after' => 6],
+        ];
+
+        foreach ($data['firmantes'] as $signer) {
+            $blocks[] = ['text' => "Firma del Empleador\n\n____________________\n".$signer['nombre']."\n".$signer['cargo'], 'signature' => true, 'after' => 10];
+        }
+        $blocks[] = ['text' => "Firma del Trabajador(a)\n\n____________________\n".$employee['nombre_completo']."\nC.C. ".$employee['numero_documento'], 'signature' => true, 'after' => 14];
+
+        return $blocks;
+    }
+
+    private function cesantiasAuthorizationPhrase(string $modalidad): string
+    {
+        if ($modalidad === 'TOTAL') {
+            return 'el retiro total de las cesantías';
+        }
+
+        return 'el retiro parcial de vivienda';
     }
 
     private function header(array $data, int $page, int $total): string

@@ -437,24 +437,42 @@ const NON_RENEWAL_CERTIFICATE_CODE = 'F-015';
       }
 
       @if (generationData()) {
-        <section class="panel" style="margin-top:1rem">
-          <div class="section-title">
-            <div>
-              <p class="eyebrow">Vista previa de generación</p>
-              <h2>{{ firstCertificateName() }}</h2>
-            </div>
-            <span class="badge success">Datos oficiales consultados</span>
-          </div>
-          <pre class="code-block">{{ generationDataJson }}</pre>
-          <button
-            class="btn small primary"
-            type="button"
-            (click)="download()"
-            [disabled]="downloading()"
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Certificado listo para descargar"
+          style="position:fixed;inset:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:50;padding:1rem"
+          (click)="closePreview()"
+        >
+          <div
+            style="background:#fff;border-radius:12px;padding:1.5rem;max-width:480px;width:100%;box-shadow:0 20px 50px rgba(0,0,0,0.25)"
+            (click)="$event.stopPropagation()"
           >
-            {{ downloading() ? 'Descargando...' : 'Descargar PDF' }}
-          </button>
-        </section>
+            <p class="eyebrow">Vista previa de generación</p>
+            <h2 style="margin:0.25rem 0 0.5rem">{{ firstCertificateName() }}</h2>
+            <p style="margin:0 0 0.5rem"><span class="badge success">Datos oficiales consultados</span></p>
+            <p class="muted" style="margin:0 0 0.75rem">El documento está listo con los datos oficiales consultados.</p>
+            @if ($any(generationData())?.fecha_expedicion) {
+              <p style="margin:0 0 0.75rem"><strong>Fecha de expedición:</strong> {{ $any(generationData())?.fecha_expedicion }}</p>
+            }
+            @if ($any(generationData())?.advertencias?.length) {
+              <div class="alert error" role="alert" style="margin:0 0 0.75rem">
+                <p style="margin:0 0 0.5rem"><strong>Advertencias</strong></p>
+                <ul style="margin:0;padding-left:1.25rem">
+                  @for (warning of $any(generationData())?.advertencias; track warning) {
+                    <li>{{ warning }}</li>
+                  }
+                </ul>
+              </div>
+            }
+            <div class="row-actions" style="margin-top:1rem;justify-content:flex-end">
+              <button class="btn small ghost" type="button" (click)="closePreview()" [disabled]="downloading()">Cerrar</button>
+              <button class="btn small primary" type="button" (click)="download()" [disabled]="downloading()">
+                {{ downloading() ? 'Descargando...' : 'Descargar PDF' }}
+              </button>
+            </div>
+          </div>
+        </div>
       }
     </section>
   `,
@@ -546,6 +564,11 @@ export class ContractingCertificatesComponent implements OnInit {
   clearError(): void {
     this.error.set('');
     this.errorFields.set({});
+  }
+
+  closePreview(): void {
+    this.generationData.set(null);
+    this.confirmed = null;
   }
 
   handleError(error: unknown, genericMessage: string): void {
@@ -1129,9 +1152,5 @@ export class ContractingCertificatesComponent implements OnInit {
 
   firstCertificateName(): string {
     return this.selectedFormat()?.nombre || 'BBTH - F-002 - CERTIFICADO LABORAL A COLABORADOR';
-  }
-
-  get generationDataJson(): string {
-    return this.generationData() ? JSON.stringify(this.generationData(), null, 2) : '';
   }
 }

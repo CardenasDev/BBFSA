@@ -81,8 +81,12 @@ Texto extraído de `BBTH-F-015 FORMATO DE NO RENOVACION DE CONTRATO.docx` y repr
 - `ContractNonRenewalApiTest`: **8 passed (87 assertions)** — catálogo, generación, tipo no-fijo rechazado, sin fecha fin, contrato ajeno/inactivo, validación, descarga PDF.
 - `CertificateRendererTest`: **17 passed (685 assertions)** (16 previas + 1 F-015).
 - Regresión: F-002 **22 passed**, F-004 **8 passed**, F-005 **11 passed**, F-011 **8 passed**, F-012 **7 passed**.
-- `npm run build`: **exitoso**.
+- `npm run build`: **exitoso** (incluye modal de descarga sin exponer JSON).
 - `npm test`: no ejecutado (requiere @vitest/browser-playwright no disponible en el entorno).
+
+## Ajuste UX transversal (2026-10-14)
+
+- La vista previa con JSON crudo (`<pre class="code-block">`) se reemplazó por un **modal de confirmación**: título del documento, badge de datos oficiales, fecha de expedición, advertencias (si aplica, p. ej. F-005) y botones **Descargar PDF** / **Cerrar**. Aplica a todas las pestañas (F-002–F-015). Sin cambios de backend.
 
 ## Revisiones BMAD
 

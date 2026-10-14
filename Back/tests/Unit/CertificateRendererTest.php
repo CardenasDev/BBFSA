@@ -217,6 +217,46 @@ class CertificateRendererTest extends TestCase
         $this->assertStringNotContainsString(mb_convert_encoding('retiro parcial de vivienda', 'Windows-1252', 'UTF-8'), $pdf);
     }
 
+    public function test_cesantias_termination_renders_request_with_period_and_signatures(): void
+    {
+        $pdf = (new CertificateRenderer)->render($this->cesantiasTerminationData());
+        $this->assertStringContainsString(mb_convert_encoding('ASUNTO: Retiro Total de Cesantías', 'Windows-1252', 'UTF-8'), $pdf);
+        $this->assertStringContainsString(mb_convert_encoding('Gachancipa, solicita el', 'Windows-1252', 'UTF-8'), $pdf);
+        $this->assertStringContainsString('PORVENIR', $pdf);
+        $this->assertStringContainsString('900747203-1', $pdf);
+        $this->assertStringContainsString(mb_convert_encoding('Firma del Empleador', 'Windows-1252', 'UTF-8'), $pdf);
+        $this->assertStringContainsString(mb_convert_encoding('Firma del Trabajador', 'Windows-1252', 'UTF-8'), $pdf);
+        $this->assertStringContainsString(mb_convert_encoding('debido a la terminación de su contrato', 'Windows-1252', 'UTF-8'), $pdf);
+    }
+
+    private function cesantiasTerminationData(): array
+    {
+        return [
+            'empleado' => [
+                'nombre_completo' => 'Ana Pérez',
+                'tipo_documento' => 'Cédula',
+                'numero_documento' => '123',
+                'lugar_expedicion_documento' => 'Gachancipa',
+            ],
+            'fondo_cesantias' => 'PORVENIR',
+            'solicitud' => [
+                'fecha_desde' => '2024-06-01',
+                'fecha_hasta' => '2026-08-12',
+                'nit_empresa' => '900747203-1',
+                'correo_contacto' => 'contacto@example.com',
+                'telefono_contacto' => '3153188486',
+            ],
+            'empresa' => ['razon_social' => 'Empresa de prueba', 'ciudad' => 'Bogotá'],
+            'fecha_expedicion' => '2026-10-06',
+            'formato' => ['clave_formato' => 'CESANTIAS_FIN_CONTRATO', 'codigo_formato' => 'BBTH-F-012', 'nombre' => 'Carta de retiro de cesantías por finalización'],
+            'firmantes' => [[
+                'nombre' => 'Firmante de prueba',
+                'cargo' => 'RRHH',
+                'telefono' => '123',
+            ]],
+        ];
+    }
+
     private function cesantiasData(): array
     {
         return [

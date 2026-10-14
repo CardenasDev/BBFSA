@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Services\CertificateService;
+use App\Services\CesantiasTerminationService;
 use App\Services\CesantiasWithdrawalService;
 use App\Services\ResignationAcceptanceService;
 use App\Services\RetirementCertificateService;
@@ -19,6 +20,7 @@ class CertificateController extends ApiController
         private RetirementChecklistService $checklistService,
         private ResignationAcceptanceService $acceptanceService,
         private CesantiasWithdrawalService $cesantiasService,
+        private CesantiasTerminationService $cesantiasTerminationService,
     ) {}
 
     public function index(int $employeeId): JsonResponse
@@ -265,6 +267,65 @@ class CertificateController extends ApiController
             'modalidad' => ['required', 'string', 'in:TOTAL,PARCIAL'],
             'concepto_retiro' => ['required', 'string', 'max:200', 'not_regex:/[<>\r\n\x00-\x1F\x7F]/u'],
             'monto_retiro' => ['required', 'regex:/^\d{1,10}(\.\d{1,2})?$/'],
+        ];
+    }
+
+    public function cesantiasTerminationAvailable(int $employeeId): JsonResponse
+    {
+        return $this->success($this->cesantiasTerminationService->available($employeeId), 'Cartas de retiro de cesantías por finalización consultadas correctamente.');
+    }
+
+    public function cesantiasTerminationGenerationData(Request $request, int $employeeId): JsonResponse
+    {
+        $data = $request->validate($this->cesantiasTerminationRules(), [
+            'fecha_desde.required' => 'Indique la fecha inicial del periodo.',
+            'fecha_desde.date_format' => 'La fecha inicial debe tener formato YYYY-MM-DD.',
+            'fecha_hasta.required' => 'Indique la fecha final del periodo.',
+            'fecha_hasta.date_format' => 'La fecha final debe tener formato YYYY-MM-DD.',
+            'nit_empresa.required' => 'Indique el NIT de la empresa.',
+            'nit_empresa.regex' => 'El NIT debe tener formato de dígitos y dígito de verificación.',
+            'correo_contacto.required' => 'Indique el correo de contacto.',
+            'correo_contacto.email' => 'El correo de contacto debe ser válido.',
+            'telefono_contacto.required' => 'Indique el teléfono de contacto.',
+            'telefono_contacto.regex' => 'El teléfono debe tener entre 6 y 30 caracteres válidos.',
+        ]);
+        return $this->success($this->cesantiasTerminationService->generationData($employeeId, $data),
+            'Datos de la carta de retiro de cesantías por finalización consultados correctamente.');
+    }
+
+    public function cesantiasTerminationDownload(Request $request, int $employeeId): Response
+    {
+        $data = $request->validate($this->cesantiasTerminationRules(), [
+            'fecha_desde.required' => 'Indique la fecha inicial del periodo.',
+            'fecha_desde.date_format' => 'La fecha inicial debe tener formato YYYY-MM-DD.',
+            'fecha_hasta.required' => 'Indique la fecha final del periodo.',
+            'fecha_hasta.date_format' => 'La fecha final debe tener formato YYYY-MM-DD.',
+            'nit_empresa.required' => 'Indique el NIT de la empresa.',
+            'nit_empresa.regex' => 'El NIT debe tener formato de dígitos y dígito de verificación.',
+            'correo_contacto.required' => 'Indique el correo de contacto.',
+            'correo_contacto.email' => 'El correo de contacto debe ser válido.',
+            'telefono_contacto.required' => 'Indique el teléfono de contacto.',
+            'telefono_contacto.regex' => 'El teléfono debe tener entre 6 y 30 caracteres válidos.',
+        ]);
+        $content = $this->cesantiasTerminationService->generateDocument($employeeId, $data);
+
+        return response($content, 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="BBTH-F-012-CARTA-RETIRO-CESANTIAS-FIN-CONTRATO.pdf"',
+            'Cache-Control' => 'no-store, private',
+            'Pragma' => 'no-cache',
+            'Expires' => '0',
+        ]);
+    }
+
+    private function cesantiasTerminationRules(): array
+    {
+        return [
+            'fecha_desde' => ['required', 'date_format:Y-m-d'],
+            'fecha_hasta' => ['required', 'date_format:Y-m-d'],
+            'nit_empresa' => ['required', 'string', 'max:20', 'regex:/^\d{5,12}-\d$/'],
+            'correo_contacto' => ['required', 'email:rfc', 'max:150'],
+            'telefono_contacto' => ['required', 'string', 'max:30', 'regex:/^[\d\s\-+]{6,30}$/'],
         ];
     }
 }

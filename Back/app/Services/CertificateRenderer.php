@@ -109,6 +109,9 @@ class CertificateRenderer
         if ($formatKey === 'CESANTIAS_VIVIENDA') {
             return $this->cesantiasWithdrawalBlocks($data);
         }
+        if ($formatKey === 'CESANTIAS_FIN_CONTRATO') {
+            return $this->cesantiasTerminationBlocks($data);
+        }
 
         $employee = $data['empleado'];
         $company = $data['empresa'];
@@ -288,6 +291,33 @@ class CertificateRenderer
         }
 
         return 'el retiro parcial de vivienda';
+    }
+
+    private function cesantiasTerminationBlocks(array $data): array
+    {
+        $employee = $data['empleado'];
+        $solicitud = $data['solicitud'];
+        $company = $data['empresa'];
+        $date = $this->dateText($data['fecha_expedicion']);
+        $place = $this->text($employee['lugar_expedicion_documento'] ?? null);
+
+        $blocks = [
+            ['text' => $company['ciudad'].', '.$date, 'after' => 18],
+            ['text' => 'Señores', 'after' => 2],
+            ['text' => $data['fondo_cesantias'], 'bold' => true, 'after' => 2],
+            ['text' => $company['ciudad'].'.', 'after' => 8],
+            ['text' => 'ASUNTO: Retiro Total de Cesantías', 'bold' => true, 'after' => 12],
+            ['text' => 'Estimados señores,', 'after' => 8],
+            ['text' => 'Por medio de la presente, el trabajador, '.$employee['nombre_completo'].', identificado con '.$employee['tipo_documento'].' '.$employee['numero_documento'].($place !== '' ? ' de '.$place : '').', solicita el retiro de sus cesantías acumuladas en el fondo de cesantías '.$data['fondo_cesantias'].' desde el día '.$this->dateText($solicitud['fecha_desde']).' hasta el día '.$this->dateText($solicitud['fecha_hasta']).', debido a la terminación de su contrato de trabajo con '.$company['razon_social'].' con nit '.$solicitud['nit_empresa'], 'after' => 12],
+            ['text' => 'Si necesita más información comuníquese al correo electrónico '.$solicitud['correo_contacto'].' y/o teléfono '.$solicitud['telefono_contacto'].'.', 'after' => 14],
+        ];
+
+        foreach ($data['firmantes'] as $signer) {
+            $blocks[] = ['text' => "Firma del Empleador\n\n____________________\n".$signer['nombre']."\n".$signer['cargo'], 'signature' => true, 'after' => 10];
+        }
+        $blocks[] = ['text' => "Firma del Trabajador(a)\n\n____________________\n".$employee['nombre_completo']."\nC.C. ".$employee['numero_documento'], 'signature' => true, 'after' => 14];
+
+        return $blocks;
     }
 
     private function header(array $data, int $page, int $total): string

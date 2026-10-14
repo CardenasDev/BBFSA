@@ -267,6 +267,9 @@ Route::middleware('auth.jwt')->group(function (): void {
         Route::get('employees/{employeeId}/certificates/cesantias', [CertificateController::class, 'cesantiasAvailable'])->whereNumber('employeeId')->middleware('permission:CONTRATACION_VER');
         Route::post('employees/{employeeId}/certificates/cesantias/generation-data', [CertificateController::class, 'cesantiasGenerationData'])->whereNumber('employeeId')->middleware('permission:CONTRATACION_VER');
         Route::post('employees/{employeeId}/certificates/cesantias/download', [CertificateController::class, 'cesantiasDownload'])->whereNumber('employeeId')->middleware('permission:CONTRATACION_VER');
+        Route::get('employees/{employeeId}/certificates/cesantias-fin-contrato', [CertificateController::class, 'cesantiasTerminationAvailable'])->whereNumber('employeeId')->middleware('permission:CONTRATACION_VER');
+        Route::post('employees/{employeeId}/certificates/cesantias-fin-contrato/generation-data', [CertificateController::class, 'cesantiasTerminationGenerationData'])->whereNumber('employeeId')->middleware('permission:CONTRATACION_VER');
+        Route::post('employees/{employeeId}/certificates/cesantias-fin-contrato/download', [CertificateController::class, 'cesantiasTerminationDownload'])->whereNumber('employeeId')->middleware('permission:CONTRATACION_VER');
         Route::get('employees/{employeeId}/certificates/{formatKey}/generation-data', [CertificateController::class, 'generationData'])->whereNumber('employeeId')->middleware('permission:CONTRATACION_VER');
         Route::get('employees/{employeeId}/certificates/{formatKey}/download', [CertificateController::class, 'download'])->whereNumber('employeeId')->middleware('permission:CONTRATACION_VER');
         Route::post('employees/{employeeId}/certificates/{formatKey}/generation-data', [CertificateController::class, 'generationData'])->whereNumber('employeeId')->middleware('permission:CONTRATACION_VER');

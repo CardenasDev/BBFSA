@@ -28,6 +28,8 @@ const ACCEPTANCE_CERTIFICATE_KEY = 'ACEPTACION_RENUNCIA';
 const ACCEPTANCE_CERTIFICATE_CODE = 'F-005';
 const CESANTIAS_CERTIFICATE_KEY = 'CESANTIAS_VIVIENDA';
 const CESANTIAS_CERTIFICATE_CODE = 'F-011';
+const CESANTIAS_END_CERTIFICATE_KEY = 'CESANTIAS_FIN_CONTRATO';
+const CESANTIAS_END_CERTIFICATE_CODE = 'F-012';
 
 @Component({
   standalone: true,
@@ -121,6 +123,15 @@ const CESANTIAS_CERTIFICATE_CODE = 'F-011';
           [style.border-bottom-color]="activeTab() === 'F-011' ? '#3b82f6' : ''"
           [style.font-weight]="activeTab() === 'F-011' ? '600' : ''"
         >F-011</button>
+        <button
+          type="button"
+          class="tab-btn"
+          (click)="activeTab.set('F-012')"
+          style="padding:0.5rem 1rem;border:none;background:transparent;cursor:pointer;font-weight:500;color:#6b7280;border-bottom:2px solid transparent;margin-bottom:-2px"
+          [style.color]="activeTab() === 'F-012' ? '#111827' : ''"
+          [style.border-bottom-color]="activeTab() === 'F-012' ? '#3b82f6' : ''"
+          [style.font-weight]="activeTab() === 'F-012' ? '600' : ''"
+        >F-012</button>
       </div>
 
       @if (activeTab() === 'F-002') {
@@ -324,6 +335,53 @@ const CESANTIAS_CERTIFICATE_CODE = 'F-011';
         </div>
       }
 
+      @if (activeTab() === 'F-012') {
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>Tipo</th><th>Código</th><th>Versión</th><th>Acción</th></tr>
+            </thead>
+            <tbody>
+              @for (certificate of cesantiasEndCertificates(); track certificate.clave_formato + ':' + certificate.variante) {
+                <tr>
+                  <td><strong>{{ certificate.nombre || certificate.titulo || certificate.clave_formato }}</strong></td>
+                  <td><span class="badge">BBTH - {{ formatCode(certificate) }}</span></td>
+                  <td>{{ certificate.version_formato || 'Sin versión' }}</td>
+                  <td class="actions-cell">
+                    <label>Fecha inicial del periodo
+                      <input type="date" [value]="cesantiasEndFrom()" (input)="updateCesantiasEnd('from', $any($event.target).value)" [disabled]="generating() || downloading()" />
+                    </label>
+                    <label>Fecha final del periodo
+                      <input type="date" [value]="cesantiasEndTo()" (input)="updateCesantiasEnd('to', $any($event.target).value)" [disabled]="generating() || downloading()" />
+                    </label>
+                    <label>NIT de la empresa
+                      <input maxlength="20" [value]="cesantiasEndNit()" (input)="updateCesantiasEnd('nit', $any($event.target).value)" [disabled]="generating() || downloading()" />
+                    </label>
+                    <label>Correo de contacto
+                      <input maxlength="150" [value]="cesantiasEndEmail()" (input)="updateCesantiasEnd('email', $any($event.target).value)" [disabled]="generating() || downloading()" />
+                    </label>
+                    <label>Teléfono de contacto
+                      <input maxlength="30" [value]="cesantiasEndPhone()" (input)="updateCesantiasEnd('phone', $any($event.target).value)" [disabled]="generating() || downloading()" />
+                    </label>
+                    <p class="muted">Campos suministrados por el usuario autorizado. No modifican registros del sistema.</p>
+                    <button
+                      class="btn small primary"
+                      type="button"
+                      (click)="generateCesantiasEnd(certificate)"
+                      [disabled]="generating() || downloading() || !isConfigured(certificate)"
+                    >
+                      {{ generating() ? 'Cargando...' : 'Generar' }}
+                    </button>
+                  </td>
+                </tr>
+              } @empty {
+                <tr><td colspan="4" class="empty">{{ loading() ? 'Cargando certificados...' : 'No hay cartas de cesantías por finalización disponibles.' }}</td></tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+
       @if (generationData()) {
         <section class="panel" style="margin-top:1rem">
           <div class="section-title">
@@ -357,6 +415,7 @@ export class ContractingCertificatesComponent implements OnInit {
   readonly checklistCertificates = signal<CertificateFormat[]>([]);
   readonly acceptanceCertificates = signal<CertificateFormat[]>([]);
   readonly cesantiasCertificates = signal<CertificateFormat[]>([]);
+  readonly cesantiasEndCertificates = signal<CertificateFormat[]>([]);
   readonly contracts = signal<EmployeeContract[]>([]);
   readonly retirements = signal<Array<{ id_retiro: number; motivo_retiro: string; fecha_retiro: string }>>([]);
   readonly generationData = signal<Record<string, unknown> | null>(null);
@@ -370,7 +429,8 @@ export class ContractingCertificatesComponent implements OnInit {
   readonly checklistCertificateCode = CHECKLIST_CERTIFICATE_CODE;
   readonly acceptanceCertificateCode = ACCEPTANCE_CERTIFICATE_CODE;
   readonly cesantiasCertificateCode = CESANTIAS_CERTIFICATE_CODE;
-  readonly activeTab = signal<'F-002' | 'F-003' | 'F-004' | 'F-005' | 'F-011'>('F-002');
+  readonly cesantiasEndCertificateCode = CESANTIAS_END_CERTIFICATE_CODE;
+  readonly activeTab = signal<'F-002' | 'F-003' | 'F-004' | 'F-005' | 'F-011' | 'F-012'>('F-002');
   readonly solidarity = signal('');
   readonly withholding = signal('');
   readonly workStartDate = signal('');
@@ -381,8 +441,13 @@ export class ContractingCertificatesComponent implements OnInit {
   readonly cesantiasModality = signal('PARCIAL');
   readonly cesantiasConcept = signal('');
   readonly cesantiasAmount = signal('');
+  readonly cesantiasEndFrom = signal('');
+  readonly cesantiasEndTo = signal('');
+  readonly cesantiasEndNit = signal('900747203-1');
+  readonly cesantiasEndEmail = signal('secretariabarroblanco@gmail.com');
+  readonly cesantiasEndPhone = signal('3153188486');
   readonly selectedFormat = signal<CertificateFormat | null>(null);
-  private confirmed: { key: string; variant: string; contractId: number; retirementId?: number; supplied?: { fondo_solidaridad?: string; retencion_fuente?: string; fecha_inicio_labores?: string; auxilio_transporte?: string; fecha_presentacion_renuncia?: string; modalidad?: string; concepto_retiro?: string; monto_retiro?: string } } | null = null;
+  private confirmed: { key: string; variant: string; contractId: number; retirementId?: number; supplied?: { fondo_solidaridad?: string; retencion_fuente?: string; fecha_inicio_labores?: string; auxilio_transporte?: string; fecha_presentacion_renuncia?: string; modalidad?: string; concepto_retiro?: string; monto_retiro?: string; fecha_desde?: string; fecha_hasta?: string; nit_empresa?: string; correo_contacto?: string; telefono_contacto?: string } } | null = null;
   private contextRevision = 0;
   employeeId = 0;
 
@@ -401,6 +466,11 @@ export class ContractingCertificatesComponent implements OnInit {
       concepto_retiro: 'Concepto del retiro',
       monto_retiro: 'Monto a retirar',
       fondo_cesantias: 'Fondo de cesantías',
+      fecha_desde: 'Fecha inicial',
+      fecha_hasta: 'Fecha final',
+      nit_empresa: 'NIT de la empresa',
+      correo_contacto: 'Correo de contacto',
+      telefono_contacto: 'Teléfono de contacto',
       motivo_retiro: 'Motivo de retiro',
       fecha_ingreso: 'Fecha de ingreso',
       firmantes_json: 'Firmantes',
@@ -468,6 +538,10 @@ export class ContractingCertificatesComponent implements OnInit {
     this.service.getCesantiasCertificates(this.employeeId).subscribe({
       next: (certificates) => this.cesantiasCertificates.set(certificates),
       error: () => this.cesantiasCertificates.set([]),
+    });
+    this.service.getCesantiasTerminationCertificates(this.employeeId).subscribe({
+      next: (certificates) => this.cesantiasEndCertificates.set(certificates),
+      error: () => this.cesantiasEndCertificates.set([]),
     });
     this.retirementService.list({ employee_id: this.employeeId }).subscribe({
       next: (retirements) => this.retirements.set(retirements),
@@ -603,6 +677,86 @@ export class ContractingCertificatesComponent implements OnInit {
     return certificate.clave_formato === CESANTIAS_CERTIFICATE_KEY;
   }
 
+  isCesantiasEndCertificate(certificate: CertificateFormat): boolean {
+    return certificate.clave_formato === CESANTIAS_END_CERTIFICATE_KEY;
+  }
+
+  updateCesantiasEnd(field: 'from' | 'to' | 'nit' | 'email' | 'phone', value: string): void {
+    this.contextRevision++;
+    if (field === 'from') this.cesantiasEndFrom.set(value);
+    else if (field === 'to') this.cesantiasEndTo.set(value);
+    else if (field === 'nit') this.cesantiasEndNit.set(value);
+    else if (field === 'email') this.cesantiasEndEmail.set(value);
+    else this.cesantiasEndPhone.set(value);
+    this.confirmed = null;
+    this.generationData.set(null);
+  }
+
+  generateCesantiasEnd(certificate: CertificateFormat): void {
+    const revision = ++this.contextRevision;
+    if (!this.isCesantiasEndCertificate(certificate)) return;
+    const supplied = {
+      fecha_desde: this.cesantiasEndFrom().trim(),
+      fecha_hasta: this.cesantiasEndTo().trim(),
+      nit_empresa: this.cesantiasEndNit().trim(),
+      correo_contacto: this.cesantiasEndEmail().trim(),
+      telefono_contacto: this.cesantiasEndPhone().trim(),
+    };
+    if (!supplied.fecha_desde || !supplied.fecha_hasta) {
+      this.error.set('Indique las fechas inicial y final del periodo.');
+      this.errorFields.set({});
+      this.generationData.set(null);
+      this.confirmed = null;
+      return;
+    }
+    if (supplied.fecha_hasta < supplied.fecha_desde) {
+      this.error.set('La fecha final del periodo no puede ser anterior a la inicial.');
+      this.errorFields.set({});
+      this.generationData.set(null);
+      this.confirmed = null;
+      return;
+    }
+    if (!/^\d{5,12}-\d$/.test(supplied.nit_empresa)) {
+      this.error.set('Indique el NIT de la empresa con formato de dígitos y dígito de verificación.');
+      this.errorFields.set({});
+      this.generationData.set(null);
+      this.confirmed = null;
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(supplied.correo_contacto) || supplied.correo_contacto.length > 150) {
+      this.error.set('Indique un correo electrónico de contacto válido.');
+      this.errorFields.set({});
+      this.generationData.set(null);
+      this.confirmed = null;
+      return;
+    }
+    if (!/^[\d\s\-+]{6,30}$/.test(supplied.telefono_contacto)) {
+      this.error.set('Indique un teléfono de contacto válido.');
+      this.errorFields.set({});
+      this.generationData.set(null);
+      this.confirmed = null;
+      return;
+    }
+    const context = { key: certificate.clave_formato!, variant: 'CESANTIAS_END', contractId: 0, supplied };
+    this.selectedFormat.set({ ...certificate });
+    this.confirmed = null;
+    this.generating.set(true);
+    this.error.set('');
+    this.errorFields.set({});
+    this.generationData.set(null);
+    this.service
+      .getCesantiasTerminationGenerationData(this.employeeId, supplied)
+      .pipe(finalize(() => {
+        if (revision === this.contextRevision) this.generating.set(false);
+      }))
+      .subscribe({
+        next: (data) => { if (revision === this.contextRevision) { this.confirmed = context; this.generationData.set(data); } },
+        error: (error) => {
+          if (revision === this.contextRevision) this.handleError(error, 'No fue posible generar los datos de la carta de cesantías.');
+        },
+      });
+  }
+
   updateCesantiasModality(value: string): void {
     this.contextRevision++;
     this.cesantiasModality.set(value);
@@ -730,6 +884,7 @@ export class ContractingCertificatesComponent implements OnInit {
     const isChecklist = context.variant === 'CHECKLIST' && !!context.retirementId;
     const isAcceptance = context.variant === 'ACCEPTANCE' && !!context.retirementId;
     const isCesantias = context.variant === 'CESANTIAS';
+    const isCesantiasEnd = context.variant === 'CESANTIAS_END';
     const request$ = isRetirement
       ? this.service.downloadRetirementCertificate(this.employeeId, context.retirementId!, context.supplied as { fondo_solidaridad: string; retencion_fuente: string; auxilio_transporte: string })
       : isChecklist
@@ -738,7 +893,9 @@ export class ContractingCertificatesComponent implements OnInit {
           ? this.service.downloadAcceptance(this.employeeId, context.retirementId!, context.supplied as { fecha_presentacion_renuncia: string })
           : isCesantias
             ? this.service.downloadCesantias(this.employeeId, context.supplied as { modalidad: string; concepto_retiro: string; monto_retiro: string })
-            : this.service.downloadCertificate(this.employeeId, context.key, context.contractId, context.variant, context.supplied);
+            : isCesantiasEnd
+              ? this.service.downloadCesantiasTermination(this.employeeId, context.supplied as { fecha_desde: string; fecha_hasta: string; nit_empresa: string; correo_contacto: string; telefono_contacto: string })
+              : this.service.downloadCertificate(this.employeeId, context.key, context.contractId, context.variant, context.supplied);
     request$.subscribe({
       next: async (blob) => {
         const header = new TextDecoder().decode(await blob.slice(0, 8).arrayBuffer());
@@ -751,7 +908,7 @@ export class ContractingCertificatesComponent implements OnInit {
         const url = URL.createObjectURL(blob);
         const anchor = document.createElement('a');
         anchor.href = url;
-        anchor.download = isRetirement ? 'BBTH-F-003-CERTIFICADO-LABORAL-RETIRO.pdf' : isChecklist ? 'BBTH-F-004-PAZ-Y-SALVO-ENTREGA-RETIRO.pdf' : isAcceptance ? 'BBTH-F-005-CARTA-ACEPTACION-RENUNCIA.pdf' : isCesantias ? 'BBTH-F-011-CARTA-RETIRO-CESANTIAS-VIVIENDA.pdf' : 'BBTH-F-002-CERTIFICADO-LABORAL.pdf';
+        anchor.download = isRetirement ? 'BBTH-F-003-CERTIFICADO-LABORAL-RETIRO.pdf' : isChecklist ? 'BBTH-F-004-PAZ-Y-SALVO-ENTREGA-RETIRO.pdf' : isAcceptance ? 'BBTH-F-005-CARTA-ACEPTACION-RENUNCIA.pdf' : isCesantias ? 'BBTH-F-011-CARTA-RETIRO-CESANTIAS-VIVIENDA.pdf' : isCesantiasEnd ? 'BBTH-F-012-CARTA-RETIRO-CESANTIAS-FIN-CONTRATO.pdf' : 'BBTH-F-002-CERTIFICADO-LABORAL.pdf';
         anchor.style.display = 'none';
         document.body.appendChild(anchor);
         try {

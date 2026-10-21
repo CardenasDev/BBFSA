@@ -121,7 +121,7 @@ export class ContractingService {
 
   getRetirementCertificateGenerationData(
     employeeId: number,
-    retirementId: number,
+    retirementId: number | null,
     supplied: { fondo_solidaridad: string; retencion_fuente: string; auxilio_transporte: string },
   ): Observable<Record<string, unknown>> {
     return this.http.post<ApiResponse<Record<string, unknown>>>(
@@ -132,7 +132,7 @@ export class ContractingService {
 
   downloadRetirementCertificate(
     employeeId: number,
-    retirementId: number,
+    retirementId: number | null,
     supplied: { fondo_solidaridad: string; retencion_fuente: string; auxilio_transporte: string },
   ): Observable<Blob> {
     return this.http.post(
@@ -148,14 +148,14 @@ export class ContractingService {
       .pipe(map((response) => response.data ?? []));
   }
 
-  getChecklistGenerationData(employeeId: number, retirementId: number): Observable<Record<string, unknown>> {
+  getChecklistGenerationData(employeeId: number, retirementId: number | null): Observable<Record<string, unknown>> {
     return this.http.post<ApiResponse<Record<string, unknown>>>(
       `${this.url}/employees/${employeeId}/certificates/checklist/generation-data`,
       { id_retiro: retirementId },
     ).pipe(map((response) => response.data));
   }
 
-  downloadChecklist(employeeId: number, retirementId: number): Observable<Blob> {
+  downloadChecklist(employeeId: number, retirementId: number | null): Observable<Blob> {
     return this.http.post(
       `${this.url}/employees/${employeeId}/certificates/checklist/download`,
       { id_retiro: retirementId },
@@ -171,7 +171,7 @@ export class ContractingService {
 
   getAcceptanceGenerationData(
     employeeId: number,
-    retirementId: number,
+    retirementId: number | null,
     supplied: { fecha_presentacion_renuncia: string },
   ): Observable<Record<string, unknown>> {
     return this.http.post<ApiResponse<Record<string, unknown>>>(
@@ -182,7 +182,7 @@ export class ContractingService {
 
   downloadAcceptance(
     employeeId: number,
-    retirementId: number,
+    retirementId: number | null,
     supplied: { fecha_presentacion_renuncia: string },
   ): Observable<Blob> {
     return this.http.post(

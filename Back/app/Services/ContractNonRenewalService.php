@@ -58,8 +58,12 @@ class ContractNonRenewalService
         if (! $contract || (int) ($contract['id_empleado'] ?? 0) !== $employeeId) {
             throw new ApiException('Contrato no encontrado para el empleado.', 404);
         }
-        if (($contract['estado_contrato'] ?? null) !== 'ACTIVO') {
-            throw new ApiException('El contrato debe estar activo para notificar su no renovación.', 422, ['contrato' => ['Contrato inactivo.']]);
+        // Allow any contract state for any employee state; only validate dates are coherent
+        $fechaInicio = $this->date($contract['fecha_inicio'] ?? null);
+        $fechaFin = $this->date($contract['fecha_fin'] ?? null);
+        $today = $this->today();
+        if (! $fechaInicio || $fechaInicio > $today || ($fechaFin && $fechaFin < $fechaInicio)) {
+            throw new ApiException('El contrato debe tener fechas de inicio y fin coherentes.', 422, ['contrato' => ['Fechas de contrato inválidas.']]);
         }
         $tipoContrato = $this->text($contract['tipo_contrato'] ?? null);
         if (! $tipoContrato || mb_stripos($tipoContrato, 'fijo') === false) {

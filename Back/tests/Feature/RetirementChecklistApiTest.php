@@ -92,13 +92,27 @@ class RetirementChecklistApiTest extends TestCase
         $this->authorized()->postJson(self::GENERATE, ['id_retiro' => 3])->assertNotFound();
     }
 
-    public function test_request_validation_requires_retirement_id(): void
+    public function test_request_validation_accepts_missing_or_invalid_retirement_id(): void
     {
-        $this->mock(EmployeeRepository::class)->shouldNotReceive('find');
-        foreach ([self::GENERATE, self::DOWNLOAD] as $url) {
-            $this->authorized()->postJson($url, [])->assertUnprocessable()->assertJsonValidationErrors('id_retiro');
-            $this->authorized()->postJson($url, ['id_retiro' => 0])->assertUnprocessable()->assertJsonValidationErrors('id_retiro');
+        $this->employee();
+        $this->mock(RetirementRepository::class)->shouldReceive('detail')->with(3)->once()
+            ->andReturn(['retirement' => $this->retirement()]);
+        $repository = $this->mock(ContractingRepository::class);
+        $repository->shouldReceive('listContracts')->zeroOrMoreTimes()->withAnyArgs()->andReturn([]);
+        $repository->shouldReceive('getProfile')->zeroOrMoreTimes()->with(5)->andReturn(['lugar_expedicion_documento' => 'Ciudad configurada']);
+        foreach ([
+            'DOC_EMPRESA_RAZON_SOCIAL' => ['tipo_dato' => 'TEXTO', 'valor' => 'Empresa configurada'],
+            'DOC_EMPRESA_CIUDAD' => ['tipo_dato' => 'TEXTO', 'valor' => 'Ciudad configurada'],
+            'DOC_FIRMANTE_F004' => ['tipo_dato' => 'JSON', 'valor' => '{"nombre":"Nombre configurado","cargo":"Cargo configurado","telefono":"Teléfono configurado"}'],
+        ] as $code => $row) {
+            $repository->shouldReceive('getCurrentParameter')->zeroOrMoreTimes()->with($code, '2026-10-06')->andReturn($row);
         }
+        $this->mock(CertificateRepository::class)->shouldReceive('getFormat')
+            ->with('CONSTANCIA_ENTREGA_RETIRO', '2026-10-06')->once()->andReturn($this->format());
+        // Sin id_retiro debe funcionar (usa fallbacks)
+        $this->authorized()->postJson(self::GENERATE, [])->assertOk();
+        // id_retiro = 0 se ignora (mismo efecto que no enviarlo)
+        $this->authorized()->postJson(self::GENERATE, ['id_retiro' => 0])->assertOk();
     }
 
     public function test_missing_official_fields_are_actionable(): void

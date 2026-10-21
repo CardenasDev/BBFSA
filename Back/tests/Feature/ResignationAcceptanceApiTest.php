@@ -134,14 +134,33 @@ class ResignationAcceptanceApiTest extends TestCase
         $this->authorized()->postJson(self::GENERATE, ['id_retiro' => 3, 'fecha_presentacion_renuncia' => '2026-09-01'])->assertNotFound();
     }
 
-    public function test_request_validation_requires_retirement_and_presentation_date(): void
+    public function test_request_validation_requires_presentation_date_retirement_optional(): void
     {
-        $this->mock(EmployeeRepository::class)->shouldNotReceive('find');
-        foreach ([self::GENERATE, self::DOWNLOAD] as $url) {
-            $this->authorized()->postJson($url, [])->assertUnprocessable()->assertJsonValidationErrors(['id_retiro', 'fecha_presentacion_renuncia']);
-            $this->authorized()->postJson($url, ['id_retiro' => 0, 'fecha_presentacion_renuncia' => 'no-es-fecha'])
-                ->assertUnprocessable()->assertJsonValidationErrors(['id_retiro', 'fecha_presentacion_renuncia']);
+        $this->employee();
+        $this->mock(RetirementRepository::class)->shouldReceive('detail')->with(3)->once()
+            ->andReturn(['retirement' => $this->retirement()]);
+        $repository = $this->mock(ContractingRepository::class);
+        $repository->shouldReceive('listContracts')->zeroOrMoreTimes()->withAnyArgs()->andReturn([
+            ['estado_contrato' => 'ACTIVO', 'cargo' => 'Supervisor de Calidad'],
+        ]);
+        $repository->shouldReceive('getProfile')->zeroOrMoreTimes()->with(5)->andReturn([]);
+        foreach ([
+            'DOC_EMPRESA_RAZON_SOCIAL' => ['tipo_dato' => 'TEXTO', 'valor' => 'Empresa configurada'],
+            'DOC_EMPRESA_CIUDAD' => ['tipo_dato' => 'TEXTO', 'valor' => 'Ciudad configurada'],
+            'DOC_FIRMANTE_F005' => ['tipo_dato' => 'JSON', 'valor' => '{"nombre":"Nombre configurado","cargo":"Cargo configurado","telefono":"Teléfono configurado"}'],
+        ] as $code => $row) {
+            $repository->shouldReceive('getCurrentParameter')->zeroOrMoreTimes()->with($code, '2026-10-06')->andReturn($row);
         }
+        $this->mock(CertificateRepository::class)->shouldReceive('getFormat')
+            ->with('ACEPTACION_RENUNCIA', '2026-10-06')->once()->andReturn($this->format());
+        // id_retiro opcional; fecha_presentacion_renuncia obligatoria
+        $this->authorized()->postJson(self::GENERATE, ['fecha_presentacion_renuncia' => '2026-09-01'])->assertOk();
+        $this->authorized()->postJson(self::GENERATE, ['id_retiro' => 3, 'fecha_presentacion_renuncia' => '2026-09-01'])->assertOk();
+        $this->authorized()->postJson(self::GENERATE, ['id_retiro' => 0, 'fecha_presentacion_renuncia' => '2026-09-01'])->assertOk();
+        // Sin fecha_presentacion_renuncia falla
+        $this->authorized()->postJson(self::GENERATE, ['id_retiro' => 3])->assertUnprocessable()->assertJsonValidationErrors('fecha_presentacion_renuncia');
+        $this->authorized()->postJson(self::GENERATE, ['id_retiro' => 0, 'fecha_presentacion_renuncia' => 'no-es-fecha'])
+            ->assertUnprocessable()->assertJsonValidationErrors('fecha_presentacion_renuncia');
     }
 
     public function test_future_presentation_date_is_rejected(): void

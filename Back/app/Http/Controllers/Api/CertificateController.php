@@ -94,8 +94,8 @@ class CertificateController extends ApiController
 
     public function retirementGenerationData(Request $request, int $employeeId): JsonResponse
     {
+        $this->normalizeRetirementId($request);
         $data = $request->validate($this->retirementRules(), [
-            'id_retiro.required' => 'Indique el retiro del empleado.',
             'id_retiro.integer' => 'El retiro debe ser un número entero.',
             'id_retiro.min' => 'El retiro debe ser mayor que cero.',
             '*.required' => 'Complete fondo de solidaridad, retención en la fuente y auxilio de transporte.',
@@ -103,14 +103,15 @@ class CertificateController extends ApiController
             '*.max' => 'El texto debe tener hasta 200 caracteres.',
             '*.not_regex' => 'El texto no debe contener HTML ni saltos de línea.',
         ]);
-        return $this->success($this->retirementService->generationData($employeeId, (int) $data['id_retiro'], $data),
+        $retirementId = $data['id_retiro'] ?? null;
+        return $this->success($this->retirementService->generationData($employeeId, $retirementId !== null ? (int) $retirementId : null, $data),
             'Datos del certificado de retiro consultados correctamente.');
     }
 
     public function retirementDownload(Request $request, int $employeeId): Response
     {
+        $this->normalizeRetirementId($request);
         $data = $request->validate($this->retirementRules(), [
-            'id_retiro.required' => 'Indique el retiro del empleado.',
             'id_retiro.integer' => 'El retiro debe ser un número entero.',
             'id_retiro.min' => 'El retiro debe ser mayor que cero.',
             '*.required' => 'Complete fondo de solidaridad, retención en la fuente y auxilio de transporte.',
@@ -118,7 +119,8 @@ class CertificateController extends ApiController
             '*.max' => 'El texto debe tener hasta 200 caracteres.',
             '*.not_regex' => 'El texto no debe contener HTML ni saltos de línea.',
         ]);
-        $content = $this->retirementService->generateDocument($employeeId, (int) $data['id_retiro'], $data);
+        $retirementId = $data['id_retiro'] ?? null;
+        $content = $this->retirementService->generateDocument($employeeId, $retirementId !== null ? (int) $retirementId : null, $data);
 
         return response($content, 200, [
             'Content-Type' => 'application/pdf',
@@ -132,7 +134,7 @@ class CertificateController extends ApiController
     private function retirementRules(): array
     {
         return [
-            'id_retiro' => ['required', 'integer', 'min:1'],
+            'id_retiro' => ['nullable', 'integer', 'min:1'],
             'fondo_solidaridad' => ['required', 'string', 'max:200', 'not_regex:/[<>\r\n\x00-\x1F\x7F]/u'],
             'retencion_fuente' => ['required', 'string', 'max:200', 'not_regex:/[<>\r\n\x00-\x1F\x7F]/u'],
             'auxilio_transporte' => ['required', 'string', 'max:200', 'not_regex:/[<>\r\n\x00-\x1F\x7F]/u'],
@@ -144,25 +146,34 @@ class CertificateController extends ApiController
         return $this->success($this->checklistService->available($employeeId), 'Documentos de paz y salvo consultados correctamente.');
     }
 
+    private function normalizeRetirementId(Request $request): void
+    {
+        if ($request->has('id_retiro') && $request->input('id_retiro') === 0) {
+            $request->request->remove('id_retiro');
+        }
+    }
+
     public function checklistGenerationData(Request $request, int $employeeId): JsonResponse
     {
-        $data = $request->validate(['id_retiro' => ['required', 'integer', 'min:1']], [
-            'id_retiro.required' => 'Indique el retiro del empleado.',
+        $this->normalizeRetirementId($request);
+        $data = $request->validate(['id_retiro' => ['nullable', 'integer', 'min:1']], [
             'id_retiro.integer' => 'El retiro debe ser un número entero.',
             'id_retiro.min' => 'El retiro debe ser mayor que cero.',
         ]);
-        return $this->success($this->checklistService->generationData($employeeId, (int) $data['id_retiro']),
+        $retirementId = $data['id_retiro'] ?? null;
+        return $this->success($this->checklistService->generationData($employeeId, $retirementId !== null ? (int) $retirementId : null),
             'Datos del checklist de retiro consultados correctamente.');
     }
 
     public function checklistDownload(Request $request, int $employeeId): Response
     {
-        $data = $request->validate(['id_retiro' => ['required', 'integer', 'min:1']], [
-            'id_retiro.required' => 'Indique el retiro del empleado.',
+        $this->normalizeRetirementId($request);
+        $data = $request->validate(['id_retiro' => ['nullable', 'integer', 'min:1']], [
             'id_retiro.integer' => 'El retiro debe ser un número entero.',
             'id_retiro.min' => 'El retiro debe ser mayor que cero.',
         ]);
-        $content = $this->checklistService->generateDocument($employeeId, (int) $data['id_retiro']);
+        $retirementId = $data['id_retiro'] ?? null;
+        $content = $this->checklistService->generateDocument($employeeId, $retirementId !== null ? (int) $retirementId : null);
 
         return response($content, 200, [
             'Content-Type' => 'application/pdf',
@@ -180,27 +191,29 @@ class CertificateController extends ApiController
 
     public function acceptanceGenerationData(Request $request, int $employeeId): JsonResponse
     {
+        $this->normalizeRetirementId($request);
         $data = $request->validate($this->acceptanceRules(), [
-            'id_retiro.required' => 'Indique el retiro del empleado.',
             'id_retiro.integer' => 'El retiro debe ser un número entero.',
             'id_retiro.min' => 'El retiro debe ser mayor que cero.',
             'fecha_presentacion_renuncia.required' => 'Indique la fecha de presentación de la renuncia.',
             'fecha_presentacion_renuncia.date_format' => 'La fecha de presentación debe tener formato YYYY-MM-DD.',
         ]);
-        return $this->success($this->acceptanceService->generationData($employeeId, (int) $data['id_retiro'], $data),
+        $retirementId = $data['id_retiro'] ?? null;
+        return $this->success($this->acceptanceService->generationData($employeeId, $retirementId !== null ? (int) $retirementId : null, $data),
             'Datos de la carta de aceptación consultados correctamente.');
     }
 
     public function acceptanceDownload(Request $request, int $employeeId): Response
     {
+        $this->normalizeRetirementId($request);
         $data = $request->validate($this->acceptanceRules(), [
-            'id_retiro.required' => 'Indique el retiro del empleado.',
             'id_retiro.integer' => 'El retiro debe ser un número entero.',
             'id_retiro.min' => 'El retiro debe ser mayor que cero.',
             'fecha_presentacion_renuncia.required' => 'Indique la fecha de presentación de la renuncia.',
             'fecha_presentacion_renuncia.date_format' => 'La fecha de presentación debe tener formato YYYY-MM-DD.',
         ]);
-        $content = $this->acceptanceService->generateDocument($employeeId, (int) $data['id_retiro'], $data);
+        $retirementId = $data['id_retiro'] ?? null;
+        $content = $this->acceptanceService->generateDocument($employeeId, $retirementId !== null ? (int) $retirementId : null, $data);
 
         return response($content, 200, [
             'Content-Type' => 'application/pdf',
@@ -214,7 +227,7 @@ class CertificateController extends ApiController
     private function acceptanceRules(): array
     {
         return [
-            'id_retiro' => ['required', 'integer', 'min:1'],
+            'id_retiro' => ['nullable', 'integer', 'min:1'],
             'fecha_presentacion_renuncia' => ['required', 'date_format:Y-m-d'],
         ];
     }

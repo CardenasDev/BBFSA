@@ -30,16 +30,23 @@ class RetirementChecklistService
             array_filter($this->certificates->listAllFormats($this->today()), fn (array $row): bool => $this->supported($row))));
     }
 
-    public function generateDocument(int $employeeId, int $retirementId): string
+    public function generateDocument(int $employeeId, ?int $retirementId): string
     {
         return $this->renderer->render($this->generationData($employeeId, $retirementId));
     }
 
-    public function generationData(int $employeeId, int $retirementId): array
+    public function generationData(int $employeeId, ?int $retirementId): array
     {
         $employee = $this->existingEmployee($employeeId);
-        $retirement = $this->validRetirement($employeeId, $retirementId);
         $today = $this->today();
+
+        // Obtener datos de retiro si se proporciona ID, sino usar fallbacks
+        $retirement = null;
+        $hasRetirement = false;
+        if ($retirementId !== null) {
+            $retirement = $this->validRetirement($employeeId, $retirementId);
+            $hasRetirement = true;
+        }
 
         $format = $this->certificates->getFormat(self::FORMAT_KEY, $today);
         if (! $format || ! $this->supported($format)) {
@@ -48,15 +55,14 @@ class RetirementChecklistService
 
         $errors = [];
 
+        // Identidad del empleado (siempre desde empleado)
         $identity = [
             'id_empleado' => $employeeId,
-            'nombre_completo' => $this->text($retirement['empleado'] ?? null)
+            'nombre_completo' => $this->text($employee['nombre_completo'] ?? null)
                 ?? trim(($employee['nombres'] ?? '').' '.($employee['apellidos'] ?? '')),
             'tipo_documento' => $this->text($employee['tipo_documento'] ?? null),
-            'numero_documento' => $this->text($retirement['numero_documento'] ?? null)
-                ?? $this->text($employee['numero_documento'] ?? null),
-            'fecha_ingreso' => $this->date($retirement['fecha_ingreso'] ?? null)
-                ?? $this->date($employee['fecha_ingreso'] ?? null),
+            'numero_documento' => $this->text($employee['numero_documento'] ?? null),
+            'fecha_ingreso' => $this->date($employee['fecha_ingreso'] ?? null),
         ];
 
         foreach (['nombre_completo', 'tipo_documento', 'numero_documento'] as $field) {
@@ -65,12 +71,23 @@ class RetirementChecklistService
             }
         }
 
-        $retirementDate = $this->date($retirement['fecha_retiro'] ?? null);
-        if (! $retirementDate || $retirementDate > $today) {
-            $errors['fecha_retiro'] = ['La fecha de retiro debe ser una fecha válida y no futura.'];
+        // Datos de retiro: usar retiro si existe, sino fallbacks
+        if ($hasRetirement) {
+            $retirementDate = $this->date($retirement['fecha_retiro'] ?? null);
+            if (! $retirementDate || $retirementDate > $today) {
+                $errors['fecha_retiro'] = ['La fecha de retiro debe ser una fecha válida y no futura.'];
+            }
+            $motivoRetiro = $this->text($retirement['motivo_retiro'] ?? null);
+            if (! $motivoRetiro) { $errors['motivo_retiro'] = ['Motivo de retiro obligatorio ausente.']; }
+            $position = $this->text($retirement['cargo'] ?? null);
+        } else {
+            // Fallback: sin retiro, usar fecha actual como fecha_retiro y motivo genérico
+            $retirementDate = $today;
+            $motivoRetiro = 'No especificado';
+            $position = null;
         }
 
-        $position = $this->text($retirement['cargo'] ?? null);
+        // Cargo: prioridad retiro -> contrato activo -> cualquier contrato
         if (! $position) {
             $contracts = $this->contracting->listContracts($employeeId);
             foreach ($contracts as $c) {
@@ -80,10 +97,15 @@ class RetirementChecklistService
                 }
             }
         }
+        if (! $position) {
+            foreach ($contracts as $c) {
+                if (! empty($c['cargo'])) {
+                    $position = $this->text($c['cargo']);
+                    break;
+                }
+            }
+        }
         if (! $position) { $errors['cargo'] = ['Cargo obligatorio ausente.']; }
-
-        $motivoRetiro = $this->text($retirement['motivo_retiro'] ?? null);
-        if (! $motivoRetiro) { $errors['motivo_retiro'] = ['Motivo de retiro obligatorio ausente.']; }
 
         $company = [
             'razon_social' => $this->parameter('DOC_EMPRESA_RAZON_SOCIAL', 'TEXTO', $today, $errors),
@@ -125,7 +147,7 @@ class RetirementChecklistService
         return [
             'empleado' => $identity,
             'retiro' => [
-                'id_retiro' => $retirementId,
+                'id_retiro' => $hasRetirement ? $retirementId : null,
                 'fecha_retiro' => $retirementDate,
                 'motivo_retiro' => $motivoRetiro,
             ],

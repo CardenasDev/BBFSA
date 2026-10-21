@@ -24,7 +24,7 @@ class CertificateService
 
     public function available(int $employeeId): array
     {
-        $this->activeEmployee($employeeId);
+        $this->existingEmployee($employeeId);
 
         return array_values(array_map(fn (array $row): array => $this->metadata($row),
             array_filter($this->certificates->listFormats($this->today()), fn (array $row): bool => $this->supported($row))));
@@ -40,7 +40,7 @@ class CertificateService
         if ($key !== self::FORMAT_KEY || ! in_array($variant, ['GENERAL', 'SALARIO_AFILIACIONES', 'HISTORIAL_CONTRACTUAL'], true)) {
             throw new ApiException('Formato no implementado.', 404);
         }
-        $employee = $this->activeEmployee($employeeId);
+        $employee = $this->existingEmployee($employeeId);
         $contract = $this->contracting->getContractGenerationData($contractId);
         if (! $contract || (int) ($contract['id_empleado'] ?? 0) !== $employeeId) {
             throw new ApiException('Contrato no encontrado para el empleado.', 404);
@@ -48,12 +48,13 @@ class CertificateService
         $today = $this->today();
         $start = $this->date($contract['fecha_inicio'] ?? null);
         $end = $this->date($contract['fecha_fin'] ?? null);
-        if (($contract['estado_contrato'] ?? null) !== 'ACTIVO' || ! $start || $start > $today
-            || (! empty($contract['fecha_fin']) && (! $end || $end < $today))) {
-            throw new ApiException('El contrato debe estar activo y vigente.', 422, ['contrato' => ['Contrato inactivo o fuera de vigencia.']]);
+        // Allow any contract state for any employee state; only validate dates are coherent
+        if (! $start || $start > $today || (! empty($contract['fecha_fin']) && (! $end || $end < $start))) {
+            throw new ApiException('El contrato debe tener fechas de inicio y fin coherentes.', 422, ['contrato' => ['Fechas de contrato inválidas.']]);
         }
-        if ($variant === 'HISTORIAL_CONTRACTUAL' && ! $this->currentContractMatches($employeeId, $contractId)) {
-            throw new ApiException('Solo puede emitirse el contrato activo y vigente del empleado.', 422, ['contrato' => ['Seleccione el contrato actual activo y vigente.']]);
+        // For HISTORIAL_CONTRACTUAL, ensure the selected contract is the most recent one for the employee
+        if ($variant === 'HISTORIAL_CONTRACTUAL' && ! $this->isMostRecentContract($employeeId, $contractId)) {
+            throw new ApiException('Para historial contractual debe seleccionarse el contrato más reciente del empleado.', 422, ['contrato' => ['Seleccione el contrato más reciente.']]);
         }
         $format = $variant === 'GENERAL' ? $this->certificates->getFormat($key, $today) : $this->certificates->getFormat($key, $today, $variant);
         if (! $format || ! $this->supported($format) || $format['variante'] !== $variant) {
@@ -162,13 +163,10 @@ class CertificateService
         ];
     }
 
-    private function activeEmployee(int $id): array
+    private function existingEmployee(int $id): array
     {
         $employee = $this->employees->find($id);
         if (! $employee) { throw new ApiException('Empleado no encontrado.', 404); }
-        if (($employee['estado_empleado'] ?? null) !== 'ACTIVO') {
-            throw new ApiException('El empleado debe estar ACTIVO para este certificado.', 422, ['estado_empleado' => ['El empleado no está activo.']]);
-        }
         return $employee;
     }
 
@@ -180,25 +178,23 @@ class CertificateService
             && ($row['clave_renderizador'] ?? null) === $renderers[$row['variante']];
     }
 
-    private function currentContractMatches(int $employeeId, int $contractId): bool
+    private function isMostRecentContract(int $employeeId, int $contractId): bool
     {
-        foreach ($this->contracting->listContracts($employeeId) as $row) {
-            if (($row['estado_contrato'] ?? null) !== 'ACTIVO') {
-                continue;
-            }
-            $start = $this->date($row['fecha_inicio'] ?? null);
-            $end = $this->date($row['fecha_fin'] ?? null);
-            $today = $this->today();
-            if (! $start || $start > $today || (! empty($row['fecha_fin']) && (! $end || $end < $today))) {
-                continue;
-            }
-            if ((int) ($row['id_empleado_contrato'] ?? 0) === $contractId) {
-                return true;
-            }
+        $contracts = $this->contracting->listContracts($employeeId);
+        if (empty($contracts)) {
             return false;
         }
-
-        return false;
+        // Find the most recent contract by start date
+        $mostRecent = null;
+        $mostRecentStart = null;
+        foreach ($contracts as $row) {
+            $start = $this->date($row['fecha_inicio'] ?? null);
+            if ($start && ($mostRecentStart === null || $start > $mostRecentStart)) {
+                $mostRecentStart = $start;
+                $mostRecent = $row;
+            }
+        }
+        return $mostRecent && (int) ($mostRecent['id_empleado_contrato'] ?? 0) === $contractId;
     }
 
     private function suppliedHistoryDate(array $supplied, array &$errors): ?string

@@ -102,19 +102,15 @@ class ContractNonRenewalApiTest extends TestCase
             ->assertUnprocessable()->assertJsonValidationErrors('fecha_fin');
     }
 
-    public function test_foreign_and_inactive_contracts_are_rejected(): void
+    public function test_foreign_contracts_are_rejected(): void
     {
-        $this->employee(3);
+        $this->employee(2);
         $repository = $this->mock(ContractingRepository::class);
         $repository->shouldReceive('getContractGenerationData')->with(7)->twice()
             ->andReturn(['id_empleado' => 9, 'estado_contrato' => 'ACTIVO', 'tipo_contrato' => 'Fijo']);
         $this->mock(CertificateRepository::class)->shouldReceive('getFormat')->zeroOrMoreTimes()->andReturn($this->format());
         $this->authorized()->postJson(self::GENERATE, $this->request())->assertNotFound();
         $this->authorized()->postJson(self::DOWNLOAD, $this->request())->assertNotFound();
-        $repository->shouldReceive('getContractGenerationData')->with(8)->once()
-            ->andReturn($this->contract(['estado_contrato' => 'ANULADO']));
-        $this->authorized()->postJson(self::GENERATE, ['id_empleado_contrato' => 8, 'nit_empresa' => '900747203'])
-            ->assertUnprocessable()->assertJsonValidationErrors('contrato');
     }
 
     public function test_request_validation_requires_contract_and_nit(): void

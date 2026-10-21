@@ -205,7 +205,7 @@ const NON_RENEWAL_CERTIFICATE_CODE = 'F-015';
                   <td><strong>{{ certificate.nombre || certificate.titulo || certificate.clave_formato }}</strong></td>
                   <td><span class="badge">BBTH - {{ formatCode(certificate) }}</span></td>
                   <td>{{ certificate.version_formato || 'Sin versión' }}</td>
-                  <td>{{ selectedRetirement()?.motivo_retiro || 'Sin retiro' }}</td>
+                  <td>{{ selectedRetirement()?.motivo_retiro || 'Sin retiro (opcional)' }}</td>
                   <td class="actions-cell">
                     <label>Fondo de solidaridad
                       <input maxlength="200" [value]="retirementSolidarity()" (input)="updateRetirementSupplied('solidarity', $any($event.target).value)" [disabled]="generating() || downloading()" />
@@ -221,7 +221,7 @@ const NON_RENEWAL_CERTIFICATE_CODE = 'F-015';
                       class="btn small primary"
                       type="button"
                       (click)="generateRetirement(certificate)"
-                      [disabled]="generating() || downloading() || !selectedRetirement() || !isConfigured(certificate)"
+                      [disabled]="generating() || downloading() || !isConfigured(certificate)"
                     >
                       {{ generating() ? 'Cargando...' : 'Generar' }}
                     </button>
@@ -235,7 +235,8 @@ const NON_RENEWAL_CERTIFICATE_CODE = 'F-015';
         </div>
       }
 
-      @if (activeTab() === 'F-004') {        <div class="table-wrap">
+      @if (activeTab() === 'F-004') {
+        <div class="table-wrap">
           <table>
             <thead>
               <tr><th>Tipo</th><th>Código</th><th>Versión</th><th>Retiro</th><th>Acción</th></tr>
@@ -246,13 +247,13 @@ const NON_RENEWAL_CERTIFICATE_CODE = 'F-015';
                   <td><strong>{{ certificate.nombre || certificate.titulo || certificate.clave_formato }}</strong></td>
                   <td><span class="badge">BBTH - {{ formatCode(certificate) }}</span></td>
                   <td>{{ certificate.version_formato || 'Sin versión' }}</td>
-                  <td>{{ selectedRetirement()?.motivo_retiro || 'Sin retiro' }}</td>
+                  <td>{{ selectedRetirement()?.motivo_retiro || 'Sin retiro (opcional)' }}</td>
                   <td class="actions-cell">
                     <button
                       class="btn small primary"
                       type="button"
                       (click)="generateChecklist(certificate)"
-                      [disabled]="generating() || downloading() || !selectedRetirement() || !isConfigured(certificate)"
+                      [disabled]="generating() || downloading() || !isConfigured(certificate)"
                     >
                       {{ generating() ? 'Cargando...' : 'Generar' }}
                     </button>
@@ -278,7 +279,7 @@ const NON_RENEWAL_CERTIFICATE_CODE = 'F-015';
                   <td><strong>{{ certificate.nombre || certificate.titulo || certificate.clave_formato }}</strong></td>
                   <td><span class="badge">BBTH - {{ formatCode(certificate) }}</span></td>
                   <td>{{ certificate.version_formato || 'Sin versión' }}</td>
-                  <td>{{ selectedRetirement()?.motivo_retiro || 'Sin retiro' }}</td>
+                  <td>{{ selectedRetirement()?.motivo_retiro || 'Sin retiro (opcional)' }}</td>
                   <td class="actions-cell">
                     <label>Fecha de presentación de la renuncia
                       <input type="date" [value]="acceptancePresentationDate()" (input)="updateAcceptanceDate($any($event.target).value)" [disabled]="generating() || downloading()" />
@@ -288,7 +289,7 @@ const NON_RENEWAL_CERTIFICATE_CODE = 'F-015';
                       class="btn small primary"
                       type="button"
                       (click)="generateAcceptance(certificate)"
-                      [disabled]="generating() || downloading() || !selectedRetirement() || !isConfigured(certificate)"
+                      [disabled]="generating() || downloading() || !isConfigured(certificate)"
                     >
                       {{ generating() ? 'Cargando...' : 'Generar' }}
                     </button>
@@ -523,7 +524,7 @@ export class ContractingCertificatesComponent implements OnInit {
   readonly nonRenewalContractId = signal<number | null>(null);
   readonly nonRenewalNit = signal('900747203');
   readonly selectedFormat = signal<CertificateFormat | null>(null);
-  private confirmed: { key: string; variant: string; contractId: number; retirementId?: number; supplied?: { fondo_solidaridad?: string; retencion_fuente?: string; fecha_inicio_labores?: string; auxilio_transporte?: string; fecha_presentacion_renuncia?: string; modalidad?: string; concepto_retiro?: string; monto_retiro?: string; fecha_desde?: string; fecha_hasta?: string; nit_empresa?: string; correo_contacto?: string; telefono_contacto?: string } } | null = null;
+  private confirmed: { key: string; variant: string; contractId: number; retirementId?: number | null; supplied?: { fondo_solidaridad?: string; retencion_fuente?: string; fecha_inicio_labores?: string; auxilio_transporte?: string; fecha_presentacion_renuncia?: string; modalidad?: string; concepto_retiro?: string; monto_retiro?: string; fecha_desde?: string; fecha_hasta?: string; nit_empresa?: string; correo_contacto?: string; telefono_contacto?: string } } | null = null;
   private contextRevision = 0;
   employeeId = 0;
 
@@ -687,12 +688,8 @@ export class ContractingCertificatesComponent implements OnInit {
   generateRetirement(certificate: CertificateFormat): void {
     const revision = ++this.contextRevision;
     const retirement = this.selectedRetirement();
-    if (!retirement || !this.isRetirementCertificate(certificate)) return;
-    const retirementId = retirement.id_retiro;
-    if (!retirementId) {
-      this.error.set('No fue posible identificar el retiro seleccionado.');
-      return;
-    }
+    if (!this.isRetirementCertificate(certificate)) return;
+    const retirementId = retirement?.id_retiro ?? null;
     const supplied = {
       fondo_solidaridad: this.retirementSolidarity().trim(),
       retencion_fuente: this.retirementWithholding().trim(),
@@ -725,13 +722,9 @@ export class ContractingCertificatesComponent implements OnInit {
 
   generateChecklist(certificate: CertificateFormat): void {
     const revision = ++this.contextRevision;
+    if (!this.isChecklistCertificate(certificate)) return;
     const retirement = this.selectedRetirement();
-    if (!retirement || !this.isChecklistCertificate(certificate)) return;
-    const retirementId = retirement.id_retiro;
-    if (!retirementId) {
-      this.error.set('No fue posible identificar el retiro seleccionado.');
-      return;
-    }
+    const retirementId = retirement?.id_retiro ?? null;
     const context = { key: certificate.clave_formato!, variant: 'CHECKLIST', contractId: 0, retirementId, supplied: undefined };
     this.selectedFormat.set({ ...certificate });
     this.confirmed = null;
@@ -980,13 +973,9 @@ export class ContractingCertificatesComponent implements OnInit {
 
   generateAcceptance(certificate: CertificateFormat): void {
     const revision = ++this.contextRevision;
+    if (!this.isAcceptanceCertificate(certificate)) return;
     const retirement = this.selectedRetirement();
-    if (!retirement || !this.isAcceptanceCertificate(certificate)) return;
-    const retirementId = retirement.id_retiro;
-    if (!retirementId) {
-      this.error.set('No fue posible identificar el retiro seleccionado.');
-      return;
-    }
+    const retirementId = retirement?.id_retiro ?? null;
     const date = this.acceptancePresentationDate().trim();
     if (!date) {
       this.error.set('Indique la fecha de presentación de la renuncia.');
@@ -1024,14 +1013,14 @@ export class ContractingCertificatesComponent implements OnInit {
     }
     this.downloading.set(true);
     this.error.set('');
-    const isRetirement = context.variant === 'RETIRO' && !!context.retirementId;
-    const isChecklist = context.variant === 'CHECKLIST' && !!context.retirementId;
-    const isAcceptance = context.variant === 'ACCEPTANCE' && !!context.retirementId;
+    const isRetirement = context.variant === 'RETIRO';
+    const isChecklist = context.variant === 'CHECKLIST';
+    const isAcceptance = context.variant === 'ACCEPTANCE';
     const isCesantias = context.variant === 'CESANTIAS';
     const isCesantiasEnd = context.variant === 'CESANTIAS_END';
     const isNonRenewal = context.variant === 'NON_RENEWAL';
     const request$ = isRetirement
-      ? this.service.downloadRetirementCertificate(this.employeeId, context.retirementId!, context.supplied as { fondo_solidaridad: string; retencion_fuente: string; auxilio_transporte: string })
+      ? this.service.downloadRetirementCertificate(this.employeeId, context.retirementId ?? null, context.supplied as { fondo_solidaridad: string; retencion_fuente: string; auxilio_transporte: string })
       : isChecklist
         ? this.service.downloadChecklist(this.employeeId, context.retirementId!)
         : isAcceptance
@@ -1074,7 +1063,8 @@ export class ContractingCertificatesComponent implements OnInit {
   }
 
   selectedContract(): EmployeeContract | null {
-    return this.contracts().find((contract) => contract.estado_contrato === 'ACTIVO') ?? this.contracts()[0] ?? null;
+    // Return the first available contract (any state) for certificate generation
+    return this.contracts()[0] ?? null;
   }
 
   selectedContractLabel(): string {

@@ -62,6 +62,40 @@ class TrainingRepository extends StoredProcedureRepository
         return $this->first('SP_BBF_CAPACITACION_PARTICIPANTE_AGREGAR', [$sessionId, $employeeId, $observations, $actorId]);
     }
 
+    public function addAllActiveParticipants(int $sessionId, int $actorId): array
+    {
+        $statement = DB::connection()->getPdo()->prepare(
+            'CALL SP_BBF_CAPACITACION_PARTICIPANTES_AGREGAR_TODOS_ACTIVOS(?, ?, @p_insertados, @p_omitidos_duplicados, @p_mensaje)'
+        );
+        $statement->execute([$sessionId, $actorId]);
+        
+        $sets = [];
+        try {
+            do {
+                if ($statement->columnCount() > 0) {
+                    $sets[] = array_map(
+                        static fn (array $row): array => array_change_key_case($row, CASE_LOWER),
+                        $statement->fetchAll(PDO::FETCH_ASSOC)
+                    );
+                }
+            } while ($statement->nextRowset());
+        } finally {
+            $statement->closeCursor();
+        }
+        
+        // Obtener OUT parameters (vienen como stdClass, convertir a array)
+        $outParams = DB::connection()->select('SELECT @p_insertados AS insertados, @p_omitidos_duplicados AS omitidos_duplicados, @p_mensaje AS mensaje');
+        $out = $outParams[0] ?? (object) ['insertados' => 0, 'omitidos_duplicados' => 0, 'mensaje' => ''];
+        $out = (array) $out;
+        
+        return [
+            'insertados' => (int) $out['insertados'],
+            'omitidos_duplicados' => (int) $out['omitidos_duplicados'],
+            'mensaje' => $out['mensaje'],
+            'participants' => $sets[0] ?? [],
+        ];
+    }
+
     public function attendance(int $participantId, string $status, ?string $observations): ?array
     {
         return $this->first('SP_BBF_CAPACITACION_ASISTENCIA_REGISTRAR', [$participantId, $status, $observations]);

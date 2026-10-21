@@ -100,6 +100,12 @@ class TrainingController extends ApiController
         return $this->success($this->training->participant($sessionId, $data['id_empleado'], $data['observaciones'] ?? null, $this->actorId($request), $this->context($request)), 'Participante asociado correctamente', 201);
     }
 
+    /** Agregar todos los empleados activos a la sesion. */
+    public function addAllActiveParticipants(Request $request, int $sessionId): JsonResponse
+    {
+        return $this->success($this->training->addAllActiveParticipants($sessionId, $this->actorId($request), $this->context($request)), 'Empleados activos procesados correctamente');
+    }
+
     /** Registrar asistencia o novedad del participante. */
     public function attendance(Request $request, int $participantId): JsonResponse
     {

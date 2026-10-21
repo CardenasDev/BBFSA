@@ -59,7 +59,15 @@ import { TrainingService } from '../../core/services/training.service';
                     {{ e.numero_documento }} - {{ e.nombres }} {{ e.apellidos }}
                   </option>
                 }</select
-              ><button class="btn primary" (click)="addParticipant()">Agregar</button
+              ><button class="btn primary" (click)="addParticipant()" [disabled]="addingAllActive()">Agregar</button
+              ><button class="btn success" (click)="addAllActiveParticipants()" [disabled]="addingAllActive()" title="Agregar todos los empleados con estado ACTIVO">
+                @if (addingAllActive()) {
+                  <span class="button-spinner" aria-hidden="true"></span>
+                  Agregando...
+                } @else {
+                  Agregar todos los activos
+                }
+              </button
               ><select [(ngModel)]="newStatus">
                 <option>PENDIENTE</option>
                 <option>PROGRAMADA</option>
@@ -574,6 +582,17 @@ import { TrainingService } from '../../core/services/training.service';
         color: #805800;
         margin-left: 6px;
       }
+      .success {
+        background: #08745b;
+        color: white;
+      }
+      .success:hover:not(:disabled) {
+        background: #065a47;
+      }
+      .success:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
     `,
   ],
 })
@@ -591,6 +610,7 @@ export class TrainingSessionDetailComponent {
   message = signal('');
   error = signal('');
   saving = signal(false);
+  addingAllActive = signal(false);
   employeeId: number | null = null;
   newStatus: any = 'EN_EJECUCION';
   file?: File;
@@ -722,6 +742,23 @@ export class TrainingSessionDetailComponent {
     this.api
       .addParticipant(this.id, this.employeeId)
       .subscribe({ next: () => this.load(), error: (e) => this.fail(e) });
+  }
+
+  addAllActiveParticipants() {
+    this.addingAllActive.set(true);
+    this.error.set('');
+    this.message.set('');
+    this.api.addAllActiveParticipants(this.id).subscribe({
+      next: (result) => {
+        this.addingAllActive.set(false);
+        this.message.set(result.mensaje);
+        this.detail.update((d) => (d ? { ...d, participants: result.participants } : null));
+      },
+      error: (e) => {
+        this.addingAllActive.set(false);
+        this.fail(e);
+      },
+    });
   }
   saveAttendance(p: TrainingParticipant, s: any) {
     this.api

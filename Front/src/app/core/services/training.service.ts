@@ -95,6 +95,28 @@ export class TrainingService {
       >(`${this.url}/sessions/${sessionId}/participants`, { id_empleado: employeeId, observaciones: observaciones || null })
       .pipe(map((r) => r.data));
   }
+
+  addAllActiveParticipants(sessionId: number): Observable<{
+    insertados: number;
+    omitidosDuplicados: number;
+    mensaje: string;
+    participants: TrainingParticipant[];
+  }> {
+    return this.http
+      .post<ApiResponse<{
+        insertados: number;
+        omitidos_duplicados: number;
+        mensaje: string;
+        participants: TrainingParticipant[];
+      }>>(`${this.url}/sessions/${sessionId}/participants/add-all-active`, {})
+      .pipe(map((r) => ({
+        insertados: r.data.insertados,
+        omitidosDuplicados: r.data.omitidos_duplicados,
+        mensaje: r.data.mensaje,
+        participants: r.data.participants,
+      })));
+  }
+
   attendance(id: number, estado: AttendanceStatus, observaciones?: string): Observable<unknown> {
     return this.http
       .patch<

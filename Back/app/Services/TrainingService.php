@@ -78,6 +78,15 @@ class TrainingService
         return $this->mutate('PARTICIPANTE_AGREGAR', $this->repository->addParticipant($session, $employee, $observations, $actor), $actor, $context);
     }
 
+    public function addAllActiveParticipants(int $sessionId, int $actor, array $context): array
+    {
+        $result = DB::transaction(function () use ($sessionId, $actor) {
+            return $this->repository->addAllActiveParticipants($sessionId, $actor);
+        });
+
+        return $this->mutate('PARTICIPANTES_AGREGAR_TODOS_ACTIVOS', $result, $actor, $context);
+    }
+
     public function attendance(int $participant, string $status, ?string $observations, int $actor, array $context): array
     {
         return $this->mutate('ASISTENCIA_REGISTRAR', $this->repository->attendance($participant, strtoupper($status), $observations), $actor, $context);

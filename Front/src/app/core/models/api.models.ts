@@ -1245,6 +1245,7 @@ export interface ContractingAlert {
   tipo_alerta: string;
   id_empleado: number;
   id_empleado_contrato?: number | null;
+  id_referencia?: number | null;
   numero_documento?: string | null;
   nombre_completo: string;
   correo?: string | null;
@@ -1257,11 +1258,17 @@ export interface ContractingAlert {
   estado_contrato?: string | null;
   area?: string | null;
   cargo?: string | null;
-  id_referencia?: number | null;
   fecha_alerta?: string | null;
   dias_restantes?: number | null;
   dias_para_vencer?: number | null;
   descripcion?: string | null;
+  // Campos específicos de examen médico
+  id_tipo_examen_medico?: number | null;
+  tipo_examen_medico?: string | null;
+  fecha_examen?: string | null;
+  entidad_realiza?: string | null;
+  resultado_general?: string | null;
+  fecha_vencimiento_examen?: string | null;
 }
 
 export interface MeResponse {

@@ -460,22 +460,146 @@ class ContractingApiTest extends TestCase
 
     public function test_alerts_endpoint_accepts_dias_antes(): void
     {
+        // El mock debe devolver los datos en el orden que el SP los ordena:
+        // 1. CONTRATO_VENCIDO (prioridad 1)
+        // 2. EXAMEN_MEDICO_VENCIDO (prioridad 2)
+        // 3. CONTRATO_PROXIMO_VENCER (prioridad 3)
+        // 4. EXAMEN_MEDICO_PROXIMO_VENCER (prioridad 4)
         DB::shouldReceive('select')->once()
             ->with('CALL SP_BBF_CONTRATACION_ALERTAS_LISTAR(?)', [45])
-            ->andReturn([(object) [
-                'ID_EMPLEADO_CONTRATO' => 7,
-                'ID_EMPLEADO' => 5,
-                'NOMBRE_COMPLETO' => 'Ana Perez',
-                'DIAS_PARA_VENCER' => 12,
-                'TIPO_ALERTA' => 'PROXIMO_VENCER',
-            ]]);
+            ->andReturn([
+                // 1. Contrato VENCIDO (prioridad 1)
+                (object) [
+                    'ID_EMPLEADO_CONTRATO' => 8,
+                    'ID_EMPLEADO' => 8,
+                    'NOMBRE_COMPLETO' => 'Pedro Ruiz',
+                    'NUMERO_DOCUMENTO' => '789123456',
+                    'CORREO' => 'pedro@example.com',
+                    'TELEFONO' => '3157891234',
+                    'TIPO_CONTRATO' => 'Termino fijo',
+                    'NOMBRE_PLANTILLA' => 'Contrato termino fijo',
+                    'NUMERO_CONTRATO' => 'CT-2026-002',
+                    'FECHA_INICIO' => '2026-01-15',
+                    'FECHA_FIN' => '2026-09-30',
+                    'ESTADO_CONTRATO' => 'ACTIVO',
+                    'AREA' => 'Logística',
+                    'CARGO' => 'Conductor',
+                    'DIAS_PARA_VENCER' => -15,
+                    'TIPO_ALERTA' => 'CONTRATO_VENCIDO',
+                    'ID_TIPO_EXAMEN_MEDICO' => null,
+                    'TIPO_EXAMEN_MEDICO' => null,
+                    'FECHA_EXAMEN' => null,
+                    'ENTIDAD_REALIZA' => null,
+                    'RESULTADO_GENERAL' => null,
+                    'FECHA_VENCIMIENTO_EXAMEN' => null,
+                ],
+                // 2. Examen médico VENCIDO (prioridad 2)
+                (object) [
+                    'ID_EMPLEADO_CONTRATO' => null,
+                    'ID_EMPLEADO' => 6,
+                    'NOMBRE_COMPLETO' => 'Carlos Lopez',
+                    'NUMERO_DOCUMENTO' => '987654321',
+                    'CORREO' => 'carlos@example.com',
+                    'TELEFONO' => '3109876543',
+                    'TIPO_CONTRATO' => null,
+                    'NOMBRE_PLANTILLA' => null,
+                    'NUMERO_CONTRATO' => null,
+                    'FECHA_INICIO' => null,
+                    'FECHA_FIN' => null,
+                    'ESTADO_CONTRATO' => null,
+                    'AREA' => 'Administrativo',
+                    'CARGO' => 'Auxiliar',
+                    'DIAS_PARA_VENCER' => 5,
+                    'TIPO_ALERTA' => 'EXAMEN_MEDICO_VENCIDO',
+                    'ID_TIPO_EXAMEN_MEDICO' => 2,
+                    'TIPO_EXAMEN_MEDICO' => 'Periódico',
+                    'FECHA_EXAMEN' => '2025-06-15',
+                    'ENTIDAD_REALIZA' => 'Clínica Salud Ocupacional',
+                    'RESULTADO_GENERAL' => 'Apto con restricciones',
+                    'FECHA_VENCIMIENTO_EXAMEN' => '2025-10-10',
+                ],
+                // 3. Contrato próximo a vencer (prioridad 3)
+                (object) [
+                    'ID_EMPLEADO_CONTRATO' => 7,
+                    'ID_EMPLEADO' => 5,
+                    'NOMBRE_COMPLETO' => 'Ana Perez',
+                    'NUMERO_DOCUMENTO' => '123456789',
+                    'CORREO' => 'ana@example.com',
+                    'TELEFONO' => '3001234567',
+                    'TIPO_CONTRATO' => 'Obra o labor',
+                    'NOMBRE_PLANTILLA' => 'Contrato obra',
+                    'NUMERO_CONTRATO' => 'CT-2026-001',
+                    'FECHA_INICIO' => '2026-06-24',
+                    'FECHA_FIN' => '2026-10-10',
+                    'ESTADO_CONTRATO' => 'ACTIVO',
+                    'AREA' => 'Producción',
+                    'CARGO' => 'Operario',
+                    'DIAS_PARA_VENCER' => 12,
+                    'TIPO_ALERTA' => 'CONTRATO_PROXIMO_VENCER',
+                    'ID_TIPO_EXAMEN_MEDICO' => null,
+                    'TIPO_EXAMEN_MEDICO' => null,
+                    'FECHA_EXAMEN' => null,
+                    'ENTIDAD_REALIZA' => null,
+                    'RESULTADO_GENERAL' => null,
+                    'FECHA_VENCIMIENTO_EXAMEN' => null,
+                ],
+                // 4. Examen médico PRÓXIMO A VENCER (prioridad 4)
+                (object) [
+                    'ID_EMPLEADO_CONTRATO' => null,
+                    'ID_EMPLEADO' => 7,
+                    'NOMBRE_COMPLETO' => 'Maria Gomez',
+                    'NUMERO_DOCUMENTO' => '456789123',
+                    'CORREO' => 'maria@example.com',
+                    'TELEFONO' => '3204567890',
+                    'TIPO_CONTRATO' => null,
+                    'NOMBRE_PLANTILLA' => null,
+                    'NUMERO_CONTRATO' => null,
+                    'FECHA_INICIO' => null,
+                    'FECHA_FIN' => null,
+                    'ESTADO_CONTRATO' => null,
+                    'AREA' => 'Calidad',
+                    'CARGO' => 'Inspector',
+                    'DIAS_PARA_VENCER' => 18,
+                    'TIPO_ALERTA' => 'EXAMEN_MEDICO_PROXIMO_VENCER',
+                    'ID_TIPO_EXAMEN_MEDICO' => 1,
+                    'TIPO_EXAMEN_MEDICO' => 'Ingreso',
+                    'FECHA_EXAMEN' => '2026-01-20',
+                    'ENTIDAD_REALIZA' => 'EPS Sanitas',
+                    'RESULTADO_GENERAL' => 'Apto',
+                    'FECHA_VENCIMIENTO_EXAMEN' => '2026-11-05',
+                ],
+            ]);
 
         $this->withToken($this->tokenWithPermissions(['CONTRATACION_ALERTAS_VER']))
             ->getJson('/api/contracting/alerts?dias_antes=45')
             ->assertOk()
-            ->assertJsonPath('data.0.id_empleado_contrato', 7)
-            ->assertJsonPath('data.0.dias_para_vencer', 12)
-            ->assertJsonPath('data.0.tipo_alerta', 'PROXIMO_VENCER');
+            // Validar orden: primero VENCIDOS (contrato y examen), luego PRÓXIMOS A VENCER
+            ->assertJsonPath('data.0.tipo_alerta', 'CONTRATO_VENCIDO')
+            ->assertJsonPath('data.0.id_empleado', 8)
+            ->assertJsonPath('data.0.dias_para_vencer', -15)
+            ->assertJsonPath('data.0.numero_contrato', 'CT-2026-002')
+            ->assertJsonPath('data.1.tipo_alerta', 'EXAMEN_MEDICO_VENCIDO')
+            ->assertJsonPath('data.1.id_empleado', 6)
+            ->assertJsonPath('data.1.dias_para_vencer', 5)
+            ->assertJsonPath('data.1.tipo_examen_medico', 'Periódico')
+            ->assertJsonPath('data.1.fecha_examen', '2025-06-15')
+            ->assertJsonPath('data.1.entidad_realiza', 'Clínica Salud Ocupacional')
+            ->assertJsonPath('data.1.resultado_general', 'Apto con restricciones')
+            ->assertJsonPath('data.1.fecha_vencimiento_examen', '2025-10-10')
+            ->assertJsonPath('data.1.id_tipo_examen_medico', 2)
+            ->assertJsonPath('data.2.tipo_alerta', 'CONTRATO_PROXIMO_VENCER')
+            ->assertJsonPath('data.2.id_empleado', 5)
+            ->assertJsonPath('data.2.dias_para_vencer', 12)
+            ->assertJsonPath('data.2.numero_contrato', 'CT-2026-001')
+            ->assertJsonPath('data.3.tipo_alerta', 'EXAMEN_MEDICO_PROXIMO_VENCER')
+            ->assertJsonPath('data.3.id_empleado', 7)
+            ->assertJsonPath('data.3.dias_para_vencer', 18)
+            ->assertJsonPath('data.3.tipo_examen_medico', 'Ingreso')
+            ->assertJsonPath('data.3.fecha_examen', '2026-01-20')
+            ->assertJsonPath('data.3.entidad_realiza', 'EPS Sanitas')
+            ->assertJsonPath('data.3.resultado_general', 'Apto')
+            ->assertJsonPath('data.3.fecha_vencimiento_examen', '2026-11-05')
+            ->assertJsonPath('data.3.id_tipo_examen_medico', 1);
     }
 
     public function test_sign_contract_with_external_url(): void

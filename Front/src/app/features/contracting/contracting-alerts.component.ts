@@ -25,19 +25,45 @@ import { apiErrorMessage } from '../../shared/api-error';
 
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Tipo</th><th>Empleado</th><th>Documento</th><th>Contrato</th><th>Plantilla</th><th>Inicio</th><th>Fin</th><th>Dias</th><th>Area</th><th>Cargo</th><th>Accion</th></tr></thead>
+          <thead><tr><th>Tipo</th><th>Empleado</th><th>Documento</th><th>Detalle</th><th>Plantilla</th><th>Inicio</th><th>Fin</th><th>Dias</th><th>Area</th><th>Cargo</th><th>Accion</th></tr></thead>
           <tbody>
             @for (alert of alerts(); track alert.tipo_alerta + '-' + alert.id_empleado + '-' + alert.id_referencia) {
               <tr>
-                <td><span class="badge" [class.danger]="isDanger(alert)" [class.success]="isInfo(alert)">{{ label(alert.tipo_alerta) }}</span></td>
+                <td>
+                  <span class="badge"
+                        [class.danger]="isDanger(alert)"
+                        [class.warning]="isWarning(alert)"
+                        [class.success]="isInfo(alert)">
+                    {{ label(alert.tipo_alerta) }}
+                  </span>
+                </td>
                 <td>{{ alert.nombre_completo }}</td>
                 <td>{{ alert.numero_documento || 'Sin dato' }}</td>
-                <td><strong>{{ alert.numero_contrato || 'Sin numero' }}</strong><small class="muted">{{ alert.tipo_contrato || 'Sin tipo' }}</small></td>
-                <td>{{ alert.nombre_plantilla || 'Sin plantilla' }}</td>
-                <td>{{ alert.fecha_inicio || 'Sin fecha' }}</td>
-                <td>{{ alert.fecha_fin || 'Sin fecha' }}</td>
+                <td>
+                  @if (isExamAlert(alert)) {
+                    <strong>{{ alert.tipo_examen_medico || 'Examen médico' }}</strong>
+                    <small class="muted">{{ alert.entidad_realiza || 'Sin entidad' }}</small>
+                  } @else {
+                    <strong>{{ alert.numero_contrato || 'Sin número' }}</strong>
+                    <small class="muted">{{ alert.tipo_contrato || 'Sin tipo' }}</small>
+                  }
+                </td>
+                <td>
+                  @if (isExamAlert(alert)) {
+                    {{ alert.fecha_examen || '—' }}
+                  } @else {
+                    {{ alert.nombre_plantilla || 'Sin plantilla' }}
+                  }
+                </td>
+                <td>
+                  @if (isExamAlert(alert)) {
+                    {{ alert.fecha_vencimiento_examen || 'Sin fecha' }}
+                  } @else {
+                    {{ alert.fecha_fin || 'Sin fecha' }}
+                  }
+                </td>
                 <td>{{ alert.dias_para_vencer ?? alert.dias_restantes ?? 'Sin dato' }}</td>
-                <td>{{ alert.area || 'Sin area' }}</td>
+                <td>{{ alert.area || 'Sin área' }}</td>
                 <td>{{ alert.cargo || 'Sin cargo' }}</td>
                 <td><a class="btn small ghost" [routerLink]="['/admin/contracting/employees', alert.id_empleado, routeFor(alert)]">Ver</a></td>
               </tr>
@@ -49,6 +75,12 @@ import { apiErrorMessage } from '../../shared/api-error';
       </div>
     </section>
   `,
+  styles: [`
+    .badge.warning {
+      background: #f59e0b;
+      color: #fff;
+    }
+  `]
 })
 export class ContractingAlertsComponent implements OnInit {
   private readonly service = inject(ContractingService);
@@ -76,15 +108,31 @@ export class ContractingAlertsComponent implements OnInit {
   }
 
   label(type: string): string {
-    return type.replaceAll('_', ' ');
+    const labels: Record<string, string> = {
+      'CONTRATO_VENCIDO': 'Contrato Vencido',
+      'CONTRATO_PROXIMO_VENCER': 'Contrato Próximo a Vencer',
+      'CONTRATO_VIGENTE': 'Contrato Vigente',
+      'EXAMEN_MEDICO_VENCIDO': 'Examen Médico Vencido',
+      'EXAMEN_MEDICO_PROXIMO_VENCER': 'Examen Médico Próximo a Vencer',
+      'DOCUMENTO_PENDIENTE': 'Documento Pendiente',
+    };
+    return labels[type] ?? type.replaceAll('_', ' ');
   }
 
   isDanger(alert: ContractingAlert): boolean {
-    return alert.tipo_alerta === 'CONTRATO_VENCIDO';
+    return alert.tipo_alerta === 'CONTRATO_VENCIDO' || alert.tipo_alerta === 'EXAMEN_MEDICO_VENCIDO';
+  }
+
+  isWarning(alert: ContractingAlert): boolean {
+    return alert.tipo_alerta === 'CONTRATO_PROXIMO_VENCER' || alert.tipo_alerta === 'EXAMEN_MEDICO_PROXIMO_VENCER';
   }
 
   isInfo(alert: ContractingAlert): boolean {
     return alert.tipo_alerta === 'DOCUMENTO_PENDIENTE';
+  }
+
+  isExamAlert(alert: ContractingAlert): boolean {
+    return alert.tipo_alerta.startsWith('EXAMEN_MEDICO');
   }
 
   routeFor(alert: ContractingAlert): string {

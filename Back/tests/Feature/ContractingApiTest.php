@@ -408,7 +408,7 @@ class ContractingApiTest extends TestCase
     public function test_contract_template_endpoints_and_generation_data_use_expected_stored_procedures(): void
     {
         DB::shouldReceive('select')->once()
-            ->with('CALL SP_BBF_CONTRATO_PLANTILLAS_LISTAR(?,?,?)', [1, 'OPERATIVO', 1])
+            ->with('CALL SP_BBF_CONTRATO_PLANTILLAS_LISTAR(?,?)', [1, 1])
             ->andReturn([(object) [
                 'ID_PLANTILLA_CONTRATO' => 9,
                 'NOMBRE_PLANTILLA' => 'Contrato operativo',
@@ -437,7 +437,7 @@ class ContractingApiTest extends TestCase
             ]]);
 
         $this->withToken($this->tokenWithPermissions(['CONTRATACION_VER']))
-            ->getJson('/api/contracting/contract-templates?id_tipo_contrato=1&tipo_cargo_contrato=OPERATIVO')
+            ->getJson('/api/contracting/contract-templates?id_tipo_contrato=1')
             ->assertOk()
             ->assertJsonPath('data.0.id_plantilla_contrato', 9)
             ->assertJsonPath('data.0.config_campos.objeto', true)

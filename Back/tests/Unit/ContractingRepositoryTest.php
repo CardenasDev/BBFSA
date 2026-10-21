@@ -54,7 +54,7 @@ class ContractingRepositoryTest extends TestCase
                 'VALORES_DEFAULT_JSON' => '{"formato":"PDF"}',
             ]]);
         DB::shouldReceive('select')->once()
-            ->with('CALL SP_BBF_CONTRATO_PLANTILLAS_LISTAR(?,?,?)', [1, 'OPERATIVO', 1])
+            ->with('CALL SP_BBF_CONTRATO_PLANTILLAS_LISTAR(?,?)', [1, 1])
             ->andReturn([(object) [
                 'ID_PLANTILLA_CONTRATO' => 2,
                 'NOMBRE_PLANTILLA' => 'Contrato operativo',
@@ -101,7 +101,7 @@ class ContractingRepositoryTest extends TestCase
         $this->assertSame(2, $contract['id_plantilla_contrato']);
         $this->assertSame(['salario' => true], $contract['config_campos']);
         $this->assertSame(['formato' => 'PDF'], $contract['valores_default']);
-        $template = $repository->listContractTemplates(['id_tipo_contrato' => 1, 'tipo_cargo_contrato' => 'OPERATIVO', 'solo_activas' => 1])[0];
+        $template = $repository->listContractTemplates(['id_tipo_contrato' => 1, 'solo_activas' => 1])[0];
         $this->assertSame(2, $template['id_plantilla_contrato']);
         $this->assertSame(['campo' => 'valor'], $template['config_campos']);
         $this->assertSame(['salario' => 0], $template['valores_default']);
@@ -195,7 +195,7 @@ class ContractingRepositoryTest extends TestCase
     public function test_create_contract_calls_stored_procedure_with_real_parameter_order(): void
     {
         DB::shouldReceive('select')->once()
-            ->with('CALL SP_BBF_CONTRATACION_CONTRATO_CREAR(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', [
+            ->with('CALL SP_BBF_CONTRATACION_CONTRATO_CREAR(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', [
                 5,
                 1,
                 9,
@@ -209,7 +209,6 @@ class ContractingRepositoryTest extends TestCase
                 'Quincenal',
                 'Finca principal',
                 'CT-2026-001',
-                'OPERATIVO',
                 'Corte y empaque de flores',
                 30,
                 'Cumplir las funciones asignadas al cargo.',
@@ -262,14 +261,13 @@ class ContractingRepositoryTest extends TestCase
     public function test_create_contract_accepts_null_new_fields_and_preserves_parameter_order(): void
     {
         DB::shouldReceive('select')->once()
-            ->with('CALL SP_BBF_CONTRATACION_CONTRATO_CREAR(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', [
+            ->with('CALL SP_BBF_CONTRATACION_CONTRATO_CREAR(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', [
                 5,
                 null,
                 null,
                 null,
                 null,
                 '2026-06-24',
-                null,
                 null,
                 null,
                 null,

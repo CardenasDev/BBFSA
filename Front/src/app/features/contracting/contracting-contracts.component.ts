@@ -5,7 +5,6 @@ import { finalize, forkJoin } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import {
   Area,
-  ContractChargeType,
   ContractGenerationData,
   ContractTemplate,
   ContractTemplateDefaultValues,
@@ -23,7 +22,6 @@ import { FeedbackDialogComponent } from '../../shared/feedback-dialog.component'
 import { parseContractFunctions } from '../../contracts/contract-work-validation.util';
 
 const CONTRACT_STATUSES = ['ACTIVO', 'VENCIDO', 'RENOVADO', 'FINALIZADO', 'ANULADO'];
-const CONTRACT_CHARGE_TYPES: ContractChargeType[] = ['ADMINISTRATIVO', 'OPERATIVO', 'OTRO'];
 const PAYMENT_PERIODS = ['QUINCENAL', 'MENSUAL', 'SEMANAL', 'OTRO'];
 const ESSENTIAL_FIELDS = ['id_tipo_contrato', 'id_plantilla_contrato', 'fecha_inicio', 'observaciones'];
 const BASE_FIELDS = [
@@ -31,7 +29,6 @@ const BASE_FIELDS = [
   'numero_contrato',
   'id_area',
   'id_cargo',
-  'tipo_cargo_contrato',
   'auxilio_transporte',
   'periodo_pago',
   'lugar_labores',
@@ -81,7 +78,7 @@ const BASE_FIELDS = [
           <tbody>
             @for (contract of contracts(); track contractKey(contract)) {
               <tr>
-                <td><strong>{{ contract.tipo_contrato || displayId(contract.id_tipo_contrato) }}</strong><small class="muted">{{ contract.tipo_cargo_contrato || 'Sin tipo cargo' }}</small></td>
+                <td><strong>{{ contract.tipo_contrato || displayId(contract.id_tipo_contrato) }}</strong></td>
                 <td>{{ contract.nombre_plantilla || 'Sin plantilla asociada' }}</td>
                 <td>{{ contract.codigo_formato || 'Sin codigo' }}</td>
                 <td>{{ contract.version_formato || 'Sin version' }}</td>
@@ -160,13 +157,6 @@ const BASE_FIELDS = [
             <select name="id_tipo_contrato" [(ngModel)]="form.id_tipo_contrato" (ngModelChange)="onContractTypeChange($event)" required>
               <option [ngValue]="null">Seleccione...</option>
               @for (item of contractTypes(); track item.id_tipo_contrato) { <option [ngValue]="item.id_tipo_contrato">{{ item.nombre }}</option> }
-            </select>
-          </label>
-
-          <label>Tipo cargo contrato
-            <select name="tipo_cargo_contrato" [(ngModel)]="form.tipo_cargo_contrato" (ngModelChange)="onChargeTypeChange($event)">
-              <option [ngValue]="null">No definido</option>
-              @for (item of chargeTypes; track item) { <option [value]="item">{{ item }}</option> }
             </select>
           </label>
 
@@ -345,7 +335,6 @@ export class ContractingContractsComponent implements OnInit {
   readonly deletingContractId = signal<number | null>(null);
   readonly expandedContract = signal<string | null>(null);
   readonly statuses = CONTRACT_STATUSES;
-  readonly chargeTypes = CONTRACT_CHARGE_TYPES;
   readonly paymentPeriods = PAYMENT_PERIODS;
   employeeId = 0;
   editingContractId: number | null = null;
@@ -424,14 +413,6 @@ export class ContractingContractsComponent implements OnInit {
 
   onContractTypeChange(value: unknown): void {
     this.form.id_tipo_contrato = this.numberOrNull(value);
-    this.form.id_plantilla_contrato = null;
-    this.selectedTemplate.set(null);
-    this.templateMessage.set('');
-    this.loadTemplatesForCurrentSelection();
-  }
-
-  onChargeTypeChange(value: ContractChargeType | null): void {
-    this.form.tipo_cargo_contrato = value;
     this.form.id_plantilla_contrato = null;
     this.selectedTemplate.set(null);
     this.templateMessage.set('');
@@ -549,15 +530,12 @@ export class ContractingContractsComponent implements OnInit {
   }
 
   templateLabel(template: ContractTemplate): string {
-    return [template.codigo_formato, template.nombre_plantilla, template.tipo_cargo_contrato].filter(Boolean).join(' - ');
+    return [template.codigo_formato, template.nombre_plantilla].filter(Boolean).join(' - ');
   }
 
   workSectionHint(): string {
-    if (this.form.tipo_cargo_contrato === 'OPERATIVO' || this.selectedContractTypeLooksLikeWork()) {
+    if (this.selectedContractTypeLooksLikeWork()) {
       return 'Estos datos ayudan a describir contratos por obra o labor.';
-    }
-    if (this.form.tipo_cargo_contrato === 'ADMINISTRATIVO') {
-      return 'Usa la clausula para registrar funciones administrativas del cargo.';
     }
     return 'Completa estos campos cuando el contrato lo requiera.';
   }
@@ -582,7 +560,6 @@ export class ContractingContractsComponent implements OnInit {
     this.templatesLoading.set(true);
     this.service.getContractTemplates({
       id_tipo_contrato: contractTypeId,
-      tipo_cargo_contrato: this.form.tipo_cargo_contrato ?? null,
       solo_activas: 1,
     }).pipe(finalize(() => this.templatesLoading.set(false))).subscribe({
       next: (templates) => {
@@ -600,7 +577,6 @@ export class ContractingContractsComponent implements OnInit {
     this.applyDefaultValue(defaults, 'auxilio_transporte');
     this.applyDefaultValue(defaults, 'periodo_pago');
     this.applyDefaultValue(defaults, 'lugar_labores');
-    this.applyDefaultValue(defaults, 'tipo_cargo_contrato');
     this.applyDefaultValue(defaults, 'duracion_meses');
     this.applyDefaultValue(defaults, 'jornada_laboral');
     this.applyDefaultValue(defaults, 'periodo_prueba_dias');
@@ -638,7 +614,6 @@ export class ContractingContractsComponent implements OnInit {
     if ((this.form.periodo_pago ?? '').length > 100) return 'El periodo de pago no puede superar 100 caracteres.';
     if ((this.form.lugar_labores ?? '').length > 250) return 'El lugar de labores no puede superar 250 caracteres.';
     if ((this.form.jornada_laboral ?? '').length > 150) return 'La jornada laboral no puede superar 150 caracteres.';
-    if (this.form.tipo_cargo_contrato && !CONTRACT_CHARGE_TYPES.includes(this.form.tipo_cargo_contrato)) return 'El tipo cargo contrato no es valido.';
 
     if (this.selectedContractTypeLooksLikeWork()) {
       const configuredFunctions = parseContractFunctions(this.form.clausula_funciones);
@@ -680,7 +655,7 @@ export class ContractingContractsComponent implements OnInit {
       periodo_pago: this.visibleStringOrNull('periodo_pago', this.form.periodo_pago),
       lugar_labores: this.visibleStringOrNull('lugar_labores', this.form.lugar_labores),
       numero_contrato: this.visibleStringOrNull('numero_contrato', this.form.numero_contrato),
-      tipo_cargo_contrato: this.isFieldVisible('tipo_cargo_contrato') ? this.form.tipo_cargo_contrato ?? null : null,
+      tipo_cargo_contrato: null,
       objeto_obra_labor: this.visibleStringOrNull('objeto_obra_labor', this.form.objeto_obra_labor),
       prorroga_dias: this.visibleNumberOrNull('prorroga_dias', this.form.prorroga_dias),
       clausula_funciones: this.visibleStringOrNull('clausula_funciones', this.form.clausula_funciones),
@@ -701,7 +676,6 @@ export class ContractingContractsComponent implements OnInit {
       fecha_inicio: new Date().toISOString().slice(0, 10),
       estado_contrato: 'ACTIVO',
       auxilio_transporte: null,
-      tipo_cargo_contrato: null,
     };
   }
 

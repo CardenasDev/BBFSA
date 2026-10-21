@@ -31,7 +31,6 @@ export interface ContractingEmployeeFilters {
 
 export interface ContractTemplateFilters {
   id_tipo_contrato?: number | null;
-  tipo_cargo_contrato?: string | null;
   solo_activas?: number | boolean | null;
 }
 
@@ -289,8 +288,6 @@ export class ContractingService {
     let params = new HttpParams();
     if (filters.id_tipo_contrato)
       params = params.set('id_tipo_contrato', String(filters.id_tipo_contrato));
-    if (filters.tipo_cargo_contrato?.trim())
-      params = params.set('tipo_cargo_contrato', filters.tipo_cargo_contrato.trim());
     if (filters.solo_activas !== undefined && filters.solo_activas !== null)
       params = params.set('solo_activas', String(filters.solo_activas));
 

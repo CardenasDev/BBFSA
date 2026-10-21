@@ -31,7 +31,6 @@ class ContractingService
     {
         return $this->contracting->listContractTemplates([
             'id_tipo_contrato' => $this->nullableScalarInt($filters['id_tipo_contrato'] ?? null),
-            'tipo_cargo_contrato' => $this->blankToNull($filters['tipo_cargo_contrato'] ?? null),
             'solo_activas' => array_key_exists('solo_activas', $filters) ? (int) filter_var($filters['solo_activas'], FILTER_VALIDATE_BOOLEAN) : 1,
         ]);
     }

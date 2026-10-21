@@ -61,7 +61,6 @@ class ContractingRepository extends StoredProcedureRepository
     {
         return array_map(fn (array $row): array => $this->normalizeTemplateJson($row), $this->call('SP_BBF_CONTRATO_PLANTILLAS_LISTAR', [
             $filters['id_tipo_contrato'] ?? null,
-            $filters['tipo_cargo_contrato'] ?? null,
             $filters['solo_activas'] ?? 1,
         ]));
     }
@@ -104,7 +103,7 @@ class ContractingRepository extends StoredProcedureRepository
                 'DURACION_MESES' => $data['duracion_meses'] ?? null, 'SALARIO_BASE' => $data['salario_base'] ?? null,
                 'AUXILIO_TRANSPORTE' => $this->booleanToDatabase($data['auxilio_transporte'] ?? null),
                 'PERIODO_PAGO' => $data['periodo_pago'] ?? null, 'LUGAR_LABORES' => $data['lugar_labores'] ?? null,
-                'NUMERO_CONTRATO' => $data['numero_contrato'] ?? null, 'TIPO_CARGO_CONTRATO' => $data['tipo_cargo_contrato'] ?? null,
+                'NUMERO_CONTRATO' => $data['numero_contrato'] ?? null, 'TIPO_CARGO_CONTRATO' => null,
                 'OBJETO_OBRA_LABOR' => $data['objeto_obra_labor'] ?? null, 'PRORROGA_DIAS' => $data['prorroga_dias'] ?? null,
                 'CLAUSULA_FUNCIONES' => $data['clausula_funciones'] ?? null, 'JORNADA_LABORAL' => $data['jornada_laboral'] ?? null,
                 'PERIODO_PRUEBA_DIAS' => $data['periodo_prueba_dias'] ?? null, 'ESTADO_CONTRATO' => $data['estado_contrato'] ?? 'ACTIVO',
@@ -142,7 +141,6 @@ class ContractingRepository extends StoredProcedureRepository
             $data['periodo_pago'] ?? null,
             $data['lugar_labores'] ?? null,
             $data['numero_contrato'] ?? null,
-            $data['tipo_cargo_contrato'] ?? null,
             $data['objeto_obra_labor'] ?? null,
             $data['prorroga_dias'] ?? null,
             $data['clausula_funciones'] ?? null,

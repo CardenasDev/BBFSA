@@ -45,11 +45,21 @@ const EMPLOYEE_STATUSES: EmployeeStatus[] = ['ACTIVO', 'RETIRADO', 'SUSPENDIDO',
             @for (status of statusOptions; track status) { <option [value]="status">{{ status }}</option> }
           </select>
         </label>
-        <label>ID area
-          <input type="number" min="1" name="id_area" [(ngModel)]="idArea" placeholder="Opcional" />
+        <label>Área
+          <select name="id_area" [(ngModel)]="idArea">
+            <option [ngValue]="null">Todas las áreas</option>
+            @for (area of areas(); track area.id_area) {
+              <option [ngValue]="area.id_area">{{ area.nombre }}</option>
+            }
+          </select>
         </label>
-        <label>ID cargo
-          <input type="number" min="1" name="id_cargo" [(ngModel)]="idCargo" placeholder="Opcional" />
+        <label>Cargo
+          <select name="id_cargo" [(ngModel)]="idCargo">
+            <option [ngValue]="null">Todos los cargos</option>
+            @for (position of positions(); track position.id_cargo) {
+              <option [ngValue]="position.id_cargo">{{ position.nombre }}</option>
+            }
+          </select>
         </label>
         <button class="btn secondary" type="submit" [disabled]="loading()">Filtrar</button>
       </form>

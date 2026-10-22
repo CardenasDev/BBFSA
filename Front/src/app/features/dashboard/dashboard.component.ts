@@ -3,6 +3,7 @@ import { RouterLink } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
 import { HealthService } from '../../core/services/catalog.service';
 import { NotificationService } from '../../core/services/notification.service';
+import { KpiService } from '../../core/services/kpi.service';
 import { NotificationSummary } from '../../core/models/notification.models';
 
 @Component({ standalone: true, imports: [RouterLink], template: `
@@ -12,6 +13,18 @@ import { NotificationSummary } from '../../core/models/notification.models';
     <article class="stat-card"><span>Roles asignados</span><strong>{{ auth.roles().length }}</strong><small>{{ roleNames() }}</small></article>
     <article class="stat-card"><span>Permisos activos</span><strong>{{ auth.permissions().length }}</strong><small>Accesos efectivos en esta sesión</small></article>
   </section>
+  @if (auth.hasPermission('EMPLEADOS_KPI_VER') && kpiData()) {
+    <section class="panel">
+      <div class="panel-heading"><div><h2>KPI Rotación (3m)</h2><p class="muted">Tasa de rotación de personal activo últimos 3 meses.</p></div></div>
+      <a class="kpi-card-link" routerLink="/admin/employees/kpi">
+        <article class="stat-card kpi-card">
+          <span class="kpi-label">Tasa de Rotación</span>
+          <strong class="kpi-value">{{ kpiData()!.tasa_rotacion_3m.toFixed(2) }}%</strong>
+          <small>Clic para ver detalle</small>
+        </article>
+      </a>
+    </section>
+  }
   @if (auth.hasPermission('NOTIFICACIONES_VER')) {
     <section class="panel"><div class="panel-heading"><div><h2>Alertas laborales</h2><p class="muted">Información prioritaria según tus permisos.</p></div><a class="btn ghost" routerLink="/admin/notifications">Ver todas</a></div>
       <div class="stats-grid">
@@ -21,15 +34,23 @@ import { NotificationSummary } from '../../core/models/notification.models';
       </div>
     </section>
   }
-  <section class="panel"><div class="panel-heading"><div><h2>Permisos principales</h2><p class="muted">Capacidades habilitadas por tus roles.</p></div></div>
-    <div class="chip-list">@for (permission of auth.permissions().slice(0, 12); track permission.codigo) { <span class="chip">{{ permission.nombre || permission.codigo }}</span> } @empty { <p class="empty">No hay permisos asignados.</p> }</div>
-  </section>`, })
+`, })
 export class DashboardComponent implements OnInit {
-  readonly auth = inject(AuthService); private readonly health = inject(HealthService);
+  readonly auth = inject(AuthService); 
+  private readonly health = inject(HealthService);
   private readonly notifications = inject(NotificationService);
-  readonly backendOnline = signal(false); readonly healthDone = signal(false);
+  private readonly kpi = inject(KpiService);
+  readonly backendOnline = signal(false); 
+  readonly healthDone = signal(false);
   readonly notificationSummary = signal<NotificationSummary | null>(null);
-  ngOnInit(): void { this.auth.me().subscribe({ next: () => this.loadNotificationSummary(), error: () => undefined }); this.loadNotificationSummary(); this.health.check().subscribe({ next: (data) => { this.backendOnline.set(data.status === 'ok'); this.healthDone.set(true); }, error: () => this.healthDone.set(true) }); }
+  readonly kpiData = signal<{ tasa_rotacion_3m: number } | null>(null);
+  ngOnInit(): void { 
+    this.auth.me().subscribe({ next: () => this.loadNotificationSummary(), error: () => undefined }); 
+    this.loadNotificationSummary(); 
+    this.loadKpi();
+    this.health.check().subscribe({ next: (data) => { this.backendOnline.set(data.status === 'ok'); this.healthDone.set(true); }, error: () => this.healthDone.set(true) }); 
+  }
   private loadNotificationSummary(): void { if (this.auth.hasPermission('NOTIFICACIONES_VER')) this.notifications.summary().subscribe({ next: (summary) => this.notificationSummary.set(summary), error: () => undefined }); }
+  private loadKpi(): void { if (this.auth.hasPermission('EMPLEADOS_KPI_VER')) this.kpi.getRotationAndDemographics().subscribe({ next: (data) => this.kpiData.set({ tasa_rotacion_3m: data.tasa_rotacion_3m }), error: () => undefined }); }
   roleNames(): string { return this.auth.roles().map((role) => role.nombre).join(', ') || 'Sin roles'; }
 }

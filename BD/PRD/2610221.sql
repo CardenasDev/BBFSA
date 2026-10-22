@@ -2885,272 +2885,6 @@ UNLOCK TABLES;
 --
 -- Dumping routines for database 'BBF'
 --
-/*!50003 DROP PROCEDURE IF EXISTS `cMSC_CRUD_Artista` */;
-/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
-/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
-/*!50003 SET @saved_col_connection = @@collation_connection */ ;
-/*!50003 SET character_set_client  = utf8mb4 */ ;
-/*!50003 SET character_set_results = utf8mb4 */ ;
-/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
-/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
-/*!50003 SET sql_mode              = 'NO_ENGINE_SUBSTITUTION' */ ;
-DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `cMSC_CRUD_Artista`(
-    IN p_accion CHAR(1),          /* I, U, D, S */
-    IN p_id_artista INT,          /* usado en U, D, S */
-    IN p_nombre VARCHAR(255)      /* usado en I, U */
-)
-BEGIN
-    -- Insertar
-    IF p_accion = 'I' THEN
-        INSERT INTO cMSC_Artista (nombre)
-        VALUES (p_nombre);
-        SELECT LAST_INSERT_ID() AS id;
-
-    -- Actualizar
-    ELSEIF p_accion = 'U' THEN
-        UPDATE cMSC_Artista
-        SET nombre = p_nombre
-        WHERE id_artista = p_id_artista;
-        SELECT ROW_COUNT() AS affected;
-
-    -- Eliminar
-    ELSEIF p_accion = 'D' THEN
-        DELETE FROM cMSC_Artista
-        WHERE id_artista = p_id_artista;
-        SELECT ROW_COUNT() AS affected;
-
-    -- Seleccionar
-    ELSEIF p_accion = 'S' THEN
-        IF p_id_artista IS NULL OR p_id_artista = 0 THEN
-            SELECT id_artista AS id, nombre
-            FROM cMSC_Artista
-            ORDER BY id_artista;
-        ELSE
-            SELECT id_artista AS id, nombre
-            FROM cMSC_Artista
-            WHERE id_artista = p_id_artista;
-        END IF;
-    END IF;
-END ;;
-DELIMITER ;
-/*!50003 SET sql_mode              = @saved_sql_mode */ ;
-/*!50003 SET character_set_client  = @saved_cs_client */ ;
-/*!50003 SET character_set_results = @saved_cs_results */ ;
-/*!50003 SET collation_connection  = @saved_col_connection */ ;
-/*!50003 DROP PROCEDURE IF EXISTS `cMSC_CRUD_Cancion` */;
-/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
-/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
-/*!50003 SET @saved_col_connection = @@collation_connection */ ;
-/*!50003 SET character_set_client  = utf8mb4 */ ;
-/*!50003 SET character_set_results = utf8mb4 */ ;
-/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
-/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
-/*!50003 SET sql_mode              = 'NO_ENGINE_SUBSTITUTION' */ ;
-DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `cMSC_CRUD_Cancion`(
-    IN p_accion CHAR(1),          
-    IN p_id_cancion INT,          
-    IN p_nombre VARCHAR(255),     
-    IN p_fecha VARCHAR(25),       
-    IN p_id_artista INT,
-    IN p_id_lista INT             -- Nuevo: lista relacionada
-)
-BEGIN
-    -- Insertar
-    IF p_accion = 'I' THEN
-        INSERT INTO cMSC_Cancion (nombre, Fecha, fechaCreacion)
-        VALUES (p_nombre, p_fecha, CURDATE());
-
-        SET @new_id = LAST_INSERT_ID();
-
-        -- Relación con artista
-        IF p_id_artista IS NOT NULL THEN
-            INSERT INTO cMSC_Cancion_Artista (id_cancion, id_artista)
-            VALUES (@new_id, p_id_artista);
-        END IF;
-
-        -- Relación con lista
-        IF p_id_lista IS NOT NULL THEN
-            INSERT INTO cMSC_Cancion_Lista (id_cancion, id_lista)
-            VALUES (@new_id, p_id_lista);
-        END IF;
-
-        SELECT @new_id AS id;
-
-    -- Actualizar
-    ELSEIF p_accion = 'U' THEN
-        UPDATE cMSC_Cancion
-        SET nombre = p_nombre,
-            Fecha  = p_fecha
-        WHERE id_cancion = p_id_cancion;
-
-        -- Actualizar relación con artista
-        IF p_id_artista IS NOT NULL THEN
-            DELETE FROM cMSC_Cancion_Artista WHERE id_cancion = p_id_cancion;
-            INSERT INTO cMSC_Cancion_Artista (id_cancion, id_artista)
-            VALUES (p_id_cancion, p_id_artista);
-        END IF;
-
-        -- Actualizar relación con lista
-        IF p_id_lista IS NOT NULL THEN
-            DELETE FROM cMSC_Cancion_Lista WHERE id_cancion = p_id_cancion;
-            INSERT INTO cMSC_Cancion_Lista (id_cancion, id_lista)
-            VALUES (p_id_cancion, p_id_lista);
-        END IF;
-
-        SELECT ROW_COUNT() AS affected;
-
-    -- Eliminar
-    ELSEIF p_accion = 'D' THEN
-        DELETE FROM cMSC_Cancion_Artista WHERE id_cancion = p_id_cancion;
-        DELETE FROM cMSC_Cancion_Lista WHERE id_cancion = p_id_cancion;
-        DELETE FROM cMSC_Cancion WHERE id_cancion = p_id_cancion;
-        SELECT ROW_COUNT() AS affected;
-
-    -- Seleccionar
-    ELSEIF p_accion = 'S' THEN
-        IF p_id_cancion IS NULL OR p_id_cancion = 0 THEN
-            SELECT 
-                c.id_cancion AS id,
-                c.nombre     AS nombre,
-                c.Fecha      AS fecha,
-                c.fechaCreacion,
-                a.nombre     AS artista,
-                l.nombre     AS lista,
-                g.nombre     AS grupo
-            FROM cMSC_Cancion c
-            LEFT JOIN cMSC_Cancion_Artista ca ON c.id_cancion = ca.id_cancion
-            LEFT JOIN cMSC_Artista a ON ca.id_artista = a.id_artista
-            LEFT JOIN cMSC_Cancion_Lista cl ON c.id_cancion = cl.id_cancion
-            LEFT JOIN cMSC_Lista l ON cl.id_lista = l.id_lista
-            LEFT JOIN cMSC_Grupo g ON l.id_grupo = g.id_grupo
-            ORDER BY c.id_cancion;
-        ELSE
-            SELECT 
-                c.id_cancion AS id,
-                c.nombre     AS nombre,
-                c.Fecha      AS fecha,
-                c.fechaCreacion,
-                a.nombre     AS artista,
-                l.nombre     AS lista,
-                g.nombre     AS grupo
-            FROM cMSC_Cancion c
-            LEFT JOIN cMSC_Cancion_Artista ca ON c.id_cancion = ca.id_cancion
-            LEFT JOIN cMSC_Artista a ON ca.id_artista = a.id_artista
-            LEFT JOIN cMSC_Cancion_Lista cl ON c.id_cancion = cl.id_cancion
-            LEFT JOIN cMSC_Lista l ON cl.id_lista = l.id_lista
-            LEFT JOIN cMSC_Grupo g ON l.id_grupo = g.id_grupo
-            WHERE c.id_cancion = p_id_cancion;
-        END IF;
-    END IF;
-END ;;
-DELIMITER ;
-/*!50003 SET sql_mode              = @saved_sql_mode */ ;
-/*!50003 SET character_set_client  = @saved_cs_client */ ;
-/*!50003 SET character_set_results = @saved_cs_results */ ;
-/*!50003 SET collation_connection  = @saved_col_connection */ ;
-/*!50003 DROP PROCEDURE IF EXISTS `cMSC_CRUD_Grupo` */;
-/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
-/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
-/*!50003 SET @saved_col_connection = @@collation_connection */ ;
-/*!50003 SET character_set_client  = utf8mb4 */ ;
-/*!50003 SET character_set_results = utf8mb4 */ ;
-/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
-/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
-/*!50003 SET sql_mode              = 'NO_ENGINE_SUBSTITUTION' */ ;
-DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `cMSC_CRUD_Grupo`(
-    IN p_accion CHAR(1),          -- I, U, D, S
-    IN p_id_grupo INT,            -- usado en U, D, S (un solo registro)
-    IN p_nombre VARCHAR(100)      -- usado en I, U
-)
-BEGIN
-    -- Insertar
-    IF p_accion = 'I' THEN
-        INSERT INTO cMSC_Grupo (nombre)
-        VALUES (p_nombre);
-
-    -- Actualizar
-    ELSEIF p_accion = 'U' THEN
-        UPDATE cMSC_Grupo
-        SET nombre = p_nombre
-        WHERE id_grupo = p_id_grupo;
-
-    -- Eliminar
-    ELSEIF p_accion = 'D' THEN
-        DELETE FROM cMSC_Grupo
-        WHERE id_grupo = p_id_grupo;
-
-    -- Seleccionar
-    ELSEIF p_accion = 'S' THEN
-        -- Si p_id_grupo es NULL, devolver todos
-        IF p_id_grupo IS NULL OR p_id_grupo = 0 THEN
-            SELECT * FROM cMSC_Grupo;
-        ELSE
-            SELECT * FROM cMSC_Grupo WHERE id_grupo = p_id_grupo;
-        END IF;
-    END IF;
-END ;;
-DELIMITER ;
-/*!50003 SET sql_mode              = @saved_sql_mode */ ;
-/*!50003 SET character_set_client  = @saved_cs_client */ ;
-/*!50003 SET character_set_results = @saved_cs_results */ ;
-/*!50003 SET collation_connection  = @saved_col_connection */ ;
-/*!50003 DROP PROCEDURE IF EXISTS `cMSC_CRUD_Lista` */;
-/*!50003 SET @saved_cs_client      = @@character_set_client */ ;
-/*!50003 SET @saved_cs_results     = @@character_set_results */ ;
-/*!50003 SET @saved_col_connection = @@collation_connection */ ;
-/*!50003 SET character_set_client  = utf8mb4 */ ;
-/*!50003 SET character_set_results = utf8mb4 */ ;
-/*!50003 SET collation_connection  = utf8mb4_general_ci */ ;
-/*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
-/*!50003 SET sql_mode              = 'NO_ENGINE_SUBSTITUTION' */ ;
-DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `cMSC_CRUD_Lista`(
-    IN p_accion CHAR(1),          -- I, U, D, S
-    IN p_id_lista INT,            -- usado en U, D, S
-    IN p_nombre VARCHAR(50),      -- usado en I, U
-    IN p_id_grupo INT             -- usado en I, U (FK)
-)
-BEGIN
-    -- Insertar
-    IF p_accion = 'I' THEN
-        INSERT INTO cMSC_Lista (nombre, id_grupo)
-        VALUES (p_nombre, p_id_grupo);
-
-    -- Actualizar
-    ELSEIF p_accion = 'U' THEN
-        UPDATE cMSC_Lista
-        SET nombre = p_nombre,
-            id_grupo = p_id_grupo
-        WHERE id_lista = p_id_lista;
-
-    -- Eliminar
-    ELSEIF p_accion = 'D' THEN
-        DELETE FROM cMSC_Lista
-        WHERE id_lista = p_id_lista;
-
-    -- Seleccionar
-    ELSEIF p_accion = 'S' THEN
-        -- Si p_id_lista es NULL o 0, devolver todas
-        IF p_id_lista IS NULL OR p_id_lista = 0 THEN
-            SELECT l.id_lista, l.nombre AS lista, g.nombre AS grupo
-            FROM cMSC_Lista l
-            INNER JOIN cMSC_Grupo g ON l.id_grupo = g.id_grupo;
-        ELSE
-            SELECT l.id_lista, l.nombre AS lista, g.nombre AS grupo
-            FROM cMSC_Lista l
-            INNER JOIN cMSC_Grupo g ON l.id_grupo = g.id_grupo
-            WHERE l.id_lista = p_id_lista;
-        END IF;
-    END IF;
-END ;;
-DELIMITER ;
-/*!50003 SET sql_mode              = @saved_sql_mode */ ;
-/*!50003 SET character_set_client  = @saved_cs_client */ ;
-/*!50003 SET character_set_results = @saved_cs_results */ ;
-/*!50003 SET collation_connection  = @saved_col_connection */ ;
 /*!50003 DROP PROCEDURE IF EXISTS `SP_BBF_AREAS_LISTAR` */;
 /*!50003 SET @saved_cs_client      = @@character_set_client */ ;
 /*!50003 SET @saved_cs_results     = @@character_set_results */ ;
@@ -3161,7 +2895,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_AREAS_LISTAR`(
+CREATE  PROCEDURE `SP_BBF_AREAS_LISTAR`(
     IN P_SOLO_ACTIVOS TINYINT
 )
 BEGIN
@@ -3191,7 +2925,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_ASPIRANTES_ACTUALIZAR`(
+CREATE  PROCEDURE `SP_BBF_ASPIRANTES_ACTUALIZAR`(
     IN P_ID_ASPIRANTE INT,
     IN P_ID_TIPO_DOCUMENTO INT,
     IN P_NUMERO_DOCUMENTO VARCHAR(50),
@@ -3486,7 +3220,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_ASPIRANTES_CAMBIAR_ESTADO`(
+CREATE  PROCEDURE `SP_BBF_ASPIRANTES_CAMBIAR_ESTADO`(
     IN P_ID_ASPIRANTE INT,
     IN P_ESTADO_NUEVO VARCHAR(50),
     IN P_OBSERVACIONES TEXT,
@@ -3571,7 +3305,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_ASPIRANTES_CONVERTIR_EMPLEADO`(
+CREATE  PROCEDURE `SP_BBF_ASPIRANTES_CONVERTIR_EMPLEADO`(
     IN P_ID_ASPIRANTE INT,
     IN P_ID_TIPO_CONTRATO INT,
     IN P_FECHA_INGRESO DATE,
@@ -3875,7 +3609,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_ASPIRANTES_CREAR`(
+CREATE  PROCEDURE `SP_BBF_ASPIRANTES_CREAR`(
     IN P_ID_TIPO_DOCUMENTO INT,
     IN P_NUMERO_DOCUMENTO VARCHAR(50),
     IN P_NOMBRES VARCHAR(150),
@@ -4201,7 +3935,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_ASPIRANTES_DOCUMENTOS_LISTAR`(
+CREATE  PROCEDURE `SP_BBF_ASPIRANTES_DOCUMENTOS_LISTAR`(
     IN P_ID_ASPIRANTE INT
 )
 BEGIN
@@ -4259,7 +3993,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_ASPIRANTES_DOCUMENTO_REGISTRAR`(
+CREATE  PROCEDURE `SP_BBF_ASPIRANTES_DOCUMENTO_REGISTRAR`(
     IN P_ID_ASPIRANTE INT,
     IN P_ID_TIPO_DOCUMENTO_LABORAL INT,
     IN P_NOMBRE_ARCHIVO VARCHAR(255),
@@ -4379,7 +4113,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_ASPIRANTES_HISTORIAL_ESTADOS`(
+CREATE  PROCEDURE `SP_BBF_ASPIRANTES_HISTORIAL_ESTADOS`(
     IN P_ID_ASPIRANTE INT
 )
 BEGIN
@@ -4413,7 +4147,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_ASPIRANTES_LISTAR`(
+CREATE  PROCEDURE `SP_BBF_ASPIRANTES_LISTAR`(
     IN P_TEXTO_BUSQUEDA VARCHAR(150),
     IN P_ESTADO_ASPIRANTE VARCHAR(50),
     IN P_ID_AREA INT,
@@ -4514,7 +4248,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_ASPIRANTES_OBTENER`(
+CREATE  PROCEDURE `SP_BBF_ASPIRANTES_OBTENER`(
     IN P_ID_ASPIRANTE INT
 )
 BEGIN
@@ -4651,7 +4385,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_CAPACITACIONES_LISTAR`(IN P_TIPO VARCHAR(30), IN P_INCLUIR_INACTIVAS TINYINT)
+CREATE  PROCEDURE `SP_BBF_CAPACITACIONES_LISTAR`(IN P_TIPO VARCHAR(30), IN P_INCLUIR_INACTIVAS TINYINT)
 BEGIN
     SELECT C.*,COUNT(CASE WHEN D.ACTIVO=1 THEN 1 END) AS TOTAL_LABORES
     FROM bbf_capacitaciones C
@@ -4676,7 +4410,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_CAPACITACION_ALERTAS_LISTAR`(IN P_ID_EMPLEADO INT)
+CREATE  PROCEDURE `SP_BBF_CAPACITACION_ALERTAS_LISTAR`(IN P_ID_EMPLEADO INT)
 BEGIN
     SELECT 'EVALUACION_PENDIENTE' AS TIPO_ALERTA,NULL AS ID_CAPACITACION_RESULTADO,
     P.ID_CAPACITACION_PARTICIPANTE,E.ID_EMPLEADO,E.NUMERO_DOCUMENTO,
@@ -4724,7 +4458,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_CAPACITACION_ASISTENCIA_REGISTRAR`(
+CREATE  PROCEDURE `SP_BBF_CAPACITACION_ASISTENCIA_REGISTRAR`(
     IN P_ID_PARTICIPANTE INT, IN P_ESTADO VARCHAR(20), IN P_OBSERVACIONES TEXT
 )
 BEGIN
@@ -4758,7 +4492,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_CAPACITACION_COMPROMISOS_LISTAR`(IN P_ID_EMPLEADO INT, IN P_ESTADO VARCHAR(30))
+CREATE  PROCEDURE `SP_BBF_CAPACITACION_COMPROMISOS_LISTAR`(IN P_ID_EMPLEADO INT, IN P_ESTADO VARCHAR(30))
 BEGIN
     SELECT CO.*,R.RESULTADO,R.PUNTAJE_FINAL,R.PUNTAJE_MINIMO_APLICADO,E.ID_EMPLEADO,E.NUMERO_DOCUMENTO,
     CONCAT_WS(' ',E.NOMBRES,E.APELLIDOS) AS EMPLEADO,C.NOMBRE AS CAPACITACION,S.FECHA_INICIO,S.FECHA_FIN
@@ -4786,7 +4520,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_CAPACITACION_COMPROMISO_ACTUALIZAR`(
+CREATE  PROCEDURE `SP_BBF_CAPACITACION_COMPROMISO_ACTUALIZAR`(
     IN P_ID_COMPROMISO INT, IN P_ESTADO VARCHAR(30), IN P_DOCUMENTO_URL VARCHAR(500),
     IN P_DOCUMENTO_RUTA VARCHAR(500), IN P_FIRMA_URL VARCHAR(500), IN P_OBSERVACIONES TEXT, IN P_ID_USUARIO INT
 )
@@ -4823,7 +4557,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_CAPACITACION_COMPROMISO_CREAR`(
+CREATE  PROCEDURE `SP_BBF_CAPACITACION_COMPROMISO_CREAR`(
     IN P_ID_RESULTADO INT, IN P_FECHA DATE, IN P_FECHA_LIMITE DATE, IN P_MOTIVO TEXT,
     IN P_COMPROMISOS TEXT, IN P_OBSERVACIONES TEXT, IN P_ID_USUARIO INT
 )
@@ -4853,7 +4587,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_CAPACITACION_COMPROMISO_OBTENER`(IN P_ID_COMPROMISO INT)
+CREATE  PROCEDURE `SP_BBF_CAPACITACION_COMPROMISO_OBTENER`(IN P_ID_COMPROMISO INT)
 BEGIN
     IF NOT EXISTS (
         SELECT 1
@@ -4934,7 +4668,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_CAPACITACION_CONFIRMAR_EMPLEADO`(
+CREATE  PROCEDURE `SP_BBF_CAPACITACION_CONFIRMAR_EMPLEADO`(
     IN P_ID_USUARIO INT, IN P_ID_PARTICIPANTE INT, IN P_OBSERVACION VARCHAR(500)
 )
 BEGIN
@@ -4968,7 +4702,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_CAPACITACION_CONFIRMAR_RRHH`(
+CREATE  PROCEDURE `SP_BBF_CAPACITACION_CONFIRMAR_RRHH`(
     IN P_ID_USUARIO_RRHH INT, IN P_ID_PARTICIPANTE INT, IN P_OBSERVACION VARCHAR(500)
 )
 BEGIN
@@ -4999,7 +4733,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_CAPACITACION_EVALUACION_GUARDAR`(
+CREATE  PROCEDURE `SP_BBF_CAPACITACION_EVALUACION_GUARDAR`(
     IN P_ID_PARTICIPANTE INT, IN P_ID_LABOR INT, IN P_FECHA DATE,
     IN P_VALOR DECIMAL(12,2), IN P_VALOR_MAXIMO DECIMAL(12,2), IN P_REQUIERE_ATENCION TINYINT,
     IN P_OBSERVACIONES VARCHAR(500), IN P_ID_EVALUADOR INT, IN P_ORIGEN VARCHAR(10), IN P_ID_IMPORTACION BIGINT
@@ -5040,7 +4774,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_CAPACITACION_EVIDENCIAS_LISTAR_POR_SESION`(
+CREATE  PROCEDURE `SP_BBF_CAPACITACION_EVIDENCIAS_LISTAR_POR_SESION`(
     IN P_ID_CAPACITACION_SESION INT
 )
 BEGIN
@@ -5081,7 +4815,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_CAPACITACION_EVIDENCIA_CREAR`(
+CREATE  PROCEDURE `SP_BBF_CAPACITACION_EVIDENCIA_CREAR`(
     IN P_ID_CAPACITACION_SESION INT,
     IN P_TIPO_EVIDENCIA VARCHAR(30),
     IN P_NOMBRE_ARCHIVO VARCHAR(255),
@@ -5142,7 +4876,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_CAPACITACION_EVIDENCIA_ELIMINAR`(
+CREATE  PROCEDURE `SP_BBF_CAPACITACION_EVIDENCIA_ELIMINAR`(
     IN P_ID_CAPACITACION_EVIDENCIA BIGINT
 )
 BEGIN
@@ -5169,7 +4903,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_CAPACITACION_EVIDENCIA_OBTENER`(
+CREATE  PROCEDURE `SP_BBF_CAPACITACION_EVIDENCIA_OBTENER`(
     IN P_ID_CAPACITACION_EVIDENCIA BIGINT
 )
 BEGIN
@@ -5208,7 +4942,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_CAPACITACION_GUARDAR`(
+CREATE  PROCEDURE `SP_BBF_CAPACITACION_GUARDAR`(
     IN P_ID_CAPACITACION INT, IN P_CODIGO VARCHAR(50), IN P_NOMBRE VARCHAR(200),
     IN P_DESCRIPCION TEXT, IN P_TIPO VARCHAR(30), IN P_REQUIERE_EVALUACION TINYINT,
     IN P_REQUIERE_CONFIRMACION TINYINT, IN P_PUNTAJE_MINIMO DECIMAL(10,2),
@@ -5257,7 +4991,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_CAPACITACION_IMPORTACION_CREAR`(
+CREATE  PROCEDURE `SP_BBF_CAPACITACION_IMPORTACION_CREAR`(
     IN P_ID_SESION INT, IN P_NOMBRE_ARCHIVO VARCHAR(255), IN P_NOMBRE_ORIGINAL VARCHAR(255),
     IN P_RUTA VARCHAR(500), IN P_MIME VARCHAR(100), IN P_PESO BIGINT, IN P_ID_USUARIO INT
 )
@@ -5281,7 +5015,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_CAPACITACION_IMPORTACION_ERROR_AGREGAR`(
+CREATE  PROCEDURE `SP_BBF_CAPACITACION_IMPORTACION_ERROR_AGREGAR`(
     IN P_ID_IMPORTACION BIGINT, IN P_HOJA VARCHAR(150), IN P_CELDA VARCHAR(30), IN P_FILA INT,
     IN P_EMPLEADO VARCHAR(250), IN P_LABOR VARCHAR(250), IN P_VALOR VARCHAR(500), IN P_CODIGO VARCHAR(80), IN P_MENSAJE VARCHAR(500)
 )
@@ -5306,7 +5040,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_CAPACITACION_IMPORTACION_FINALIZAR`(
+CREATE  PROCEDURE `SP_BBF_CAPACITACION_IMPORTACION_FINALIZAR`(
     IN P_ID_IMPORTACION BIGINT, IN P_ESTADO VARCHAR(20), IN P_TOTAL INT, IN P_VALIDOS INT, IN P_RESUMEN TEXT
 )
 BEGIN
@@ -5333,7 +5067,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_CAPACITACION_LABORES_ASOCIADAS_LISTAR`(IN P_ID_CAPACITACION INT, IN P_INCLUIR_INACTIVAS TINYINT)
+CREATE  PROCEDURE `SP_BBF_CAPACITACION_LABORES_ASOCIADAS_LISTAR`(IN P_ID_CAPACITACION INT, IN P_INCLUIR_INACTIVAS TINYINT)
 BEGIN
     SELECT D.ID_CAPACITACION_LABOR_DETALLE,D.ID_CAPACITACION,D.ID_CAPACITACION_LABOR,
     L.CODIGO,L.NOMBRE,L.DESCRIPCION,D.PUNTAJE_MINIMO_LABOR,D.PUNTAJE_MAXIMO_LABOR,
@@ -5359,7 +5093,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_CAPACITACION_LABORES_LISTAR`(IN P_INCLUIR_INACTIVAS TINYINT)
+CREATE  PROCEDURE `SP_BBF_CAPACITACION_LABORES_LISTAR`(IN P_INCLUIR_INACTIVAS TINYINT)
 BEGIN
     SELECT ID_CAPACITACION_LABOR,CODIGO,NOMBRE,DESCRIPCION,ORDEN,ACTIVO,CREATED_AT,UPDATED_AT
     FROM bbf_capacitacion_labores
@@ -5381,7 +5115,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_CAPACITACION_LABOR_ASOCIAR`(
+CREATE  PROCEDURE `SP_BBF_CAPACITACION_LABOR_ASOCIAR`(
     IN P_ID_CAPACITACION INT, IN P_ID_CAPACITACION_LABOR INT,
     IN P_PUNTAJE_MINIMO DECIMAL(10,2), IN P_PUNTAJE_MAXIMO DECIMAL(10,2), IN P_ORDEN INT
 )
@@ -5412,7 +5146,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_CAPACITACION_LABOR_GUARDAR`(
+CREATE  PROCEDURE `SP_BBF_CAPACITACION_LABOR_GUARDAR`(
     IN P_ID_CAPACITACION_LABOR INT, IN P_CODIGO VARCHAR(50), IN P_NOMBRE VARCHAR(150),
     IN P_DESCRIPCION VARCHAR(500), IN P_ORDEN INT, IN P_ACTIVO TINYINT
 )
@@ -5446,7 +5180,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_CAPACITACION_MIS_REGISTROS_LISTAR`(IN P_ID_USUARIO INT)
+CREATE  PROCEDURE `SP_BBF_CAPACITACION_MIS_REGISTROS_LISTAR`(IN P_ID_USUARIO INT)
 BEGIN
     SELECT P.ID_CAPACITACION_PARTICIPANTE,S.ID_CAPACITACION_SESION,S.CODIGO AS CODIGO_SESION,S.FECHA_INICIO,S.FECHA_FIN,
     S.ANIO_ISO,S.SEMANA_ISO,S.ESTADO AS ESTADO_SESION,C.ID_CAPACITACION,C.NOMBRE AS CAPACITACION,C.TIPO,
@@ -5473,7 +5207,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_CAPACITACION_PARTICIPANTE_AGREGAR`(
+CREATE  PROCEDURE `SP_BBF_CAPACITACION_PARTICIPANTE_AGREGAR`(
     IN P_ID_SESION INT, IN P_ID_EMPLEADO INT, IN P_OBSERVACIONES TEXT, IN P_ID_USUARIO INT
 )
 BEGIN
@@ -5505,7 +5239,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_CAPACITACION_RESULTADO_REGISTRAR`(
+CREATE  PROCEDURE `SP_BBF_CAPACITACION_RESULTADO_REGISTRAR`(
     IN P_ID_PARTICIPANTE INT, IN P_FECHA_RESULTADO DATE, IN P_PUNTAJE_FINAL DECIMAL(10,2),
     IN P_PUNTAJE_MINIMO DECIMAL(10,2), IN P_RESULTADO VARCHAR(30), IN P_REQUIERE_REINDUCCION TINYINT,
     IN P_REQUIERE_COMPROMISO TINYINT, IN P_REGLA VARCHAR(500), IN P_OBSERVACIONES TEXT, IN P_ID_USUARIO INT
@@ -5549,7 +5283,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_CAPACITACION_SESIONES_LISTAR`(
+CREATE  PROCEDURE `SP_BBF_CAPACITACION_SESIONES_LISTAR`(
     IN P_ID_CAPACITACION INT, IN P_ANIO SMALLINT, IN P_SEMANA TINYINT, IN P_ESTADO VARCHAR(20)
 )
 BEGIN
@@ -5581,7 +5315,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_CAPACITACION_SESION_CAMBIAR_ESTADO`(
+CREATE  PROCEDURE `SP_BBF_CAPACITACION_SESION_CAMBIAR_ESTADO`(
     IN P_ID_SESION INT, IN P_ESTADO VARCHAR(20), IN P_ID_USUARIO INT
 )
 BEGIN
@@ -5615,7 +5349,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_CAPACITACION_SESION_CREAR`(
+CREATE  PROCEDURE `SP_BBF_CAPACITACION_SESION_CREAR`(
     IN P_ID_CAPACITACION INT, IN P_FECHA_INICIO DATE, IN P_FECHA_FIN DATE,
     IN P_ID_INSTRUCTOR_USUARIO INT, IN P_INSTRUCTOR_EXTERNO VARCHAR(200),
     IN P_LUGAR VARCHAR(250), IN P_OBSERVACIONES TEXT, IN P_ID_USUARIO INT
@@ -5652,7 +5386,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_CAPACITACION_SESION_DETALLE`(IN P_ID_SESION INT)
+CREATE  PROCEDURE `SP_BBF_CAPACITACION_SESION_DETALLE`(IN P_ID_SESION INT)
 BEGIN
     SELECT S.*,C.NOMBRE AS CAPACITACION,C.TIPO,C.PUNTAJE_MINIMO,C.PUNTAJE_MAXIMO
     FROM bbf_capacitacion_sesiones S
@@ -5692,7 +5426,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_CARGOS_LISTAR`(
+CREATE  PROCEDURE `SP_BBF_CARGOS_LISTAR`(
     IN P_SOLO_ACTIVOS TINYINT
 )
 BEGIN
@@ -5722,7 +5456,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_CONTRATACION_ALERTAS_LISTAR`(
+CREATE  PROCEDURE `SP_BBF_CONTRATACION_ALERTAS_LISTAR`(
     IN P_DIAS_ANTES INT
 )
 BEGIN
@@ -5790,7 +5524,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_CONTRATACION_CONTRATOS_LISTAR`(
+CREATE  PROCEDURE `SP_BBF_CONTRATACION_CONTRATOS_LISTAR`(
     IN P_ID_EMPLEADO INT
 )
 BEGIN
@@ -6013,7 +5747,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_CONTRATACION_CONTRATO_ARCHIVO_ACTUALIZAR`(
+CREATE  PROCEDURE `SP_BBF_CONTRATACION_CONTRATO_ARCHIVO_ACTUALIZAR`(
     IN P_ID_EMPLEADO_CONTRATO INT,
     IN P_ARCHIVO_CONTRATO_URL VARCHAR(500),
     IN P_ID_USUARIO INT
@@ -6067,7 +5801,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_CONTRATACION_CONTRATO_CREAR`(
+CREATE  PROCEDURE `SP_BBF_CONTRATACION_CONTRATO_CREAR`(
     IN P_ID_EMPLEADO INT,
     IN P_ID_TIPO_CONTRATO INT,
     IN P_ID_PLANTILLA_CONTRATO INT,
@@ -6250,7 +5984,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_CONTRATACION_CONTRATO_DATOS_GENERAR`(
+CREATE  PROCEDURE `SP_BBF_CONTRATACION_CONTRATO_DATOS_GENERAR`(
     IN P_ID_EMPLEADO_CONTRATO INT
 )
 BEGIN
@@ -6360,7 +6094,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_CONTRATACION_CONTRATO_FIRMADO_REGISTRAR`(
+CREATE  PROCEDURE `SP_BBF_CONTRATACION_CONTRATO_FIRMADO_REGISTRAR`(
     IN P_ID_EMPLEADO_CONTRATO INT,
     IN P_FECHA_FIRMA DATE,
 
@@ -6777,7 +6511,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_CONTRATACION_DOCUMENTOS_LISTAR`(
+CREATE  PROCEDURE `SP_BBF_CONTRATACION_DOCUMENTOS_LISTAR`(
     IN P_ID_EMPLEADO INT
 )
 BEGIN
@@ -6926,7 +6660,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_CONTRATACION_DOCUMENTO_REGISTRAR`(
+CREATE  PROCEDURE `SP_BBF_CONTRATACION_DOCUMENTO_REGISTRAR`(
     IN P_ID_EMPLEADO INT,
     IN P_ID_TIPO_DOCUMENTO_LABORAL INT,
     IN P_NOMBRE_ARCHIVO VARCHAR(255),
@@ -7003,7 +6737,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_CONTRATACION_EXAMENES_LISTAR`(
+CREATE  PROCEDURE `SP_BBF_CONTRATACION_EXAMENES_LISTAR`(
     IN P_ID_EMPLEADO INT
 )
 BEGIN
@@ -7058,7 +6792,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_CONTRATACION_EXAMEN_CREAR`(
+CREATE  PROCEDURE `SP_BBF_CONTRATACION_EXAMEN_CREAR`(
     IN P_ID_EMPLEADO INT,
     IN P_ID_TIPO_EXAMEN_MEDICO INT,
     IN P_FECHA_EXAMEN DATE,
@@ -7133,7 +6867,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_CONTRATACION_FICHA_GUARDAR`(
+CREATE  PROCEDURE `SP_BBF_CONTRATACION_FICHA_GUARDAR`(
 
     IN P_ID_EMPLEADO INT,
 
@@ -7610,7 +7344,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_CONTRATACION_FICHA_OBTENER`(
+CREATE  PROCEDURE `SP_BBF_CONTRATACION_FICHA_OBTENER`(
     IN P_ID_EMPLEADO INT
 )
 BEGIN
@@ -7803,7 +7537,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_CONTRATACION_LISTAR_EMPLEADOS`(
+CREATE  PROCEDURE `SP_BBF_CONTRATACION_LISTAR_EMPLEADOS`(
     IN P_TEXTO_BUSQUEDA VARCHAR(150),
     IN P_ID_AREA INT,
     IN P_ID_CARGO INT,
@@ -7919,7 +7653,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_CONTRATACION_LUGAR_EXPEDICION_GUARDAR`(
+CREATE  PROCEDURE `SP_BBF_CONTRATACION_LUGAR_EXPEDICION_GUARDAR`(
  IN P_ID_EMPLEADO INT, IN P_LUGAR_EXPEDICION_DOCUMENTO VARCHAR(150))
 BEGIN
  IF NOT EXISTS(SELECT 1 FROM bbf_empleados WHERE ID_EMPLEADO=P_ID_EMPLEADO AND IFNULL(ELIMINADO,0)=0) THEN
@@ -7951,7 +7685,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_CONTRATACION_LUGAR_EXPEDICION_OBTENER`(IN P_ID_EMPLEADO INT)
+CREATE  PROCEDURE `SP_BBF_CONTRATACION_LUGAR_EXPEDICION_OBTENER`(IN P_ID_EMPLEADO INT)
 BEGIN
  SELECT LUGAR_EXPEDICION_DOCUMENTO FROM bbf_empleado_ficha_ingreso
  WHERE ID_EMPLEADO=P_ID_EMPLEADO AND IFNULL(ELIMINADO,0)=0 LIMIT 1;
@@ -7971,7 +7705,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_CONTRATACION_SEGURIDAD_SOCIAL_GUARDAR`(
+CREATE  PROCEDURE `SP_BBF_CONTRATACION_SEGURIDAD_SOCIAL_GUARDAR`(
     IN P_ID_EMPLEADO INT,
     IN P_ID_EPS INT,
     IN P_ID_ARL INT,
@@ -8075,7 +7809,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_CONTRATACION_SEGURIDAD_SOCIAL_OBTENER`(
+CREATE  PROCEDURE `SP_BBF_CONTRATACION_SEGURIDAD_SOCIAL_OBTENER`(
     IN P_ID_EMPLEADO INT
 )
 BEGIN
@@ -8138,7 +7872,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_CONTRATO_PLANTILLAS_LISTAR`(
+CREATE  PROCEDURE `SP_BBF_CONTRATO_PLANTILLAS_LISTAR`(
     IN P_ID_TIPO_CONTRATO INT,
     IN P_TIPO_CARGO_CONTRATO VARCHAR(30),
     IN P_SOLO_ACTIVAS TINYINT
@@ -8186,7 +7920,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_CONTRATO_PLANTILLA_OBTENER`(
+CREATE  PROCEDURE `SP_BBF_CONTRATO_PLANTILLA_OBTENER`(
     IN P_ID_PLANTILLA_CONTRATO INT
 )
 BEGIN
@@ -8230,7 +7964,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_CONTRATO_PLANTILLA_POR_TIPO_OBTENER`(
+CREATE  PROCEDURE `SP_BBF_CONTRATO_PLANTILLA_POR_TIPO_OBTENER`(
     IN P_ID_TIPO_CONTRATO INT,
     IN P_TIPO_CARGO_CONTRATO VARCHAR(30)
 )
@@ -8286,7 +8020,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_DEPARTAMENTOS_LISTAR`()
+CREATE  PROCEDURE `SP_BBF_DEPARTAMENTOS_LISTAR`()
 BEGIN
     SELECT
         ID_DEPARTAMENTO,
@@ -8311,7 +8045,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_DEVOLUCIONES_ENTREGAS_DISPONIBLES_LISTAR`(
+CREATE  PROCEDURE `SP_BBF_DEVOLUCIONES_ENTREGAS_DISPONIBLES_LISTAR`(
         IN P_TIPO_DEVOLUCION VARCHAR(20),
         IN P_ID_EMPLEADO INT
     )
@@ -8566,7 +8300,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_DEVOLUCIONES_LISTAR`(
+CREATE  PROCEDURE `SP_BBF_DEVOLUCIONES_LISTAR`(
     IN P_TIPO_DEVOLUCION VARCHAR(20),
     IN P_ID_EMPLEADO INT,
     IN P_ESTADO VARCHAR(20),
@@ -8646,7 +8380,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_DEVOLUCION_ANULAR`(
+CREATE  PROCEDURE `SP_BBF_DEVOLUCION_ANULAR`(
     IN P_ID_DEVOLUCION INT,
     IN P_ID_ANULADO_POR INT,
     IN P_MOTIVO_ANULACION VARCHAR(500)
@@ -8708,7 +8442,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_DEVOLUCION_CONFIRMAR`(
+CREATE  PROCEDURE `SP_BBF_DEVOLUCION_CONFIRMAR`(
     IN P_ID_DEVOLUCION INT,
     IN P_ID_CONFIRMADO_POR INT
 )
@@ -8792,7 +8526,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_DEVOLUCION_CREAR`(
+CREATE  PROCEDURE `SP_BBF_DEVOLUCION_CREAR`(
     IN P_TIPO_DEVOLUCION VARCHAR(20),
     IN P_ID_EMPLEADO INT,
     IN P_ID_ENTREGA INT,
@@ -9286,7 +9020,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_DEVOLUCION_OBTENER`(
+CREATE  PROCEDURE `SP_BBF_DEVOLUCION_OBTENER`(
         IN P_ID_DEVOLUCION INT
     )
 BEGIN
@@ -9414,7 +9148,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_DOMINIOS_LISTAR`(
+CREATE  PROCEDURE `SP_BBF_DOMINIOS_LISTAR`(
     IN P_SOLO_ACTIVOS TINYINT
 )
 BEGIN
@@ -9444,7 +9178,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_DOMINIOS_VALIDAR`(
+CREATE  PROCEDURE `SP_BBF_DOMINIOS_VALIDAR`(
     IN P_CORREO VARCHAR(150)
 )
 BEGIN
@@ -9479,7 +9213,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_DOTACION_ARTICULOS_CARGUE_LISTAR`()
+CREATE  PROCEDURE `SP_BBF_DOTACION_ARTICULOS_CARGUE_LISTAR`()
 BEGIN
     SELECT
         AC.`ID_DOTACION_ARTICULO_ALIAS`,
@@ -9518,7 +9252,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_DOTACION_ARTICULOS_LISTAR`(
+CREATE  PROCEDURE `SP_BBF_DOTACION_ARTICULOS_LISTAR`(
     IN P_ID_TIPO_DOTACION INT,
     IN P_GENERO VARCHAR(20),
     IN P_INCLUIR_INACTIVOS TINYINT
@@ -9610,7 +9344,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_DOTACION_ARTICULO_TALLAS_CATALOGO_LISTAR`(
+CREATE  PROCEDURE `SP_BBF_DOTACION_ARTICULO_TALLAS_CATALOGO_LISTAR`(
     IN P_ID_DOTACION_ARTICULO INT
 )
 BEGIN
@@ -9651,7 +9385,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_DOTACION_ARTICULO_TALLAS_EMPLEADO_LISTAR`(
+CREATE  PROCEDURE `SP_BBF_DOTACION_ARTICULO_TALLAS_EMPLEADO_LISTAR`(
     IN P_ID_EMPLEADO INT,
     IN P_INCLUIR_SIN_TALLA TINYINT
 )
@@ -9724,7 +9458,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_DOTACION_ARTICULO_TALLA_GUARDAR`(
+CREATE  PROCEDURE `SP_BBF_DOTACION_ARTICULO_TALLA_GUARDAR`(
     IN P_ID_EMPLEADO INT,
     IN P_ID_DOTACION_ARTICULO INT,
     IN P_ID_TALLA_DOTACION INT,
@@ -9830,7 +9564,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_DOTACION_COMBINACIONES_LISTAR`()
+CREATE  PROCEDURE `SP_BBF_DOTACION_COMBINACIONES_LISTAR`()
 BEGIN
 
     SELECT
@@ -9867,7 +9601,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_DOTACION_COMBINACION_DETALLE_LISTAR`(
+CREATE  PROCEDURE `SP_BBF_DOTACION_COMBINACION_DETALLE_LISTAR`(
     IN P_ID_DOTACION_COMBINACION INT
 )
 BEGIN
@@ -9935,7 +9669,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_DOTACION_COTIZACION_LISTAR`(
+CREATE  PROCEDURE `SP_BBF_DOTACION_COTIZACION_LISTAR`(
     IN P_ID_AREA INT,
     IN P_ID_CARGO INT,
     IN P_ID_EMPLEADO INT
@@ -10100,7 +9834,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_DOTACION_COTIZACION_POR_COMPRAR_LISTAR`(
+CREATE  PROCEDURE `SP_BBF_DOTACION_COTIZACION_POR_COMPRAR_LISTAR`(
         IN P_ID_AREA INT,
         IN P_ID_CARGO INT,
         IN P_ID_EMPLEADO INT
@@ -10257,7 +9991,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_DOTACION_EMPLEADOS_LISTAR`(
+CREATE  PROCEDURE `SP_BBF_DOTACION_EMPLEADOS_LISTAR`(
     IN P_TEXTO_BUSQUEDA VARCHAR(150),
     IN P_ID_AREA INT,
     IN P_ID_CARGO INT
@@ -10392,7 +10126,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_DOTACION_ENTREGAS_LISTAR`(
+CREATE  PROCEDURE `SP_BBF_DOTACION_ENTREGAS_LISTAR`(
     IN P_ID_EMPLEADO INT,
     IN P_FECHA_INICIO DATE,
     IN P_FECHA_FIN DATE
@@ -10528,7 +10262,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_DOTACION_ENTREGA_CONFIRMAR_POR_RRHH`(
+CREATE  PROCEDURE `SP_BBF_DOTACION_ENTREGA_CONFIRMAR_POR_RRHH`(
     IN P_ID_USUARIO_RRHH INT,
     IN P_ID_DOTACION_ENTREGA INT,
     IN P_OBSERVACION_CONFIRMACION VARCHAR(500)
@@ -10639,7 +10373,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_DOTACION_ENTREGA_CONFIRMAR_RECIBIDO`(
+CREATE  PROCEDURE `SP_BBF_DOTACION_ENTREGA_CONFIRMAR_RECIBIDO`(
         IN P_ID_USUARIO INT,
         IN P_ID_DOTACION_ENTREGA INT,
         IN P_OBSERVACION_CONFIRMACION VARCHAR(500),
@@ -10821,7 +10555,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_DOTACION_ENTREGA_CREAR`(
+CREATE  PROCEDURE `SP_BBF_DOTACION_ENTREGA_CREAR`(
     IN P_ID_EMPLEADO INT,
     IN P_FECHA_ENTREGA DATE,
     IN P_TIPO_ENTREGA VARCHAR(20),
@@ -11064,7 +10798,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_DOTACION_ENTREGA_CREAR_V2`(
+CREATE  PROCEDURE `SP_BBF_DOTACION_ENTREGA_CREAR_V2`(
     IN P_ID_EMPLEADO INT,
     IN P_FECHA_ENTREGA DATE,
     IN P_TIPO_ENTREGA VARCHAR(20),
@@ -11394,7 +11128,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_DOTACION_ENTREGA_DETALLE_AGREGAR`(
+CREATE  PROCEDURE `SP_BBF_DOTACION_ENTREGA_DETALLE_AGREGAR`(
         IN P_ID_DOTACION_ENTREGA INT,
         IN P_ID_TIPO_DOTACION INT,
         IN P_ID_TALLA_DOTACION INT,
@@ -11541,7 +11275,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_DOTACION_ENTREGA_DETALLE_AGREGAR_V2`(
+CREATE  PROCEDURE `SP_BBF_DOTACION_ENTREGA_DETALLE_AGREGAR_V2`(
         IN P_ID_DOTACION_ENTREGA INT,
         IN P_ID_DOTACION_ARTICULO INT,
         IN P_ID_TIPO_DOTACION INT,
@@ -11750,7 +11484,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_DOTACION_ENTREGA_DETALLE_LISTAR`(
+CREATE  PROCEDURE `SP_BBF_DOTACION_ENTREGA_DETALLE_LISTAR`(
         IN P_ID_DOTACION_ENTREGA INT
     )
 BEGIN
@@ -11855,7 +11589,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_DOTACION_ENTREGA_ELIMINAR_LOGICO`(
+CREATE  PROCEDURE `SP_BBF_DOTACION_ENTREGA_ELIMINAR_LOGICO`(
     IN P_ID_DOTACION_ENTREGA INT,
     IN P_ID_USUARIO INT,
     IN P_MOTIVO_ELIMINACION VARCHAR(500)
@@ -11923,7 +11657,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_DOTACION_HISTORIAL_EMPLEADO`(
+CREATE  PROCEDURE `SP_BBF_DOTACION_HISTORIAL_EMPLEADO`(
         IN P_ID_EMPLEADO INT
     )
 BEGIN
@@ -12073,7 +11807,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_DOTACION_MIS_ENTREGAS_LISTAR`(
+CREATE  PROCEDURE `SP_BBF_DOTACION_MIS_ENTREGAS_LISTAR`(
     IN P_ID_USUARIO INT
 )
 BEGIN
@@ -12159,7 +11893,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_DOTACION_MIS_TALLAS_LISTAR`(
+CREATE  PROCEDURE `SP_BBF_DOTACION_MIS_TALLAS_LISTAR`(
     IN P_ID_USUARIO INT
 )
 BEGIN
@@ -12277,7 +12011,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_DOTACION_MI_TALLA_ARTICULO_GUARDAR`(
+CREATE  PROCEDURE `SP_BBF_DOTACION_MI_TALLA_ARTICULO_GUARDAR`(
     IN P_ID_USUARIO INT,
     IN P_ID_DOTACION_ARTICULO INT,
     IN P_ID_TALLA_DOTACION INT,
@@ -12396,7 +12130,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_DOTACION_MI_TALLA_GUARDAR`(
+CREATE  PROCEDURE `SP_BBF_DOTACION_MI_TALLA_GUARDAR`(
     IN P_ID_USUARIO INT,
     IN P_ID_TIPO_DOTACION INT,
     IN P_ID_TALLA_DOTACION INT,
@@ -12496,7 +12230,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_DOTACION_POR_COMPRAR_PREPARAR_ENTREGA`(
+CREATE  PROCEDURE `SP_BBF_DOTACION_POR_COMPRAR_PREPARAR_ENTREGA`(
         IN P_ID_DOTACION_ENTREGA INT,
         IN P_FECHA_ENTREGA DATE,
         IN P_ID_USUARIO INT,
@@ -12731,7 +12465,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_DOTACION_TALLAS_EMPLEADO_LISTAR`(
+CREATE  PROCEDURE `SP_BBF_DOTACION_TALLAS_EMPLEADO_LISTAR`(
     IN P_ID_EMPLEADO INT
 )
 BEGIN
@@ -12773,7 +12507,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_DOTACION_TALLAS_LISTAR`(
+CREATE  PROCEDURE `SP_BBF_DOTACION_TALLAS_LISTAR`(
     IN P_ID_TIPO_DOTACION INT,
     IN P_SOLO_ACTIVOS TINYINT
 )
@@ -12808,7 +12542,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_DOTACION_TIPOS_LISTAR`(
+CREATE  PROCEDURE `SP_BBF_DOTACION_TIPOS_LISTAR`(
     IN P_SOLO_ACTIVOS TINYINT
 )
 BEGIN
@@ -12839,7 +12573,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_EMPLEADOS_ACTUALIZAR`(
+CREATE  PROCEDURE `SP_BBF_EMPLEADOS_ACTUALIZAR`(
     IN P_ID_EMPLEADO INT,
     IN P_ID_TIPO_DOCUMENTO INT,
     IN P_NUMERO_DOCUMENTO VARCHAR(50),
@@ -12892,7 +12626,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_EMPLEADOS_CAMBIAR_ESTADO`(
+CREATE  PROCEDURE `SP_BBF_EMPLEADOS_CAMBIAR_ESTADO`(
     IN P_ID_EMPLEADO INT,
     IN P_ESTADO_EMPLEADO VARCHAR(50),
     IN P_FECHA_RETIRO DATE
@@ -12935,7 +12669,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_EMPLEADOS_CREAR`(
+CREATE  PROCEDURE `SP_BBF_EMPLEADOS_CREAR`(
     IN P_ID_TIPO_DOCUMENTO INT,
     IN P_NUMERO_DOCUMENTO VARCHAR(50),
     IN P_NOMBRES VARCHAR(150),
@@ -13002,7 +12736,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_EMPLEADOS_ELIMINAR`(
+CREATE  PROCEDURE `SP_BBF_EMPLEADOS_ELIMINAR`(
     IN P_ID_EMPLEADO INT
 )
 BEGIN
@@ -13032,7 +12766,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_EMPLEADOS_LISTAR`(
+CREATE  PROCEDURE `SP_BBF_EMPLEADOS_LISTAR`(
     IN P_ESTADO_EMPLEADO VARCHAR(50),
     IN P_ID_AREA INT,
     IN P_ID_CARGO INT,
@@ -13101,7 +12835,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_EMPLEADOS_OBTENER_POR_DOCUMENTO`(
+CREATE  PROCEDURE `SP_BBF_EMPLEADOS_OBTENER_POR_DOCUMENTO`(
     IN P_NUMERO_DOCUMENTO VARCHAR(50)
 )
 BEGIN
@@ -13153,7 +12887,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_EMPLEADOS_OBTENER_POR_ID`(
+CREATE  PROCEDURE `SP_BBF_EMPLEADOS_OBTENER_POR_ID`(
     IN P_ID_EMPLEADO INT
 )
 BEGIN
@@ -13206,7 +12940,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_EMPLEADOS_REPORTE_ACTIVOS`()
+CREATE  PROCEDURE `SP_BBF_EMPLEADOS_REPORTE_ACTIVOS`()
 BEGIN
 
     SELECT
@@ -13788,7 +13522,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_ENTIDADES_SEGURIDAD_SOCIAL_LISTAR`(
+CREATE  PROCEDURE `SP_BBF_ENTIDADES_SEGURIDAD_SOCIAL_LISTAR`(
     IN P_TIPO VARCHAR(50)
 )
 BEGIN
@@ -13819,7 +13553,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_HERRAMIENTAS_ACTUALIZAR`(
+CREATE  PROCEDURE `SP_BBF_HERRAMIENTAS_ACTUALIZAR`(
     in p_id_herramienta int,
     in p_nombre varchar(150),
     in p_descripcion varchar(500)
@@ -13881,7 +13615,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_HERRAMIENTAS_CAMBIAR_ESTADO`(
+CREATE  PROCEDURE `SP_BBF_HERRAMIENTAS_CAMBIAR_ESTADO`(
     in p_id_herramienta int,
     in p_activo tinyint
 )
@@ -13929,7 +13663,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_HERRAMIENTAS_CREAR`(
+CREATE  PROCEDURE `SP_BBF_HERRAMIENTAS_CREAR`(
     in p_nombre varchar(150),
     in p_descripcion varchar(500)
 )
@@ -13983,7 +13717,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_HERRAMIENTAS_EMPLEADO_USUARIO_OBTENER`(
+CREATE  PROCEDURE `SP_BBF_HERRAMIENTAS_EMPLEADO_USUARIO_OBTENER`(
     IN P_ID_USUARIO INT
 )
 BEGIN
@@ -14009,7 +13743,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_HERRAMIENTAS_ENTREGAS_LISTAR`(
+CREATE  PROCEDURE `SP_BBF_HERRAMIENTAS_ENTREGAS_LISTAR`(
     in p_id_empleado int,
     in p_estado varchar(20)
 )
@@ -14094,7 +13828,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_HERRAMIENTAS_ENTREGA_CONFIRMAR`(
+CREATE  PROCEDURE `SP_BBF_HERRAMIENTAS_ENTREGA_CONFIRMAR`(
     IN p_id_entrega INT
 )
 BEGIN
@@ -14160,7 +13894,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_HERRAMIENTAS_ENTREGA_CREAR`(
+CREATE  PROCEDURE `SP_BBF_HERRAMIENTAS_ENTREGA_CREAR`(
     IN p_id_empleado INT,
     IN p_fecha_entrega DATE,
     IN p_observaciones TEXT,
@@ -14477,7 +14211,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_HERRAMIENTAS_ENTREGA_DETALLE_LISTAR`(
+CREATE  PROCEDURE `SP_BBF_HERRAMIENTAS_ENTREGA_DETALLE_LISTAR`(
     in p_id_entrega int
 )
 begin
@@ -14521,7 +14255,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_HERRAMIENTAS_ENTREGA_ELIMINAR`(
+CREATE  PROCEDURE `SP_BBF_HERRAMIENTAS_ENTREGA_ELIMINAR`(
     in p_id_entrega int
 )
 begin
@@ -14594,7 +14328,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_HERRAMIENTAS_ENTREGA_EVIDENCIAS_LISTAR`(
+CREATE  PROCEDURE `SP_BBF_HERRAMIENTAS_ENTREGA_EVIDENCIAS_LISTAR`(
     IN p_id_entrega INT
 )
 BEGIN
@@ -14627,7 +14361,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_HERRAMIENTAS_ENTREGA_OBTENER`(
+CREATE  PROCEDURE `SP_BBF_HERRAMIENTAS_ENTREGA_OBTENER`(
     in p_id_entrega int
 )
 begin
@@ -14676,7 +14410,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_HERRAMIENTAS_LISTAR`(
+CREATE  PROCEDURE `SP_BBF_HERRAMIENTAS_LISTAR`(
     in p_solo_activos tinyint
 )
 begin
@@ -14710,7 +14444,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_HERRAMIENTAS_MIS_ENTREGAS_LISTAR`(
+CREATE  PROCEDURE `SP_BBF_HERRAMIENTAS_MIS_ENTREGAS_LISTAR`(
     IN P_ID_EMPLEADO INT
 )
 BEGIN
@@ -14748,7 +14482,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_HERRAMIENTAS_MI_ENTREGA_CONFIRMAR`(
+CREATE  PROCEDURE `SP_BBF_HERRAMIENTAS_MI_ENTREGA_CONFIRMAR`(
     IN p_id_entrega INT,
     IN p_id_empleado INT,
     IN p_id_usuario INT
@@ -14820,7 +14554,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_HERRAMIENTAS_MI_ENTREGA_DETALLE_LISTAR`(
+CREATE  PROCEDURE `SP_BBF_HERRAMIENTAS_MI_ENTREGA_DETALLE_LISTAR`(
     IN P_ID_ENTREGA INT,
     IN P_ID_EMPLEADO INT
 )
@@ -14855,7 +14589,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_HERRAMIENTAS_MI_ENTREGA_OBTENER`(
+CREATE  PROCEDURE `SP_BBF_HERRAMIENTAS_MI_ENTREGA_OBTENER`(
     IN P_ID_ENTREGA INT,
     IN P_ID_EMPLEADO INT
 )
@@ -14888,7 +14622,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_INCAPACIDADES_SEGUIMIENTO_LISTAR`(
+CREATE  PROCEDURE `SP_BBF_INCAPACIDADES_SEGUIMIENTO_LISTAR`(
     IN P_ID_EMPLEADO INT,
     IN P_ID_ENTIDAD_RESPONSABLE INT,
     IN P_ESTADO_SEGUIMIENTO VARCHAR(30),
@@ -14966,7 +14700,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_INCAPACIDAD_ACTUALIZAR`(
+CREATE  PROCEDURE `SP_BBF_INCAPACIDAD_ACTUALIZAR`(
     IN P_ID_NOVEDAD BIGINT,
     IN P_FECHA_INICIO DATE,
     IN P_FECHA_FIN DATE,
@@ -15055,7 +14789,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_INCAPACIDAD_CREAR`(
+CREATE  PROCEDURE `SP_BBF_INCAPACIDAD_CREAR`(
     IN P_ID_EMPLEADO INT,
     IN P_FECHA_INICIO DATE,
     IN P_FECHA_FIN DATE,
@@ -15154,7 +14888,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_INCAPACIDAD_SEGUIMIENTO_GUARDAR`(
+CREATE  PROCEDURE `SP_BBF_INCAPACIDAD_SEGUIMIENTO_GUARDAR`(
     IN P_ID_NOVEDAD BIGINT,
     IN P_ID_ENTIDAD_RESPONSABLE INT,
     IN P_DIAS_PAGADOS_EMPRESA INT,
@@ -15368,7 +15102,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_INCAPACIDAD_SEGUIMIENTO_OBTENER`(
+CREATE  PROCEDURE `SP_BBF_INCAPACIDAD_SEGUIMIENTO_OBTENER`(
     IN P_ID_NOVEDAD BIGINT
 )
 BEGIN
@@ -15445,7 +15179,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_LOGIN_MARCAR_EXITOSO`(
+CREATE  PROCEDURE `SP_BBF_LOGIN_MARCAR_EXITOSO`(
     IN P_ID_USUARIO INT
 )
 BEGIN
@@ -15473,7 +15207,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_LOGIN_MARCAR_FALLIDO`(
+CREATE  PROCEDURE `SP_BBF_LOGIN_MARCAR_FALLIDO`(
     IN P_ID_USUARIO INT
 )
 BEGIN
@@ -15513,7 +15247,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_LOGIN_OBTENER_USUARIO`(
+CREATE  PROCEDURE `SP_BBF_LOGIN_OBTENER_USUARIO`(
     IN P_USUARIO_O_CORREO VARCHAR(150)
 )
 BEGIN
@@ -15555,7 +15289,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_LOG_AUDITORIA_CREAR`(
+CREATE  PROCEDURE `SP_BBF_LOG_AUDITORIA_CREAR`(
     IN P_ID_USUARIO INT,
     IN P_MODULO VARCHAR(100),
     IN P_ACCION VARCHAR(100),
@@ -15607,7 +15341,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_LOG_AUDITORIA_LISTAR`(
+CREATE  PROCEDURE `SP_BBF_LOG_AUDITORIA_LISTAR`(
     IN P_FECHA_INICIO DATETIME,
     IN P_FECHA_FIN DATETIME,
     IN P_ID_USUARIO INT,
@@ -15652,7 +15386,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_LOG_AUDITORIA_OBTENER_POR_ID`(
+CREATE  PROCEDURE `SP_BBF_LOG_AUDITORIA_OBTENER_POR_ID`(
     IN P_ID_LOG BIGINT
 )
 BEGIN
@@ -15689,7 +15423,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_MUNICIPIOS_LISTAR_POR_DEPARTAMENTO`(
+CREATE  PROCEDURE `SP_BBF_MUNICIPIOS_LISTAR_POR_DEPARTAMENTO`(
     IN P_ID_DEPARTAMENTO INT
 )
 BEGIN
@@ -15718,7 +15452,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_NOTIFICACIONES_LISTAR`(
+CREATE  PROCEDURE `SP_BBF_NOTIFICACIONES_LISTAR`(
     IN P_ID_USUARIO INT,
     IN P_SOLO_NO_LEIDAS TINYINT,
     IN P_LIMITE INT
@@ -15755,7 +15489,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_NOTIFICACIONES_RESUMEN`(IN P_ID_USUARIO INT)
+CREATE  PROCEDURE `SP_BBF_NOTIFICACIONES_RESUMEN`(IN P_ID_USUARIO INT)
 BEGIN
     SELECT COUNT(*) AS TOTAL_ACTIVAS,
            SUM(CASE WHEN D.LEIDA=0 THEN 1 ELSE 0 END) AS TOTAL_NO_LEIDAS,
@@ -15783,7 +15517,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_NOTIFICACIONES_SINCRONIZAR`()
+CREATE  PROCEDURE `SP_BBF_NOTIFICACIONES_SINCRONIZAR`()
 BEGIN
     DECLARE V_DIAS_CONTRATO INT DEFAULT 30;
     DECLARE V_DIAS_APELACION INT DEFAULT 5;
@@ -15922,7 +15656,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_NOTIFICACION_ARCHIVAR`(IN P_ID_NOTIFICACION BIGINT,IN P_ID_USUARIO INT)
+CREATE  PROCEDURE `SP_BBF_NOTIFICACION_ARCHIVAR`(IN P_ID_NOTIFICACION BIGINT,IN P_ID_USUARIO INT)
 BEGIN
     IF NOT EXISTS (SELECT 1 FROM bbf_notificacion_destinatarios WHERE ID_NOTIFICACION=P_ID_NOTIFICACION AND ID_USUARIO=P_ID_USUARIO) THEN
         SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='Notificacion no encontrada para el usuario.';
@@ -15945,7 +15679,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_NOTIFICACION_CREAR_MANUAL`(
+CREATE  PROCEDURE `SP_BBF_NOTIFICACION_CREAR_MANUAL`(
     IN P_CODIGO_TIPO VARCHAR(80),IN P_ID_EMPLEADO INT,IN P_ID_USUARIO_DESTINO INT,
     IN P_TITULO VARCHAR(220),IN P_MENSAJE VARCHAR(1000),IN P_PRIORIDAD VARCHAR(20),
     IN P_FECHA_EVENTO DATE,IN P_FECHA_VENCIMIENTO DATE,IN P_URL_ACCION VARCHAR(500),IN P_ID_CREADO_POR INT
@@ -15993,7 +15727,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_NOTIFICACION_MARCAR_LEIDA`(IN P_ID_NOTIFICACION BIGINT,IN P_ID_USUARIO INT,IN P_LEIDA TINYINT)
+CREATE  PROCEDURE `SP_BBF_NOTIFICACION_MARCAR_LEIDA`(IN P_ID_NOTIFICACION BIGINT,IN P_ID_USUARIO INT,IN P_LEIDA TINYINT)
 BEGIN
     IF NOT EXISTS (SELECT 1 FROM bbf_notificacion_destinatarios WHERE ID_NOTIFICACION=P_ID_NOTIFICACION AND ID_USUARIO=P_ID_USUARIO) THEN
         SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='Notificacion no encontrada para el usuario.';
@@ -16018,7 +15752,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_NOTIFICACION_RESOLVER`(IN P_ID_NOTIFICACION BIGINT,IN P_ID_USUARIO INT)
+CREATE  PROCEDURE `SP_BBF_NOTIFICACION_RESOLVER`(IN P_ID_NOTIFICACION BIGINT,IN P_ID_USUARIO INT)
 BEGIN
     IF NOT EXISTS (
         SELECT 1 FROM bbf_notificacion_destinatarios D
@@ -16046,7 +15780,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_NOVEDADES_LISTAR`(
+CREATE  PROCEDURE `SP_BBF_NOVEDADES_LISTAR`(
     IN P_ID_EMPLEADO INT,
     IN P_CODIGO_TIPO VARCHAR(50),
     IN P_ESTADO VARCHAR(30),
@@ -16100,7 +15834,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_NOVEDADES_TIPOS_LISTAR`(IN P_INCLUIR_INACTIVOS TINYINT)
+CREATE  PROCEDURE `SP_BBF_NOVEDADES_TIPOS_LISTAR`(IN P_INCLUIR_INACTIVOS TINYINT)
 BEGIN
     SELECT ID_TIPO_NOVEDAD, CODIGO, NOMBRE, DESCRIPCION,
            REQUIERE_FECHA_FIN, REQUIERE_SOPORTE, ES_INCAPACIDAD, ACTIVO
@@ -16123,7 +15857,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_NOVEDAD_ACTUALIZAR`(
+CREATE  PROCEDURE `SP_BBF_NOVEDAD_ACTUALIZAR`(
     IN P_ID_NOVEDAD BIGINT,
     IN P_FECHA_INICIO DATE,
     IN P_FECHA_FIN DATE,
@@ -16189,7 +15923,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_NOVEDAD_CAMBIAR_ESTADO`(
+CREATE  PROCEDURE `SP_BBF_NOVEDAD_CAMBIAR_ESTADO`(
     IN P_ID_NOVEDAD BIGINT,
     IN P_NUEVO_ESTADO VARCHAR(30),
     IN P_OBSERVACION VARCHAR(500),
@@ -16251,7 +15985,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_NOVEDAD_CREAR`(
+CREATE  PROCEDURE `SP_BBF_NOVEDAD_CREAR`(
     IN P_ID_EMPLEADO INT,
     IN P_CODIGO_TIPO VARCHAR(50),
     IN P_FECHA_INICIO DATE,
@@ -16323,7 +16057,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_NOVEDAD_EVIDENCIAS_LISTAR`(IN P_ID_NOVEDAD BIGINT)
+CREATE  PROCEDURE `SP_BBF_NOVEDAD_EVIDENCIAS_LISTAR`(IN P_ID_NOVEDAD BIGINT)
 BEGIN
     SELECT ID_NOVEDAD_EVIDENCIA,ID_NOVEDAD,TIPO_EVIDENCIA,NOMBRE_ARCHIVO,NOMBRE_ORIGINAL,
            ARCHIVO_URL,ARCHIVO_RUTA,MIME_TYPE,PESO_BYTES,OBSERVACIONES,ID_CARGADO_POR,CREATED_AT
@@ -16346,7 +16080,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_NOVEDAD_EVIDENCIA_AGREGAR`(
+CREATE  PROCEDURE `SP_BBF_NOVEDAD_EVIDENCIA_AGREGAR`(
     IN P_ID_NOVEDAD BIGINT,
     IN P_TIPO_EVIDENCIA VARCHAR(30),
     IN P_NOMBRE_ARCHIVO VARCHAR(255),
@@ -16407,7 +16141,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_NOVEDAD_HISTORIAL_LISTAR`(IN P_ID_NOVEDAD BIGINT)
+CREATE  PROCEDURE `SP_BBF_NOVEDAD_HISTORIAL_LISTAR`(IN P_ID_NOVEDAD BIGINT)
 BEGIN
     SELECT H.*,U.NOMBRE_USUARIO
     FROM bbf_novedad_historial H
@@ -16430,7 +16164,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_NOVEDAD_OBTENER`(IN P_ID_NOVEDAD BIGINT)
+CREATE  PROCEDURE `SP_BBF_NOVEDAD_OBTENER`(IN P_ID_NOVEDAD BIGINT)
 BEGIN
     IF NOT EXISTS (SELECT 1 FROM bbf_novedades_empleado WHERE ID_NOVEDAD = P_ID_NOVEDAD) THEN
         SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'La novedad no existe.';
@@ -16476,7 +16210,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_PARAMETROS_LISTAR`(
+CREATE  PROCEDURE `SP_BBF_PARAMETROS_LISTAR`(
     IN P_GRUPO VARCHAR(100),
     IN P_CODIGO VARCHAR(100),
     IN P_INCLUIR_INACTIVOS TINYINT
@@ -16543,7 +16277,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_PARAMETRO_VIGENTE_OBTENER`(
+CREATE  PROCEDURE `SP_BBF_PARAMETRO_VIGENTE_OBTENER`(
     IN P_CODIGO VARCHAR(100),
     IN P_FECHA DATE
 )
@@ -16599,7 +16333,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_PARAM_AREAS_GUARDAR`(
+CREATE  PROCEDURE `SP_BBF_PARAM_AREAS_GUARDAR`(
     IN P_ID_AREA INT,
     IN P_NOMBRE VARCHAR(150),
     IN P_DESCRIPCION TEXT,
@@ -16700,7 +16434,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_PARAM_AREAS_LISTAR`(
+CREATE  PROCEDURE `SP_BBF_PARAM_AREAS_LISTAR`(
     IN P_INCLUIR_INACTIVOS TINYINT
 )
 BEGIN
@@ -16734,7 +16468,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_PARAM_CARGOS_GUARDAR`(
+CREATE  PROCEDURE `SP_BBF_PARAM_CARGOS_GUARDAR`(
     IN P_ID_CARGO INT,
     IN P_NOMBRE VARCHAR(150),
     IN P_DESCRIPCION TEXT,
@@ -16835,7 +16569,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_PARAM_CARGOS_LISTAR`(
+CREATE  PROCEDURE `SP_BBF_PARAM_CARGOS_LISTAR`(
     IN P_INCLUIR_INACTIVOS TINYINT
 )
 BEGIN
@@ -16869,7 +16603,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_PARAM_DEPARTAMENTOS_LISTAR`(IN P_INCLUIR_INACTIVOS TINYINT)
+CREATE  PROCEDURE `SP_BBF_PARAM_DEPARTAMENTOS_LISTAR`(IN P_INCLUIR_INACTIVOS TINYINT)
 BEGIN
     SELECT D.ID_DEPARTAMENTO, D.CODIGO_DANE, D.NOMBRE, D.ACTIVO,
            COUNT(M.ID_MUNICIPIO) TOTAL_MUNICIPIOS,
@@ -16895,7 +16629,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_PARAM_DEPARTAMENTO_GUARDAR`(
+CREATE  PROCEDURE `SP_BBF_PARAM_DEPARTAMENTO_GUARDAR`(
  IN P_ID_DEPARTAMENTO INT, IN P_CODIGO_DANE VARCHAR(2), IN P_NOMBRE VARCHAR(150), IN P_ACTIVO TINYINT)
 BEGIN
     SET P_CODIGO_DANE = TRIM(P_CODIGO_DANE); SET P_NOMBRE = TRIM(P_NOMBRE);
@@ -16927,7 +16661,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_PARAM_DOCUMENTOS_LABORALES_LISTAR`(
+CREATE  PROCEDURE `SP_BBF_PARAM_DOCUMENTOS_LABORALES_LISTAR`(
     IN P_INCLUIR_INACTIVOS TINYINT
 )
 BEGIN
@@ -16968,7 +16702,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_PARAM_DOCUMENTO_LABORAL_GUARDAR`(
+CREATE  PROCEDURE `SP_BBF_PARAM_DOCUMENTO_LABORAL_GUARDAR`(
     IN P_ID_TIPO_DOCUMENTO_LABORAL INT,
     IN P_NOMBRE VARCHAR(150),
     IN P_DESCRIPCION VARCHAR(500),
@@ -17115,7 +16849,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_PARAM_DOTACION_ARTICULOS_LISTAR`(
+CREATE  PROCEDURE `SP_BBF_PARAM_DOTACION_ARTICULOS_LISTAR`(
     IN P_INCLUIR_INACTIVOS TINYINT
 )
 BEGIN
@@ -17167,7 +16901,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_PARAM_DOTACION_ARTICULO_GUARDAR`(
+CREATE  PROCEDURE `SP_BBF_PARAM_DOTACION_ARTICULO_GUARDAR`(
     IN P_ID_DOTACION_ARTICULO INT,
     IN P_CODIGO VARCHAR(50),
     IN P_ID_TIPO_DOTACION INT,
@@ -17403,7 +17137,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_PARAM_MUNICIPIOS_LISTAR`(IN P_ID_DEPARTAMENTO INT, IN P_INCLUIR_INACTIVOS TINYINT)
+CREATE  PROCEDURE `SP_BBF_PARAM_MUNICIPIOS_LISTAR`(IN P_ID_DEPARTAMENTO INT, IN P_INCLUIR_INACTIVOS TINYINT)
 BEGIN
  SELECT M.ID_MUNICIPIO,M.ID_DEPARTAMENTO,D.CODIGO_DANE CODIGO_DEPARTAMENTO,D.NOMBRE DEPARTAMENTO,M.CODIGO_DANE,M.NOMBRE,M.ACTIVO
  FROM bbf_municipios M INNER JOIN bbf_departamentos D ON D.ID_DEPARTAMENTO=M.ID_DEPARTAMENTO
@@ -17426,7 +17160,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_PARAM_MUNICIPIO_GUARDAR`(
+CREATE  PROCEDURE `SP_BBF_PARAM_MUNICIPIO_GUARDAR`(
  IN P_ID_MUNICIPIO INT, IN P_ID_DEPARTAMENTO INT, IN P_CODIGO_DANE VARCHAR(5), IN P_NOMBRE VARCHAR(150), IN P_ACTIVO TINYINT)
 BEGIN
  DECLARE V_CODIGO_DEP VARCHAR(2);
@@ -17460,7 +17194,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_PARAM_SEGURIDAD_SOCIAL_GUARDAR`(
+CREATE  PROCEDURE `SP_BBF_PARAM_SEGURIDAD_SOCIAL_GUARDAR`(
     IN P_ID_ENTIDAD INT,
     IN P_TIPO_ENTIDAD VARCHAR(30),
     IN P_NOMBRE VARCHAR(150),
@@ -17593,7 +17327,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_PARAM_SEGURIDAD_SOCIAL_LISTAR`(
+CREATE  PROCEDURE `SP_BBF_PARAM_SEGURIDAD_SOCIAL_LISTAR`(
     IN P_TIPO_ENTIDAD VARCHAR(30),
     IN P_INCLUIR_INACTIVOS TINYINT
 )
@@ -17663,7 +17397,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_PARAM_SISTEMA_GUARDAR`(
+CREATE  PROCEDURE `SP_BBF_PARAM_SISTEMA_GUARDAR`(
     IN P_ID_PARAMETRO INT,
     IN P_CODIGO VARCHAR(100),
     IN P_NOMBRE VARCHAR(150),
@@ -17906,7 +17640,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_PARAM_TIPOS_CONTRATO_GUARDAR`(
+CREATE  PROCEDURE `SP_BBF_PARAM_TIPOS_CONTRATO_GUARDAR`(
     IN P_ID_TIPO_CONTRATO INT,
     IN P_NOMBRE VARCHAR(150),
     IN P_DESCRIPCION TEXT,
@@ -18014,7 +17748,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_PARAM_TIPOS_CONTRATO_LISTAR`(
+CREATE  PROCEDURE `SP_BBF_PARAM_TIPOS_CONTRATO_LISTAR`(
     IN P_INCLUIR_INACTIVOS TINYINT
 )
 BEGIN
@@ -18048,7 +17782,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_PARAM_TIPOS_DOCUMENTO_GUARDAR`(
+CREATE  PROCEDURE `SP_BBF_PARAM_TIPOS_DOCUMENTO_GUARDAR`(
     IN P_ID_TIPO_DOCUMENTO INT,
     IN P_NOMBRE VARCHAR(80),
     IN P_ACTIVO TINYINT
@@ -18151,7 +17885,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_PARAM_TIPOS_DOCUMENTO_LISTAR`(
+CREATE  PROCEDURE `SP_BBF_PARAM_TIPOS_DOCUMENTO_LISTAR`(
     IN P_INCLUIR_INACTIVOS TINYINT
 )
 BEGIN
@@ -18184,7 +17918,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_PARAM_TIPOS_EXAMEN_LISTAR`(
+CREATE  PROCEDURE `SP_BBF_PARAM_TIPOS_EXAMEN_LISTAR`(
     IN P_INCLUIR_INACTIVOS TINYINT
 )
 BEGIN
@@ -18218,7 +17952,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_PARAM_TIPOS_NOVEDAD_LISTAR`(IN P_INCLUIR_INACTIVOS TINYINT)
+CREATE  PROCEDURE `SP_BBF_PARAM_TIPOS_NOVEDAD_LISTAR`(IN P_INCLUIR_INACTIVOS TINYINT)
 BEGIN
     SELECT
         TN.ID_TIPO_NOVEDAD,
@@ -18258,7 +17992,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_PARAM_TIPO_EXAMEN_GUARDAR`(
+CREATE  PROCEDURE `SP_BBF_PARAM_TIPO_EXAMEN_GUARDAR`(
     IN P_ID_TIPO_EXAMEN INT,
     IN P_NOMBRE VARCHAR(120),
     IN P_DESCRIPCION VARCHAR(500),
@@ -18355,7 +18089,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_PARAM_TIPO_NOVEDAD_GUARDAR`(
+CREATE  PROCEDURE `SP_BBF_PARAM_TIPO_NOVEDAD_GUARDAR`(
     IN P_ID_TIPO_NOVEDAD INT,
     IN P_CODIGO VARCHAR(50),
     IN P_NOMBRE VARCHAR(150),
@@ -18466,7 +18200,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_PASSWORD_RESET_CREAR`(
+CREATE  PROCEDURE `SP_BBF_PASSWORD_RESET_CREAR`(
     IN P_ID_USUARIO INT,
     IN P_TOKEN_HASH VARCHAR(255),
     IN P_FECHA_EXPIRACION DATETIME,
@@ -18513,7 +18247,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_PASSWORD_RESET_MARCAR_USADO`(
+CREATE  PROCEDURE `SP_BBF_PASSWORD_RESET_MARCAR_USADO`(
     IN P_ID_RESET BIGINT
 )
 BEGIN
@@ -18541,7 +18275,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_PASSWORD_RESET_OBTENER`(
+CREATE  PROCEDURE `SP_BBF_PASSWORD_RESET_OBTENER`(
     IN P_TOKEN_HASH VARCHAR(255)
 )
 BEGIN
@@ -18576,7 +18310,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_PERMISOS_LISTAR`(
+CREATE  PROCEDURE `SP_BBF_PERMISOS_LISTAR`(
     IN P_SOLO_ACTIVOS TINYINT,
     IN P_MODULO VARCHAR(100)
 )
@@ -18611,7 +18345,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_RETIROS_ACTIVIDAD_ACTUALIZAR`(IN P_ID_RETIRO INT,IN P_CODIGO_ACTIVIDAD VARCHAR(60),IN P_ESTADO VARCHAR(20),IN P_OBSERVACIONES VARCHAR(1000),IN P_ID_USUARIO INT)
+CREATE  PROCEDURE `SP_BBF_RETIROS_ACTIVIDAD_ACTUALIZAR`(IN P_ID_RETIRO INT,IN P_CODIGO_ACTIVIDAD VARCHAR(60),IN P_ESTADO VARCHAR(20),IN P_OBSERVACIONES VARCHAR(1000),IN P_ID_USUARIO INT)
 BEGIN
     DECLARE V_REQUIERE_DOCUMENTO TINYINT DEFAULT 0;
     DECLARE V_CANTIDAD_DOCUMENTOS INT DEFAULT 0;
@@ -18656,7 +18390,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_RETIROS_CANCELAR`(IN P_ID_RETIRO INT,IN P_ID_USUARIO INT,IN P_MOTIVO VARCHAR(500))
+CREATE  PROCEDURE `SP_BBF_RETIROS_CANCELAR`(IN P_ID_RETIRO INT,IN P_ID_USUARIO INT,IN P_MOTIVO VARCHAR(500))
 BEGIN
     DECLARE V_ID_EMPLEADO INT;
     SELECT ID_EMPLEADO INTO V_ID_EMPLEADO FROM bbf_retiros_empleado WHERE ID_RETIRO=P_ID_RETIRO AND ESTADO IN('BORRADOR','EN_PROCESO') LIMIT 1;
@@ -18683,7 +18417,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_RETIROS_CREAR`(
+CREATE  PROCEDURE `SP_BBF_RETIROS_CREAR`(
     IN P_ID_EMPLEADO INT, IN P_ID_EMPLEADO_CONTRATO INT, IN P_ID_MOTIVO_RETIRO INT,
     IN P_FECHA_INICIO_PROCESO DATE, IN P_FECHA_RETIRO DATE, IN P_DETALLE_MOTIVO VARCHAR(1000),
     IN P_OBSERVACIONES TEXT, IN P_ID_USUARIO INT
@@ -18735,7 +18469,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_RETIROS_ENTREVISTA_GUARDAR`(
+CREATE  PROCEDURE `SP_BBF_RETIROS_ENTREVISTA_GUARDAR`(
  IN P_ID_RETIRO INT,IN P_FECHA_ENTREVISTA DATE,IN P_ID_ENTREVISTADOR INT,IN P_MOTIVO_EXPRESADO TEXT,
  IN P_ASPECTOS_POSITIVOS TEXT,IN P_ASPECTOS_POR_MEJORAR TEXT,IN P_AMBIENTE_LABORAL TEXT,
  IN P_RELACION_LIDERAZGO TEXT,IN P_REMUNERACION_BENEFICIOS TEXT,IN P_RECOMENDARIA_EMPRESA TINYINT,
@@ -18763,7 +18497,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_RETIROS_FINALIZAR`(IN P_ID_RETIRO INT,IN P_ID_USUARIO INT,IN P_OBSERVACIONES TEXT)
+CREATE  PROCEDURE `SP_BBF_RETIROS_FINALIZAR`(IN P_ID_RETIRO INT,IN P_ID_USUARIO INT,IN P_OBSERVACIONES TEXT)
 BEGIN
     DECLARE V_ID_EMPLEADO INT; DECLARE V_ID_CONTRATO INT; DECLARE V_FECHA_RETIRO DATE; DECLARE V_PENDIENTES INT DEFAULT 0; DECLARE V_DOCS_INCOMPLETOS INT DEFAULT 0;
     SELECT ID_EMPLEADO,ID_EMPLEADO_CONTRATO,FECHA_RETIRO INTO V_ID_EMPLEADO,V_ID_CONTRATO,V_FECHA_RETIRO FROM bbf_retiros_empleado WHERE ID_RETIRO=P_ID_RETIRO AND ESTADO IN('BORRADOR','EN_PROCESO') LIMIT 1;
@@ -18800,7 +18534,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_RETIROS_LISTAR`(IN P_ID_EMPLEADO INT, IN P_ESTADO VARCHAR(20), IN P_FECHA_DESDE DATE, IN P_FECHA_HASTA DATE)
+CREATE  PROCEDURE `SP_BBF_RETIROS_LISTAR`(IN P_ID_EMPLEADO INT, IN P_ESTADO VARCHAR(20), IN P_FECHA_DESDE DATE, IN P_FECHA_HASTA DATE)
 BEGIN
     SELECT R.ID_RETIRO,R.ID_EMPLEADO,E.NUMERO_DOCUMENTO,CONCAT_WS(' ',E.NOMBRES,E.APELLIDOS) EMPLEADO,
            R.ID_EMPLEADO_CONTRATO,R.ID_MOTIVO_RETIRO,M.CODIGO CODIGO_MOTIVO,M.NOMBRE MOTIVO_RETIRO,
@@ -18832,7 +18566,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_RETIROS_MOTIVOS_LISTAR`(IN P_INCLUIR_INACTIVOS TINYINT)
+CREATE  PROCEDURE `SP_BBF_RETIROS_MOTIVOS_LISTAR`(IN P_INCLUIR_INACTIVOS TINYINT)
 BEGIN
     SELECT ID_MOTIVO_RETIRO,CODIGO,NOMBRE,DESCRIPCION,REQUIERE_RENUNCIA,ACTIVO,ORDEN
     FROM bbf_motivos_retiro
@@ -18854,7 +18588,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_RETIROS_OBTENER`(IN P_ID_RETIRO INT)
+CREATE  PROCEDURE `SP_BBF_RETIROS_OBTENER`(IN P_ID_RETIRO INT)
 BEGIN
     SELECT R.*,M.CODIGO CODIGO_MOTIVO,M.NOMBRE MOTIVO_RETIRO,M.REQUIERE_RENUNCIA,
            E.NUMERO_DOCUMENTO,CONCAT_WS(' ',E.NOMBRES,E.APELLIDOS) EMPLEADO,E.CORREO,E.TELEFONO,
@@ -18890,7 +18624,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_ROLES_CAMBIAR_ESTADO`(
+CREATE  PROCEDURE `SP_BBF_ROLES_CAMBIAR_ESTADO`(
     IN P_ID_ROL INT,
     IN P_ACTIVO TINYINT
 )
@@ -18921,7 +18655,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_ROLES_CREAR`(
+CREATE  PROCEDURE `SP_BBF_ROLES_CREAR`(
     IN P_NOMBRE VARCHAR(100),
     IN P_DESCRIPCION TEXT
 )
@@ -18954,7 +18688,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_ROLES_ELIMINAR`(
+CREATE  PROCEDURE `SP_BBF_ROLES_ELIMINAR`(
     IN P_ID_ROL INT
 )
 BEGIN
@@ -18984,7 +18718,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_ROLES_LISTAR`(IN P_SOLO_ACTIVOS TINYINT)
+CREATE  PROCEDURE `SP_BBF_ROLES_LISTAR`(IN P_SOLO_ACTIVOS TINYINT)
 BEGIN SELECT ID_ROL, NOMBRE, DESCRIPCION, ACTIVO, CREATED_AT, UPDATED_AT FROM bbf_roles WHERE ELIMINADO = 0 AND (P_SOLO_ACTIVOS = 0 OR ACTIVO = 1) ORDER BY NOMBRE ASC; END ;;
 DELIMITER ;
 /*!50003 SET sql_mode              = @saved_sql_mode */ ;
@@ -19001,7 +18735,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_ROL_OBTENER_PERMISOS`(
+CREATE  PROCEDURE `SP_BBF_ROL_OBTENER_PERMISOS`(
     IN P_ID_ROL INT
 )
 BEGIN
@@ -19032,7 +18766,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_ROL_PERMISOS_ASIGNAR`(
+CREATE  PROCEDURE `SP_BBF_ROL_PERMISOS_ASIGNAR`(
     IN P_ID_ROL INT,
     IN P_ID_PERMISO INT
 )
@@ -19063,7 +18797,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_ROL_PERMISOS_QUITAR`(
+CREATE  PROCEDURE `SP_BBF_ROL_PERMISOS_QUITAR`(
     IN P_ID_ROL INT,
     IN P_ID_PERMISO INT
 )
@@ -19089,7 +18823,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_TIPOS_CONTRATO_LISTAR`(
+CREATE  PROCEDURE `SP_BBF_TIPOS_CONTRATO_LISTAR`(
     IN P_SOLO_ACTIVOS TINYINT
 )
 BEGIN
@@ -19119,7 +18853,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_TIPOS_DOCUMENTO_LABORAL_LISTAR`(
+CREATE  PROCEDURE `SP_BBF_TIPOS_DOCUMENTO_LABORAL_LISTAR`(
     IN P_SOLO_ACTIVOS TINYINT,
     IN P_APLICA_ASPIRANTE TINYINT,
     IN P_APLICA_CONTRATACION TINYINT,
@@ -19161,7 +18895,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_TIPOS_DOCUMENTO_LISTAR`(IN P_SOLO_ACTIVOS TINYINT)
+CREATE  PROCEDURE `SP_BBF_TIPOS_DOCUMENTO_LISTAR`(IN P_SOLO_ACTIVOS TINYINT)
 BEGIN
     SELECT
         ID_TIPO_DOCUMENTO,
@@ -19189,7 +18923,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_TIPOS_EXAMEN_MEDICO_LISTAR`()
+CREATE  PROCEDURE `SP_BBF_TIPOS_EXAMEN_MEDICO_LISTAR`()
 BEGIN
 
     SELECT
@@ -19217,7 +18951,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_USUARIOS_ACTUALIZAR`(
+CREATE  PROCEDURE `SP_BBF_USUARIOS_ACTUALIZAR`(
     IN P_ID_USUARIO INT,
     IN P_ID_EMPLEADO INT,
     IN P_NOMBRE_USUARIO VARCHAR(100),
@@ -19278,7 +19012,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_USUARIOS_CAMBIAR_ESTADO`(
+CREATE  PROCEDURE `SP_BBF_USUARIOS_CAMBIAR_ESTADO`(
     IN P_ID_USUARIO INT,
     IN P_ESTADO VARCHAR(50)
 )
@@ -19315,7 +19049,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_USUARIOS_CAMBIAR_PASSWORD`(
+CREATE  PROCEDURE `SP_BBF_USUARIOS_CAMBIAR_PASSWORD`(
     IN P_ID_USUARIO INT,
     IN P_PASSWORD_HASH_NUEVO VARCHAR(255),
     IN P_GUARDAR_HISTORIAL TINYINT
@@ -19365,7 +19099,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_USUARIOS_CREAR`(
+CREATE  PROCEDURE `SP_BBF_USUARIOS_CREAR`(
     IN P_ID_EMPLEADO INT,
     IN P_NOMBRE_USUARIO VARCHAR(100),
     IN P_CORREO VARCHAR(150),
@@ -19436,7 +19170,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_USUARIOS_CREAR_POR_DOCUMENTO`(
+CREATE  PROCEDURE `SP_BBF_USUARIOS_CREAR_POR_DOCUMENTO`(
     IN P_NUMERO_DOCUMENTO VARCHAR(50),
     IN P_NOMBRE_USUARIO VARCHAR(100),
     IN P_CORREO VARCHAR(150),
@@ -19519,7 +19253,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_USUARIOS_LISTAR`(
+CREATE  PROCEDURE `SP_BBF_USUARIOS_LISTAR`(
     IN P_ESTADO VARCHAR(50),
     IN P_TIPO_USUARIO VARCHAR(50),
     IN P_TEXTO_BUSQUEDA VARCHAR(150)
@@ -19569,7 +19303,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_USUARIOS_OBTENER_POR_ID`(
+CREATE  PROCEDURE `SP_BBF_USUARIOS_OBTENER_POR_ID`(
     IN P_ID_USUARIO INT
 )
 BEGIN
@@ -19610,7 +19344,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_USUARIO_OBTENER_PERMISOS`(
+CREATE  PROCEDURE `SP_BBF_USUARIO_OBTENER_PERMISOS`(
     IN P_ID_USUARIO INT
 )
 BEGIN
@@ -19644,7 +19378,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_USUARIO_OBTENER_ROLES`(
+CREATE  PROCEDURE `SP_BBF_USUARIO_OBTENER_ROLES`(
     IN P_ID_USUARIO INT
 )
 BEGIN
@@ -19674,7 +19408,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_USUARIO_ROLES_ASIGNAR`(
+CREATE  PROCEDURE `SP_BBF_USUARIO_ROLES_ASIGNAR`(
     IN P_ID_USUARIO INT,
     IN P_ID_ROL INT
 )
@@ -19705,7 +19439,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_USUARIO_ROLES_QUITAR`(
+CREATE  PROCEDURE `SP_BBF_USUARIO_ROLES_QUITAR`(
     IN P_ID_USUARIO INT,
     IN P_ID_ROL INT
 )
@@ -19731,7 +19465,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_USUARIO_SESIONES_CREAR`(
+CREATE  PROCEDURE `SP_BBF_USUARIO_SESIONES_CREAR`(
     IN P_ID_USUARIO INT,
     IN P_REFRESH_TOKEN_HASH VARCHAR(255),
     IN P_IP_ORIGEN VARCHAR(50),
@@ -19773,7 +19507,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_USUARIO_SESIONES_OBTENER_POR_TOKEN`(
+CREATE  PROCEDURE `SP_BBF_USUARIO_SESIONES_OBTENER_POR_TOKEN`(
     IN P_REFRESH_TOKEN_HASH VARCHAR(255)
 )
 BEGIN
@@ -19811,7 +19545,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_USUARIO_SESIONES_REVOCAR`(
+CREATE  PROCEDURE `SP_BBF_USUARIO_SESIONES_REVOCAR`(
     IN P_ID_SESION BIGINT
 )
 BEGIN
@@ -19839,7 +19573,7 @@ DELIMITER ;
 /*!50003 SET @saved_sql_mode       = @@sql_mode */ ;
 /*!50003 SET sql_mode              = 'NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION' */ ;
 DELIMITER ;;
-CREATE DEFINER=`UserBD`@`%` PROCEDURE `SP_BBF_USUARIO_SESIONES_REVOCAR_TODAS`(
+CREATE  PROCEDURE `SP_BBF_USUARIO_SESIONES_REVOCAR_TODAS`(
     IN P_ID_USUARIO INT
 )
 BEGIN
@@ -19867,4 +19601,4 @@ DELIMITER ;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-10-22 15:53:52
+-- Dump completed on 2026-10-22 16:19:30

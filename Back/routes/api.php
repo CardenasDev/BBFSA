@@ -18,6 +18,7 @@ use App\Http\Controllers\Api\RetirementController;
 use App\Http\Controllers\Api\RoleController;
 use App\Http\Controllers\Api\ToolController;
 use App\Http\Controllers\Api\TrainingController;
+use App\Http\Controllers\Api\KpiController;
 use App\Http\Controllers\Api\UserController;
 use Illuminate\Support\Facades\Route;
 
@@ -119,6 +120,13 @@ Route::middleware('auth.jwt')->group(function (): void {
     Route::patch('employees/{id}', [EmployeeController::class, 'update'])->whereNumber('id')->middleware('permission:EMPLEADOS_EDITAR');
     Route::patch('employees/{id}/estado', [EmployeeController::class, 'changeStatus'])->whereNumber('id')->middleware('permission:EMPLEADOS_CAMBIAR_ESTADO');
     Route::delete('employees/{id}', [EmployeeController::class, 'destroy'])->whereNumber('id')->middleware('permission:EMPLEADOS_ELIMINAR');
+
+    // KPI Empleados
+    Route::prefix('kpi')->middleware('permission:EMPLEADOS_KPI_VER')->group(function (): void {
+        Route::get('rotation-demographics', [KpiController::class, 'rotationAndDemographics']);
+        Route::get('export', [KpiController::class, 'export'])->middleware('permission:EMPLEADOS_KPI_EXPORTAR');
+    });
+
     Route::get('users', [UserController::class, 'index'])->middleware('permission:USUARIOS_LISTAR');
     Route::get('users/{id}', [UserController::class, 'show'])->whereNumber('id')->middleware('permission:USUARIOS_VER');
     Route::post('users', [UserController::class, 'store'])->middleware('permission:USUARIOS_CREAR');

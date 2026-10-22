@@ -106,7 +106,12 @@ export class AdminLayoutComponent {
   private readonly items: MenuItem[] = [
     { label: 'Dashboard', icon: '⌂', route: '/admin/dashboard', permissions: ['DASHBOARD_VER'] },
     { label: 'Aspirantes', icon: 'A', route: '/admin/applicants', permissions: ['ASPIRANTES_VER'] },
-    { label: 'Empleados', icon: 'E', route: '/admin/employees', permissions: ['EMPLEADOS_VER'] },
+    { label: 'Empleados', icon: 'E', route: '/admin/employees', menuKey: 'employees', permissions: ['EMPLEADOS_VER'],
+      children: [
+        { label: 'Listado', icon: 'L', route: '/admin/employees', permissions: ['EMPLEADOS_LISTAR', 'EMPLEADOS_VER'] },
+        { label: 'KPI', icon: 'K', route: '/admin/employees/kpi', permissions: ['EMPLEADOS_KPI_VER'] },
+      ],
+    },
     {
       label: 'Carga masiva',
       icon: 'CM',
@@ -196,7 +201,8 @@ export class AdminLayoutComponent {
       icon: 'R',
       route: '/admin/retirements',
       permissions: ['RETIROS_VER'],
-    },    {
+    },
+    {
       label: 'Notificaciones',
       icon: 'N',
       route: '/admin/notifications',
@@ -358,6 +364,11 @@ export class AdminLayoutComponent {
 
     if (path.startsWith('/admin/trainings')) {
       this.openMenu.set('trainings');
+      return;
+    }
+
+    if (path === '/admin/employees' || path.startsWith('/admin/employees/')) {
+      this.openMenu.set('employees');
       return;
     }
 

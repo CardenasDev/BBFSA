@@ -111,6 +111,13 @@ export const routes: Routes = [
           import('./features/employees/employees.component').then((m) => m.EmployeesComponent),
       },
       {
+        path: 'employees/kpi',
+        canActivate: [permissionGuard],
+        data: { permissions: ['EMPLEADOS_KPI_VER'] },
+        loadComponent: () =>
+          import('./features/employees/kpi/kpi.component').then((m) => m.KpiComponent),
+      },
+      {
         path: 'bulk-load',
         canActivate: [permissionGuard],
         data: { permissions: ['EMPLEADOS_VER', 'EMPLEADOS_CREAR'] },

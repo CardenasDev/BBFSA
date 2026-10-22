@@ -141,6 +141,7 @@ class ContractingRepository extends StoredProcedureRepository
             $data['periodo_pago'] ?? null,
             $data['lugar_labores'] ?? null,
             $data['numero_contrato'] ?? null,
+            null, // P_TIPO_CARGO_CONTRATO - ocultado en UI, se guarda NULL
             $data['objeto_obra_labor'] ?? null,
             $data['prorroga_dias'] ?? null,
             $data['clausula_funciones'] ?? null,

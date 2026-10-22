@@ -195,7 +195,7 @@ class ContractingRepositoryTest extends TestCase
     public function test_create_contract_calls_stored_procedure_with_real_parameter_order(): void
     {
         DB::shouldReceive('select')->once()
-            ->with('CALL SP_BBF_CONTRATACION_CONTRATO_CREAR(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', [
+            ->with('CALL SP_BBF_CONTRATACION_CONTRATO_CREAR(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', [
                 5,
                 1,
                 9,
@@ -209,6 +209,7 @@ class ContractingRepositoryTest extends TestCase
                 'Quincenal',
                 'Finca principal',
                 'CT-2026-001',
+                NULL,
                 'Corte y empaque de flores',
                 30,
                 'Cumplir las funciones asignadas al cargo.',
@@ -261,7 +262,7 @@ class ContractingRepositoryTest extends TestCase
     public function test_create_contract_accepts_null_new_fields_and_preserves_parameter_order(): void
     {
         DB::shouldReceive('select')->once()
-            ->with('CALL SP_BBF_CONTRATACION_CONTRATO_CREAR(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', [
+            ->with('CALL SP_BBF_CONTRATACION_CONTRATO_CREAR(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', [
                 5,
                 null,
                 null,
@@ -279,6 +280,7 @@ class ContractingRepositoryTest extends TestCase
                 null,
                 null,
                 null,
+                NULL,
                 null,
                 null,
                 null,

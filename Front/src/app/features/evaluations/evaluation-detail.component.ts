@@ -230,7 +230,7 @@ export class EvaluationDetailComponent {
   setCell(employeeId: number, laborId: number, value: any, max: number): void {
     const key = `${employeeId}-${laborId}`;
     const numeric = value === '' || value == null ? null : Number(value);
-    if (numeric != null && (numeric < 0 || numeric > max)) return;
+    if (numeric != null && numeric < 0) return;
     this.values.update((current) => ({ ...current, [key]: numeric }));
     this.touched.add(key);
   }

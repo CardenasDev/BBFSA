@@ -39,7 +39,7 @@ CREATE TABLE `bbf_evaluacion_labores` (
   `CODIGO` varchar(50) NOT NULL,
   `NOMBRE` varchar(150) NOT NULL,
   `DESCRIPCION` varchar(500) DEFAULT NULL,
-  `PONDERACION_MAXIMA_DEFAULT` decimal(10,2) NOT NULL DEFAULT 50.00,
+  `PONDERACION_MAXIMA_DEFAULT` decimal(10,2) NOT NULL DEFAULT 1000.00,
   `ORDEN` int(11) NOT NULL DEFAULT 0,
   `ACTIVO` tinyint(1) NOT NULL DEFAULT 1,
   `CREATED_AT` datetime NOT NULL DEFAULT current_timestamp(),
@@ -168,16 +168,16 @@ GROUP BY `ee`.`ID_EVALUACION`, `ee`.`ID_EVALUACION_EMPLEADO`, `ee`.`ID_EMPLEADO`
 -- 7. SEED: CATALOGO DE LABORES AGRICOLAS
 -- ============================================================
 INSERT INTO `bbf_evaluacion_labores` (`CODIGO`,`NOMBRE`,`DESCRIPCION`,`PONDERACION_MAXIMA_DEFAULT`,`ORDEN`,`ACTIVO`) VALUES
-('DESBOTONE','Desbotone','Labor de desbotone',50.00,1,1),
-('GUIADA_TALLOS','Guiada de Tallos','Labor de guiada de tallos',50.00,2,1),
-('PROGRAMACIONES','Programaciones','Labor de programaciones',50.00,3,1),
-('PINCH_BASALES','Pinch Basales','Labor de pinch basales',50.00,4,1),
-('DESCHUPONE','Deschupone','Labor de deschupone',50.00,5,1),
-('DESHIERBE','Deshierbe','Labor de deshierbe',50.00,6,1),
-('PALO_SECO','Palo Seco','Labor de palo seco',50.00,7,1),
-('BARRIDA','Barrida','Labor de barrida',50.00,8,1),
-('ENMALLE','Enmalle','Labor de enmalle',50.00,9,1),
-('REPORTE_FITO','Reporte Fito','Reporte fitosanitario',50.00,10,1);
+('DESBOTONE','Desbotone','Labor de desbotone',1000.00,1,1),
+('GUIADA_TALLOS','Guiada de Tallos','Labor de guiada de tallos',1000.00,2,1),
+('PROGRAMACIONES','Programaciones','Labor de programaciones',1000.00,3,1),
+('PINCH_BASALES','Pinch Basales','Labor de pinch basales',1000.00,4,1),
+('DESCHUPONE','Deschupone','Labor de deschupone',1000.00,5,1),
+('DESHIERBE','Deshierbe','Labor de deshierbe',1000.00,6,1),
+('PALO_SECO','Palo Seco','Labor de palo seco',1000.00,7,1),
+('BARRIDA','Barrida','Labor de barrida',1000.00,8,1),
+('ENMALLE','Enmalle','Labor de enmalle',1000.00,9,1),
+('REPORTE_FITO','Reporte Fito','Reporte fitosanitario',1000.00,10,1);
 
 -- ============================================================
 -- 8. PROCEDIMIENTOS ALMACENADOS

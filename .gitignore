@@ -185,6 +185,15 @@ temp/
 .agents/
 _bmad/
 
+# ------------------------------------------------------------
+# BMAD Output / Planning Artifacts (generated, local only)
+#
+# Artefactos de planificacion y trabajo generados por BMAD.
+# No forman parte del codigo fuente y se excluyen de revisiones,
+# commits y comparaciones. Los archivos ya versionados permanecen
+# trackeados, pero los nuevos se ignoran.
+# ------------------------------------------------------------
+_bmad-output/
 
 # ------------------------------------------------------------
 # Temporary PDF Review / Rendering

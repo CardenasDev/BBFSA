@@ -242,6 +242,12 @@ export class AdminLayoutComponent {
       ],
     },
     {
+      label: 'Evaluaciones',
+      icon: 'EV',
+      route: '/admin/evaluations',
+      permissions: ['EVALUACIONES_VER', 'EVALUACIONES_CREAR', 'EVALUACIONES_EDITAR'],
+    },
+    {
       label: 'Contratacion',
       icon: 'C',
       route: '/admin/contracting',

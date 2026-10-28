@@ -349,6 +349,33 @@ export const routes: Routes = [
           ),
       },
       {
+        path: 'evaluations',
+        canActivate: [permissionGuard],
+        data: { permissions: ['EVALUACIONES_VER'] },
+        loadComponent: () =>
+          import('./features/evaluations/evaluation-list.component').then(
+            (m) => m.EvaluationListComponent,
+          ),
+      },
+      {
+        path: 'evaluations/:id',
+        canActivate: [permissionGuard],
+        data: { permissions: ['EVALUACIONES_VER'] },
+        loadComponent: () =>
+          import('./features/evaluations/evaluation-detail.component').then(
+            (m) => m.EvaluationDetailComponent,
+          ),
+      },
+      {
+        path: 'evaluations/:id/management-panel',
+        canActivate: [permissionGuard],
+        data: { permissions: ['EVALUACIONES_VER'] },
+        loadComponent: () =>
+          import('./features/evaluations/evaluation-management-panel.component').then(
+            (m) => m.EvaluationManagementPanelComponent,
+          ),
+      },
+      {
         path: 'trainings/my-records',
         canActivate: [permissionGuard],
         data: { permissions: ['CAPACITACIONES_MIS_REGISTROS_VER'] },

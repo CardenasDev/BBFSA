@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\CertificateController;
 use App\Http\Controllers\Api\ContractingController;
 use App\Http\Controllers\Api\DomainController;
 use App\Http\Controllers\Api\DotationController;
+use App\Http\Controllers\Api\EvaluationController;
 use App\Http\Controllers\Api\EmployeeController;
 use App\Http\Controllers\Api\HealthController;
 use App\Http\Controllers\Api\MyToolDeliveryController;
@@ -219,6 +220,17 @@ Route::middleware('auth.jwt')->group(function (): void {
         Route::get('commitments/{commitmentId}', [TrainingController::class, 'commitment'])->whereNumber('commitmentId')->middleware('permission:CAPACITACIONES_COMPROMISOS');
         Route::post('commitments', [TrainingController::class, 'createCommitment'])->middleware('permission:CAPACITACIONES_COMPROMISOS');
         Route::patch('commitments/{commitmentId}', [TrainingController::class, 'updateCommitment'])->whereNumber('commitmentId')->middleware('permission:CAPACITACIONES_COMPROMISOS');
+    });
+    Route::prefix('evaluations')->group(function (): void {
+        Route::get('labors/catalog', [EvaluationController::class, 'labors'])->middleware('permission:EVALUACIONES_VER,EVALUACIONES_CREAR,EVALUACIONES_EDITAR');
+        Route::get('/', [EvaluationController::class, 'index'])->middleware('permission:EVALUACIONES_VER');
+        Route::post('/', [EvaluationController::class, 'store'])->middleware('permission:EVALUACIONES_CREAR');
+        Route::get('{id}', [EvaluationController::class, 'show'])->whereNumber('id')->middleware('permission:EVALUACIONES_VER');
+        Route::post('{id}/employees', [EvaluationController::class, 'addEmployee'])->whereNumber('id')->middleware('permission:EVALUACIONES_EDITAR');
+        Route::post('{id}/employees/add-all', [EvaluationController::class, 'addAllActiveEmployees'])->whereNumber('id')->middleware('permission:EVALUACIONES_EDITAR');
+        Route::delete('{id}/employees/{employeeId}', [EvaluationController::class, 'removeEmployee'])->whereNumber(['id', 'employeeId'])->middleware('permission:EVALUACIONES_EDITAR');
+        Route::post('{id}/scores', [EvaluationController::class, 'saveScores'])->whereNumber('id')->middleware('permission:EVALUACIONES_EDITAR');
+        Route::get('{id}/management-panel', [EvaluationController::class, 'managementPanel'])->whereNumber('id')->middleware('permission:EVALUACIONES_VER');
     });
     Route::prefix('returns')->group(function (): void {
         Route::get('available', [ReturnController::class, 'available'])->middleware('permission:DEVOLUCIONES_CREAR');

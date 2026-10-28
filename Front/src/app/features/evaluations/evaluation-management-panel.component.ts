@@ -1,12 +1,16 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal, ViewChild } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
+import { BaseChartDirective } from 'ng2-charts';
+import { Chart, ChartConfiguration, ChartOptions, registerables } from 'chart.js';
+
+Chart.register(...registerables);
 import { EvaluationManagementPanel } from '../../core/models/evaluation.models';
 import { EvaluationService } from '../../core/services/evaluation.service';
 
 @Component({
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, BaseChartDirective],
   template: `
     @if (panel(); as p) {
       <header class="page-header">
@@ -61,6 +65,13 @@ import { EvaluationService } from '../../core/services/evaluation.service';
           </tbody>
         </table>
       </section>
+
+      <section class="card chart-card">
+        <h2>Avance de Labores vs. Meta ({{ p.resumen.total_meta_camas }} Camas)</h2>
+        <div class="chart-wrap">
+          <canvas baseChart [data]="chartData()" [options]="chartOptions" type="bar"></canvas>
+        </div>
+      </section>
     } @else if (loading()) {
       <p>Cargando panel gerencial...</p>
     } @else if (error()) {
@@ -85,6 +96,8 @@ import { EvaluationService } from '../../core/services/evaluation.service';
     .badge.sin-iniciar { background:#f1f1f1; color:#607068; }
     .notice { padding:10px; margin:10px 0; border-radius:8px; }
     .notice.bad { background:#fff0f0; color:#a11; }
+    .chart-card h2 { margin:0 0 12px; font-size:1.05rem; color:#183e34; }
+    .chart-wrap { height:420px; position:relative; }
   `],
 })
 export class EvaluationManagementPanelComponent {
@@ -93,9 +106,42 @@ export class EvaluationManagementPanelComponent {
   private readonly router = inject(Router);
 
   id = Number(this.route.snapshot.paramMap.get('id'));
+  @ViewChild(BaseChartDirective) chart?: BaseChartDirective;
+
   panel = signal<EvaluationManagementPanel | null>(null);
   loading = signal(false);
   error = signal('');
+
+  chartData = computed<ChartConfiguration<'bar'>['data']>(() => {
+    const labores = this.panel()?.labores || [];
+    return {
+      labels: labores.map((labor) => labor.nombre),
+      datasets: [
+        {
+          label: 'Camas Ejecutadas',
+          data: labores.map((labor) => labor.camas_ejecutadas),
+          backgroundColor: '#3c6939',
+        },
+        {
+          label: 'Meta (Camas)',
+          data: labores.map((labor) => labor.meta_camas),
+          backgroundColor: '#a8c3a0',
+        },
+      ],
+    };
+  });
+
+  chartOptions: ChartOptions<'bar'> = {
+    responsive: true,
+    maintainAspectRatio: false,
+    indexAxis: 'y',
+    plugins: {
+      legend: { position: 'bottom' },
+    },
+    scales: {
+      x: { beginAtZero: true },
+    },
+  };
 
   constructor() {
     this.load();
@@ -108,6 +154,7 @@ export class EvaluationManagementPanelComponent {
       next: (p) => {
         this.panel.set(p);
         this.loading.set(false);
+        setTimeout(() => this.chart?.update(), 0);
       },
       error: (e) => {
         this.loading.set(false);

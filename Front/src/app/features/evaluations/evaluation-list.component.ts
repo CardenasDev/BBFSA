@@ -49,6 +49,7 @@ import { calculateEvaluationWeek } from './evaluation-week.util';
                 <td class="actions">
                   <button class="btn tiny" type="button" (click)="openDetail(item.id_evaluacion)">Ver / Capturar</button>
                   <button class="btn tiny" type="button" (click)="openPanel(item.id_evaluacion)">Panel gerencial</button>
+                  <button class="btn tiny danger" type="button" (click)="remove(item.id_evaluacion)">Eliminar</button>
                 </td>
               </tr>
             } @empty {
@@ -92,6 +93,7 @@ import { calculateEvaluationWeek } from './evaluation-week.util';
     .btn { padding:8px 12px; border:1px solid #cbd8d2; border-radius:8px; background:#fff; cursor:pointer; }
     .btn.primary { background:#08745b; color:#fff; border-color:#08745b; }
     .btn.tiny { padding:5px 8px; font-size:.78rem; }
+    .btn.danger { background:#fff1f1; color:#a11; border-color:#efc6c6; }
     .badge { background:#eef7f3; padding:4px 8px; border-radius:999px; font-size:.78rem; }
     .notice { padding:10px; margin:10px 0; border-radius:8px; }
     .notice.ok { background:#e7f7ef; }
@@ -211,6 +213,22 @@ export class EvaluationListComponent {
 
   openPanel(id: number): void {
     this.router.navigate(['/admin/evaluations', id, 'management-panel']);
+  }
+
+  remove(id: number): void {
+    if (!confirm('¿Desea eliminar esta evaluación de forma lógica?')) {
+      return;
+    }
+    this.error.set('');
+    this.api.deleteEvaluation(id).subscribe({
+      next: () => {
+        this.message.set('Evaluación eliminada correctamente.');
+        this.load();
+      },
+      error: (e) => {
+        this.error.set(e?.error?.message || 'No fue posible eliminar la evaluación.');
+      },
+    });
   }
 }
 

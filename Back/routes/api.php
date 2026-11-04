@@ -232,6 +232,7 @@ Route::middleware('auth.jwt')->group(function (): void {
         Route::post('{id}/scores', [EvaluationController::class, 'saveScores'])->whereNumber('id')->middleware('permission:EVALUACIONES_EDITAR');
         Route::get('{id}/management-panel', [EvaluationController::class, 'managementPanel'])->whereNumber('id')->middleware('permission:EVALUACIONES_VER');
         Route::get('dashboard/latest', [EvaluationController::class, 'dashboardLatest'])->middleware('permission:DASHBOARD_EVALUACION_ULTIMA_VER');
+        Route::delete('{id}', [EvaluationController::class, 'destroy'])->whereNumber('id')->middleware('permission:EVALUACIONES_EDITAR');
     });
     Route::prefix('returns')->group(function (): void {
         Route::get('available', [ReturnController::class, 'available'])->middleware('permission:DEVOLUCIONES_CREAR');

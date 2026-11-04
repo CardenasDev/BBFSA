@@ -90,6 +90,12 @@ export class EvaluationService {
       .pipe(map((r) => r.data));
   }
 
+  deleteEvaluation(id: number): Observable<{ deleted: number }> {
+    return this.http
+      .delete<ApiResponse<{ deleted: number }>>(`${this.url}/${id}`)
+      .pipe(map((r) => r.data));
+  }
+
   getManagementPanel(id: number): Observable<EvaluationManagementPanel> {
     return this.http
       .get<ApiResponse<EvaluationManagementPanel>>(`${this.url}/${id}/management-panel`)

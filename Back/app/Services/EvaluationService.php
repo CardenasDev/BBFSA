@@ -98,6 +98,18 @@ class EvaluationService
         return $this->repository->dashboardLatest() ?? [];
     }
 
+    public function delete(int $evaluationId, int $actor, array $context): array
+    {
+        $deleted = $this->repository->delete($evaluationId, $actor);
+        if ($deleted < 1) {
+            throw new ApiException('No fue posible eliminar la evaluación.', 422);
+        }
+
+        $this->audit->record($actor, 'EVALUACIONES', 'ELIMINAR', 'EVALUACION', $evaluationId, null, ['eliminado' => 1], $context);
+
+        return ['deleted' => $deleted];
+    }
+
     public function managementPanel(int $evaluationId): array
     {
         $evaluation = $this->repository->find($evaluationId);

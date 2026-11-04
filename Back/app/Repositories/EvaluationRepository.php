@@ -213,6 +213,13 @@ class EvaluationRepository extends StoredProcedureRepository
         return $row;
     }
 
+    public function delete(int $evaluationId, int $actorId): int
+    {
+        $row = $this->first('SP_BBF_EVALUACION_ELIMINAR', [$evaluationId, $actorId]);
+
+        return (int) ($row['filas_afectadas'] ?? 0);
+    }
+
     public function managementPanel(int $evaluationId): array
     {
         $statement = DB::connection()->getPdo()->prepare('CALL SP_BBF_EVALUACION_PANEL_GERENCIAL_OBTENER(?)');

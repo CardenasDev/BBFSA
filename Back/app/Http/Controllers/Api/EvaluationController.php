@@ -89,6 +89,15 @@ class EvaluationController extends ApiController
     }
 
     /** Obtener el catálogo de labores agrícolas parametrizadas. */
+    /** Eliminar lógicamente una evaluación semanal. */
+    public function destroy(Request $request, int $id): JsonResponse
+    {
+        return $this->success(
+            $this->evaluation->delete($id, $this->actorId($request), $this->context($request)),
+            'Evaluación eliminada correctamente'
+        );
+    }
+
     /** Obtener el resumen de la última evaluación registrada a la fecha actual para el Dashboard. */
     public function dashboardLatest(): JsonResponse
     {

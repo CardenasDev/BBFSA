@@ -4,6 +4,7 @@ import { map, Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { ApiResponse } from '../models/api.models';
 import {
+  DashboardLatestEvaluation,
   EvaluationDetail,
   EvaluationEmployee,
   EvaluationLabor,
@@ -93,6 +94,12 @@ export class EvaluationService {
     return this.http
       .get<ApiResponse<EvaluationManagementPanel>>(`${this.url}/${id}/management-panel`)
       .pipe(map((r) => r.data));
+  }
+
+  getDashboardLatest(): Observable<DashboardLatestEvaluation | null> {
+    return this.http
+      .get<ApiResponse<DashboardLatestEvaluation>>(`${this.url}/dashboard/latest`)
+      .pipe(map((r) => r.data ?? null));
   }
 
   getLaborsCatalog(inactive = false): Observable<EvaluationLabor[]> {

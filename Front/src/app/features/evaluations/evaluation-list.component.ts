@@ -1,20 +1,21 @@
 import { CommonModule } from '@angular/common';
 import { Component, inject, signal } from '@angular/core';
-import { FormsModule } from '@angular/forms';
+import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { EvaluationList } from '../../core/models/evaluation.models';
 import { EvaluationService } from '../../core/services/evaluation.service';
+import { calculateEvaluationWeek } from './evaluation-week.util';
 
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, ReactiveFormsModule],
   template: `
     <header class="page-header">
       <div>
         <h1>Evaluaciones semanales</h1>
         <p>Historial de evaluaciones de labores agrícolas por semana.</p>
       </div>
-      <button class="btn primary" (click)="openModal()">Nueva evaluación</button>
+      <button class="btn primary" type="button" (click)="openModal()">Nueva evaluación</button>
     </header>
 
     @if (message()) { <div class="notice ok">{{ message() }}</div> }
@@ -46,8 +47,8 @@ import { EvaluationService } from '../../core/services/evaluation.service';
                 <td>{{ item.fecha_fin || '-' }}</td>
                 <td><span class="badge">{{ item.estado }}</span></td>
                 <td class="actions">
-                  <button class="btn tiny" (click)="openDetail(item.id_evaluacion)">Ver / Capturar</button>
-                  <button class="btn tiny" (click)="openPanel(item.id_evaluacion)">Panel gerencial</button>
+                  <button class="btn tiny" type="button" (click)="openDetail(item.id_evaluacion)">Ver / Capturar</button>
+                  <button class="btn tiny" type="button" (click)="openPanel(item.id_evaluacion)">Panel gerencial</button>
                 </td>
               </tr>
             } @empty {
@@ -62,18 +63,21 @@ import { EvaluationService } from '../../core/services/evaluation.service';
       <div class="modal">
         <article>
           <h2>Nueva evaluación</h2>
-          <label>Año<input type="number" [(ngModel)]="form.anio" /></label>
-          <label>Número de semana<input type="number" [(ngModel)]="form.numero_semana" min="1" max="53" /></label>
-          <label>Nombre (opcional)<input type="text" [(ngModel)]="form.nombre_semana" /></label>
-          <label>Fecha inicio<input type="date" [(ngModel)]="form.fecha_inicio" /></label>
-          <label>Fecha fin<input type="date" [(ngModel)]="form.fecha_fin" /></label>
-          <label>Observaciones<textarea [(ngModel)]="form.observaciones"></textarea></label>
-          <div class="modal-actions">
-            <button class="btn" (click)="closeModal()" [disabled]="creating()">Cancelar</button>
-            <button class="btn primary" (click)="create()" [disabled]="creating()">
-              @if (creating()) { <span class="spinner"></span> Guardando... } @else { Crear }
-            </button>
-          </div>
+          <form [formGroup]="form" (ngSubmit)="create()">
+            <label>Año<input type="number" formControlName="anio" readonly /></label>
+            <label>Número de semana<input type="number" formControlName="numero_semana" min="1" max="53" readonly /></label>
+            <label>Nombre (opcional)<input type="text" formControlName="nombre_semana" /></label>
+            <label>Fecha inicio<input type="date" formControlName="fecha_inicio" required /></label>
+            <label>Fecha fin<input type="date" formControlName="fecha_fin" readonly /></label>
+            <label>Observaciones<textarea formControlName="observaciones"></textarea></label>
+            @if (error()) { <div class="notice bad">{{ error() }}</div> }
+            <div class="modal-actions">
+              <button type="button" class="btn" (click)="closeModal()" [disabled]="creating()">Cancelar</button>
+              <button type="submit" class="btn primary" [disabled]="form.invalid || creating()">
+                @if (creating()) { <span class="spinner"></span> Guardando... } @else { Crear }
+              </button>
+            </div>
+          </form>
         </article>
       </div>
     }
@@ -103,6 +107,7 @@ import { EvaluationService } from '../../core/services/evaluation.service';
 export class EvaluationListComponent {
   private readonly api = inject(EvaluationService);
   private readonly router = inject(Router);
+  private readonly fb = inject(FormBuilder);
 
   evaluations = signal<EvaluationList[]>([]);
   loading = signal(false);
@@ -111,17 +116,33 @@ export class EvaluationListComponent {
   showModal = signal(false);
   creating = signal(false);
 
-  form = {
-    anio: new Date().getFullYear(),
-    numero_semana: 1,
-    nombre_semana: '',
-    fecha_inicio: '',
-    fecha_fin: '',
-    observaciones: '',
-  };
+  form: FormGroup = this.fb.group({
+    anio: [{ value: new Date().getFullYear(), disabled: true }],
+    numero_semana: [{ value: 1, disabled: true }, [Validators.min(1), Validators.max(53)]],
+    nombre_semana: [''],
+    fecha_inicio: ['', Validators.required],
+    fecha_fin: [{ value: '', disabled: true }],
+    observaciones: [''],
+  });
 
   constructor() {
     this.load();
+    this.form.get('fecha_inicio')?.valueChanges.subscribe((value) => {
+      if (!value) {
+        return;
+      }
+      const calculated = calculateEvaluationWeek(value);
+      const currentName = String(this.form.get('nombre_semana')?.value ?? '').trim();
+      this.form.patchValue(
+        {
+          anio: calculated.anio,
+          numero_semana: calculated.numero_semana,
+          fecha_fin: calculated.fecha_fin,
+          ...(currentName ? {} : { nombre_semana: calculated.nombre_semana }),
+        },
+        { emitEvent: false },
+      );
+    });
   }
 
   load(): void {
@@ -143,6 +164,7 @@ export class EvaluationListComponent {
     this.showModal.set(true);
     this.message.set('');
     this.error.set('');
+    this.resetForm();
   }
 
   closeModal(): void {
@@ -150,10 +172,26 @@ export class EvaluationListComponent {
     this.showModal.set(false);
   }
 
+  resetForm(): void {
+    this.form.reset({
+      anio: new Date().getFullYear(),
+      numero_semana: 1,
+      nombre_semana: '',
+      fecha_inicio: '',
+      fecha_fin: '',
+      observaciones: '',
+    });
+  }
+
   create(): void {
+    if (this.form.invalid || this.creating()) {
+      this.form.markAllAsTouched();
+      return;
+    }
     this.creating.set(true);
     this.error.set('');
-    this.api.createEvaluation(this.form).subscribe({
+    const payload = this.form.getRawValue();
+    this.api.createEvaluation(payload as Record<string, unknown>).subscribe({
       next: () => {
         this.creating.set(false);
         this.showModal.set(false);
@@ -175,3 +213,5 @@ export class EvaluationListComponent {
     this.router.navigate(['/admin/evaluations', id, 'management-panel']);
   }
 }
+
+export { calculateEvaluationWeek as calculateIsoWeek };

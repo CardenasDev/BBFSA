@@ -89,6 +89,12 @@ class EvaluationController extends ApiController
     }
 
     /** Obtener el catálogo de labores agrícolas parametrizadas. */
+    /** Obtener el resumen de la última evaluación registrada a la fecha actual para el Dashboard. */
+    public function dashboardLatest(): JsonResponse
+    {
+        return $this->success($this->evaluation->dashboardLatest(), 'Última evaluación consultada correctamente');
+    }
+
     public function labors(Request $request): JsonResponse
     {
         $request->validate(['incluir_inactivas' => ['nullable', 'boolean']]);

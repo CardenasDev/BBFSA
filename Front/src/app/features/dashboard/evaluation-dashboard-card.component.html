@@ -1,0 +1,33 @@
+@if (evaluation) {
+  <section class="eval-card">
+    <div class="metric-grid">
+      <article class="metric-block">
+        <span class="metric-label">Evaluación</span>
+        <strong class="metric-value">{{ evaluation.anio }} · Semana {{ evaluation.numero_semana }}</strong>
+        <small class="metric-subtitle">{{ evaluation.nombre_semana || 'Sin nombre' }}</small>
+      </article>
+
+      <article class="metric-block">
+        <span class="metric-label">Vigencia</span>
+        <strong class="metric-value">{{ evaluation.fecha_inicio }} a {{ evaluation.fecha_fin || 'Sin fecha fin' }}</strong>
+        <small class="metric-subtitle">Periodo de la evaluación</small>
+      </article>
+
+      <article class="metric-block metric-block--coverage">
+        <span class="metric-label">Cobertura global</span>
+        <strong class="metric-value">{{ evaluation.porcentaje_cobertura_global }}%</strong>
+        <div class="progress-track" role="progressbar" [attr.aria-valuenow]="progressWidth(evaluation.porcentaje_cobertura_global)" aria-valuemin="0" aria-valuemax="100">
+          <div class="progress-bar" [style.width.%]="progressWidth(evaluation.porcentaje_cobertura_global)"></div>
+        </div>
+        <small class="metric-subtitle">{{ evaluation.total_camas_ejecutadas }} de {{ evaluation.total_meta_camas }} camas</small>
+      </article>
+    </div>
+    <div class="card-actions">
+      <a class="btn primary small" [routerLink]="['/admin/evaluations', evaluation.id_evaluacion]">Ver detalle</a>
+    </div>
+  </section>
+} @else {
+  <section class="eval-card eval-card--empty">
+    <p class="muted">No hay evaluaciones registradas a la fecha actual.</p>
+  </section>
+}

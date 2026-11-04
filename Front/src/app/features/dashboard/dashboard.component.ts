@@ -4,9 +4,12 @@ import { AuthService } from '../../core/services/auth.service';
 import { HealthService } from '../../core/services/catalog.service';
 import { NotificationService } from '../../core/services/notification.service';
 import { KpiService } from '../../core/services/kpi.service';
+import { EvaluationService } from '../../core/services/evaluation.service';
+import { EvaluationDashboardCardComponent } from './evaluation-dashboard-card.component';
 import { NotificationSummary } from '../../core/models/notification.models';
+import { DashboardLatestEvaluation } from '../../core/models/evaluation.models';
 
-@Component({ standalone: true, imports: [RouterLink], template: `
+@Component({ standalone: true, imports: [RouterLink, EvaluationDashboardCardComponent], template: `
   <div class="page-heading"><div><p class="eyebrow">Resumen general</p><h1>Hola, {{ auth.currentUser()?.nombre_usuario }}</h1><p class="muted">Este es el estado actual de tu acceso administrativo.</p></div><span class="badge" [class.success]="backendOnline()">API {{ backendOnline() ? 'conectada' : healthDone() ? 'sin conexión' : 'verificando' }}</span></div>
   <section class="stats-grid">
     <article class="stat-card"><span>Tipo de usuario</span><strong>{{ auth.currentUser()?.tipo_usuario }}</strong><small>{{ auth.currentUser()?.correo }}</small></article>
@@ -25,6 +28,9 @@ import { NotificationSummary } from '../../core/models/notification.models';
       </a>
     </section>
   }
+  @if (auth.hasPermission('DASHBOARD_EVALUACION_ULTIMA_VER')) {
+    <app-evaluation-dashboard-card [evaluation]="latestEvaluation()" />
+  }
   @if (auth.hasPermission('NOTIFICACIONES_VER')) {
     <section class="panel"><div class="panel-heading"><div><h2>Alertas laborales</h2><p class="muted">Información prioritaria según tus permisos.</p></div><a class="btn ghost" routerLink="/admin/notifications">Ver todas</a></div>
       <div class="stats-grid">
@@ -40,17 +46,21 @@ export class DashboardComponent implements OnInit {
   private readonly health = inject(HealthService);
   private readonly notifications = inject(NotificationService);
   private readonly kpi = inject(KpiService);
+  private readonly evaluations = inject(EvaluationService);
   readonly backendOnline = signal(false); 
   readonly healthDone = signal(false);
   readonly notificationSummary = signal<NotificationSummary | null>(null);
   readonly kpiData = signal<{ tasa_rotacion_3m: number } | null>(null);
+  readonly latestEvaluation = signal<DashboardLatestEvaluation | null>(null);
   ngOnInit(): void { 
     this.auth.me().subscribe({ next: () => this.loadNotificationSummary(), error: () => undefined }); 
     this.loadNotificationSummary(); 
     this.loadKpi();
+    this.loadLatestEvaluation();
     this.health.check().subscribe({ next: (data) => { this.backendOnline.set(data.status === 'ok'); this.healthDone.set(true); }, error: () => this.healthDone.set(true) }); 
   }
   private loadNotificationSummary(): void { if (this.auth.hasPermission('NOTIFICACIONES_VER')) this.notifications.summary().subscribe({ next: (summary) => this.notificationSummary.set(summary), error: () => undefined }); }
   private loadKpi(): void { if (this.auth.hasPermission('EMPLEADOS_KPI_VER')) this.kpi.getRotationAndDemographics().subscribe({ next: (data) => this.kpiData.set({ tasa_rotacion_3m: data.tasa_rotacion_3m }), error: () => undefined }); }
+  private loadLatestEvaluation(): void { if (this.auth.hasPermission('DASHBOARD_EVALUACION_ULTIMA_VER')) this.evaluations.getDashboardLatest().subscribe({ next: (data) => this.latestEvaluation.set(data), error: () => undefined }); }
   roleNames(): string { return this.auth.roles().map((role) => role.nombre).join(', ') || 'Sin roles'; }
 }

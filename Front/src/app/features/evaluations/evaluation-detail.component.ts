@@ -68,7 +68,7 @@ import { EmployeeService } from '../../core/services/employee.service';
                 @for (labor of labors(); track labor.id_evaluacion_labor) {
                   <th>{{ labor.nombre }}<br /><small>Máx. {{ maxFor(labor) }}</small></th>
                 }
-                <th>Total semana</th>
+                <th>Total semana / Estado</th>
               </tr>
             </thead>
             <tbody>
@@ -89,7 +89,12 @@ import { EmployeeService } from '../../core/services/employee.service';
                       />
                     </td>
                   }
-                  <td class="total">{{ rowTotal(emp.id_empleado) }}</td>
+                  <td class="total">
+                    <div class="total-value">{{ rowTotal(emp.id_empleado) }}</div>
+                    @if (rowStatus(emp.id_empleado) !== '') {
+                      <span class="badge" [ngClass]="statusClass(rowStatus(emp.id_empleado))">{{ rowStatus(emp.id_empleado) }}</span>
+                    }
+                  </td>
                 </tr>
               } @empty {
                 <tr><td [attr.colspan]="labors().length + 2">
@@ -123,6 +128,12 @@ import { EmployeeService } from '../../core/services/employee.service';
     th small { color:#607068; font-weight:400; }
     input { width:78px; padding:6px; border:1px solid #cbd8d2; border-radius:7px; }
     .total { font-weight:800; }
+    .total-value { margin-bottom:4px; }
+    .badge { padding:4px 10px; border-radius:999px; font-size:.8rem; font-weight:700; display:inline-block; }
+    .badge.excelente { background:#0f9d58; color:#fff; box-shadow:0 0 0 2px #c8f0d8; }
+    .badge.cumplimiento { background:#e7f7ef; color:#08745b; }
+    .badge.falta { background:#fff7e6; color:#8a5a00; }
+    .badge.llamado { background:#fff0f0; color:#a11; }
     .doc { color:#607068; font-size:.8rem; }
     .btn { padding:8px 12px; border:1px solid #cbd8d2; border-radius:8px; background:#fff; cursor:pointer; }
     .btn.primary { background:#08745b; color:#fff; border-color:#08745b; }
@@ -242,6 +253,18 @@ export class EvaluationDetailComponent {
     }, 0);
   }
 
+  rowStatus(employeeId: number): string | number {
+    return calculateEmployeeTotalStatus(this.rowTotal(employeeId));
+  }
+
+  statusClass(status: string | number): string {
+    if (status === 'EXCELENTE') return 'excelente';
+    if (status === 100 || status === '100') return 'cumplimiento';
+    if (status === 'FALTA') return 'falta';
+    if (status === 'LLAMADO DE ATENCION') return 'llamado';
+    return '';
+  }
+
   maxFor(labor: EvaluationLabor): number {
     return Number(labor.ponderacion_maxima_default ?? labor.ponderacion_maxima ?? 0);
   }
@@ -329,4 +352,22 @@ export class EvaluationDetailComponent {
   goPanel(): void {
     this.router.navigate(['/admin/evaluations', this.id, 'management-panel']);
   }
+}
+
+export function calculateEmployeeTotalStatus(total: number): string | number {
+  const value = Number(total) || 0;
+
+  if (value === 0) {
+    return '';
+  }
+  if (value >= 500) {
+    return 'EXCELENTE';
+  }
+  if (value > 400) {
+    return 100;
+  }
+  if (value <= 250) {
+    return 'LLAMADO DE ATENCION';
+  }
+  return 'FALTA';
 }

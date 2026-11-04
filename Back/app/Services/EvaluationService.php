@@ -93,6 +93,11 @@ class EvaluationService
         return ['scores' => $saved];
     }
 
+    public function dashboardLatest(): array
+    {
+        return $this->repository->dashboardLatest() ?? [];
+    }
+
     public function managementPanel(int $evaluationId): array
     {
         $evaluation = $this->repository->find($evaluationId);

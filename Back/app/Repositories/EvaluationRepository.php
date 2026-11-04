@@ -101,10 +101,34 @@ class EvaluationRepository extends StoredProcedureRepository
             $employeeDetails = $byEmployee[$employee['id_empleado']] ?? [];
             $employee['detalles'] = $employeeDetails;
             $employee['total_semana'] = array_sum(array_column($employeeDetails, 'valor_obtenido'));
+            $employee['estado_semana'] = $this->calculateEmployeeTotalStatus($employee['total_semana']);
+            $employee['estado'] = $employee['estado_semana'];
+            $employee['estado_total_semana'] = $employee['estado_semana'];
+            $employee['total_status'] = $employee['estado_semana'];
         }
         unset($employee);
 
         return $employees;
+    }
+
+    private function calculateEmployeeTotalStatus(float|int|string|null $total): string|int
+    {
+        $value = (float) ($total ?? 0);
+
+        if ($value == 0.0) {
+            return '';
+        }
+        if ($value >= 500) {
+            return 'EXCELENTE';
+        }
+        if ($value > 400) {
+            return 100;
+        }
+        if ($value <= 250) {
+            return 'LLAMADO DE ATENCION';
+        }
+
+        return 'FALTA';
     }
 
     public function addEmployee(int $evaluationId, int $employeeId, ?string $observations, int $actorId): ?array
@@ -164,6 +188,29 @@ class EvaluationRepository extends StoredProcedureRepository
         }
 
         return $saved;
+    }
+
+    public function dashboardLatest(): ?array
+    {
+        $rows = $this->call('SP_BBF_DASHBOARD_ULTIMA_EVALUACION_OBTENER', []);
+
+        if ($rows === []) {
+            return null;
+        }
+
+        $row = $rows[0];
+
+        foreach (['total_camas_ejecutadas', 'total_meta_camas', 'porcentaje_cobertura_global'] as $key) {
+            if (array_key_exists($key, $row) && $row[$key] !== null) {
+                $row[$key] = (float) $row[$key];
+            }
+        }
+
+        if (array_key_exists('total_trabajadores_evaluados', $row) && $row['total_trabajadores_evaluados'] !== null) {
+            $row['total_trabajadores_evaluados'] = (int) $row['total_trabajadores_evaluados'];
+        }
+
+        return $row;
     }
 
     public function managementPanel(int $evaluationId): array

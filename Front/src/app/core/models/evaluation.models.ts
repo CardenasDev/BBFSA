@@ -51,6 +51,10 @@ export interface EvaluationEmployee {
   estado_empleado?: string;
   detalles?: EvaluationScore[];
   total_semana?: number;
+  estado_semana?: string | number;
+  estado_total_semana?: string | number;
+  total_status?: string | number;
+  estado?: string | number;
 }
 
 export interface EvaluationDetail {
@@ -83,6 +87,20 @@ export interface EvaluationManagementPanel {
   evaluation: EvaluationList;
   labores: EvaluationLaborDetail[];
   resumen: EvaluationManagementSummary;
+}
+
+export interface DashboardLatestEvaluation {
+  id_evaluacion: number;
+  anio: number;
+  numero_semana: number;
+  nombre_semana?: string | null;
+  fecha_inicio: string;
+  fecha_fin?: string | null;
+  estado: EvaluationStatus;
+  total_camas_ejecutadas: number;
+  total_meta_camas: number;
+  porcentaje_cobertura_global: number;
+  total_trabajadores_evaluados: number;
 }
 
 export interface EvaluationScoreInput {

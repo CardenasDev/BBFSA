@@ -1,0 +1,22 @@
+@if (open()) {
+  <div class="modal">
+    <article>
+      <h2>Nueva evaluación</h2>
+      <form [formGroup]="form" (ngSubmit)="submit()">
+        <label>Año<input type="number" formControlName="anio" readonly /></label>
+        <label>Número de semana<input type="number" formControlName="numero_semana" min="1" max="53" readonly /></label>
+        <label>Nombre (opcional)<input type="text" formControlName="nombre_semana" placeholder="Semana X" /></label>
+        <label>Fecha inicio<input type="date" formControlName="fecha_inicio" required /></label>
+        <label>Fecha fin<input type="date" formControlName="fecha_fin" readonly /></label>
+        <label>Observaciones<textarea formControlName="observaciones"></textarea></label>
+        @if (error()) { <div class="notice bad">{{ error() }}</div> }
+        <div class="modal-actions">
+          <button type="button" class="btn" (click)="close()" [disabled]="creating()">Cancelar</button>
+          <button type="submit" class="btn primary" [disabled]="form.invalid || creating()">
+            @if (creating()) { <span class="spinner"></span> Guardando... } @else { Crear }
+          </button>
+        </div>
+      </form>
+    </article>
+  </div>
+}
